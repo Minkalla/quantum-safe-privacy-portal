@@ -23,7 +23,8 @@
 // This must be the very first import to ensure process.env is populated before other modules use it.
 import 'dotenv/config';
 
-import express, { Request, Response } from 'express'; // Explicitly import Request and Response types
+import express, { Request, Response } from 'express';
+import Logger from './utils/logger'; // Import our centralized logger
 
 // Initialize the Express application
 const app = express();
@@ -57,5 +58,5 @@ app.get('/', (_req: Request, res: Response): void => {
  * @returns {Server} The HTTP server instance.
  */
 app.listen(port, (): void => {
-  console.log(`Portal Backend listening at http://localhost:${port}`);
+  Logger.info(`Portal Backend listening at http://localhost:${port}`); // Use the logger instead of console.log
 });
