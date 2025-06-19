@@ -11,12 +11,13 @@
  * Adheres to "no regrets" quality by providing structured logging crucial for
  * debugging, monitoring, and meeting regulatory requirements (e.g., NIST SP 800-53, HIPAA, SOC 2).
  * Supports different log levels (error, warn, info, debug) and outputs to console in development.
- * Can be extended for file transport, cloud logging (e.g., CloudWatch, LogDNA), etc., in production.
+ * Can be extended for file transport, cloud logging (e.g., CloudWatch, LogDNA, Splunk), etc., in production.
  *
  * @see {@link https://github.com/winstonjs/winston|Winston GitHub}
  */
 
 import winston from 'winston';
+import { TransformableInfo } from 'logform'; // <-- NEW: Import TransformableInfo
 
 /**
  * Define custom log levels and their associated colors.
@@ -62,9 +63,9 @@ const format = winston.format.combine(
   // Add a timestamp to each log entry.
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
   // Customize log message based on environment.
-  // Explicitly define the structure of the 'info' object for TypeScript strictness.
+  // Combine Winston's TransformableInfo with our expected properties for strict type checking.
   winston.format.printf(
-    (info: { timestamp: string; level: string; message: string }) =>
+    (info: TransformableInfo & { timestamp: string; level: string; message: string }) =>
       `${info.timestamp} ${info.level}: ${info.message}`,
   ),
 );
