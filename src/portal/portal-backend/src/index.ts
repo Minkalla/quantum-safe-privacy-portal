@@ -28,12 +28,8 @@ import path from 'path';
 dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
 import express, { Request, Response } from 'express';
-// No longer importing mongoose or Logger directly here if they are only for server start
-// However, Logger is used in authController and globalErrorHandler, so keep it.
-// Mongoose is no longer needed here if connectDB is moved.
-// We will keep mongoose import for type hinting/declaration if models implicitly use it globally.
-import mongoose from 'mongoose';
-import Logger from './utils/logger';
+// REMOVED: import mongoose from 'mongoose'; // No longer used directly in index.ts
+// REMOVED: import Logger from './utils/logger'; // No longer used directly in index.ts
 import { register } from './controllers/authController';
 import { globalErrorHandler } from './middleware/errorHandler';
 
@@ -79,7 +75,5 @@ app.post('/portal/register', register);
  */
 app.use(globalErrorHandler);
 
-// REMOVED: The entire 'if (require.main === module)' block from here.
-// The server start and DB connect logic will be moved to a separate 'server.ts' file.
-
-export default app; // This line is crucial: it exports the configured Express app instance
+// This line is crucial: it exports the configured Express app instance
+export default app;
