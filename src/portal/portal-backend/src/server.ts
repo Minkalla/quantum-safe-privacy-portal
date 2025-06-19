@@ -42,6 +42,7 @@ const connectDB = async (): Promise<void> => {
 
 // CRITICAL FIX: Only start the server and connect to DB if NOT in a test environment
 // The 'IS_TESTING' environment variable will be set when running Jest.
+Logger.debug(`IS_TESTING environment variable: ${process.env['IS_TESTING']}`); // <-- NEW: Diagnostic log
 if (process.env['IS_TESTING'] !== 'true') {
   connectDB(); // Connect to the database
   app.listen(port, () => {
