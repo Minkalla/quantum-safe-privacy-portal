@@ -22,6 +22,7 @@ import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import app from '../index';
 import { default as UserModel, IUser } from '../models/User';
+import * as bcrypt from 'bcryptjs'; // <-- CRITICAL: Use import * as bcrypt for compatibility
 
 let mongo: MongoMemoryServer; // In-memory MongoDB server instance
 let testConnection: mongoose.Connection; // Specific connection for tests
@@ -51,9 +52,9 @@ beforeAll(async () => {
 
   // Create a *new, isolated* Mongoose connection specifically for this test suite
   testConnection = mongoose.createConnection(uri, {
-    serverSelectionTimeoutMS: 5000,
-    socketTimeoutMS: 45000,
-    connectTimeoutMS: 10000,
+    serverSelectionTimeoutMS: 30000, // Increased to 30 seconds (matching Jest timeout)
+    socketTimeoutMS: 60000,    // Increased to 60 seconds
+    connectTimeoutMS: 30000,   // Increased to 30 seconds
     bufferCommands: false,
     dbName: 'jest_test_db',
   });
