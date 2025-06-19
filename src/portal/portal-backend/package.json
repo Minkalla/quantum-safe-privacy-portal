@@ -46,9 +46,10 @@
     "yamljs": "^0.3.0"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
+    "bcryptjs": "^2.4.3",            
     "@types/cors": "^2.8.17",
     "@types/hpp": "^0.2.6",
+    "@types/jest": "^29.5.12",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/morgan": "^1.9.9",
     "@types/nodemailer": "^6.4.15",
