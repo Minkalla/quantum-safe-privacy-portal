@@ -19,6 +19,10 @@
  * @see {@link https://github.com/Minkalla/quantum-safe-privacy-portal|Minkalla GitHub Repo}
  */
 
+// Ensure environment variables are loaded from .env file FIRST.
+// This must be the very first import to ensure process.env is populated before other modules use it.
+import 'dotenv/config';
+
 import express, { Request, Response } from 'express'; // Explicitly import Request and Response types
 
 // Initialize the Express application
@@ -27,7 +31,8 @@ const app = express();
 /**
  * @constant {number} port - The port number for the server to listen on.
  * Fetched from environment variables (process.env.PORT) or defaults to 3000.
- * @remarks Using bracket notation for process.env property access to satisfy TypeScript strictness (TS4111).
+ * @remarks Using bracket notation for process.env property access to satisfy TypeScript strictness (TS4111),
+ * and parseInt to ensure it's treated as a number.
  */
 const port: number = parseInt(process.env['PORT'] || '3000', 10); // Explicitly cast to number and strict access
 
