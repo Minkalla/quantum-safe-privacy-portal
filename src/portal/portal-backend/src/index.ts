@@ -118,3 +118,10 @@ app.use(globalErrorHandler); // <-- NEW: Add global error handler as the last mi
 app.listen(port, (): void => {
   Logger.info(`Portal Backend listening at http://localhost:${port}`);
 });
+// ... (rest of the file)
+
+app.listen(port, (): void => {
+  Logger.info(`Portal Backend listening at http://localhost:${port}`);
+});
+
+export default app; // <-- NEW: Export the Express app for testing purposes
