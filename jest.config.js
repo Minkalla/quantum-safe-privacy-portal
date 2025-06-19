@@ -43,7 +43,7 @@ module.exports = {
       path.resolve(__dirname, 'src/portal/portal-backend/node_modules/ts-jest'),
       {
         // Explicitly tell ts-jest which tsconfig.json to use
-        tsconfig: path.resolve(__dirname, 'src/portal/portal-backend/tsconfig.json'),
+        tsconfig: path.resolve(__dirname, './tsconfig.json'),
         // CRITICAL NEW ADDITION: Force esModuleInterop directly via compilerOptions
         compilerOptions: {
           esModuleInterop: true,
