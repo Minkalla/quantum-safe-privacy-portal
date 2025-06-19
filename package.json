@@ -1,7 +1,15 @@
 {
+  "name": "minkalla-monorepo-root",
+  "version": "1.0.0",
+  "description": "Root package.json for Minkalla monorepo to manage shared dependencies.",
+  "private": true,
+  "scripts": {
+    "test": "npx jest",
+    "postinstall": "npm install --prefix src/portal/portal-backend"
+  },
   "devDependencies": {
-    "@types/jest": "^30.0.0",
-    "jest": "^30.0.1",
-    "ts-jest": "^29.4.0"
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.5",
+    "@types/jest": "^29.5.12"
   }
 }
