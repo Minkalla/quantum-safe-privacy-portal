@@ -13,17 +13,39 @@
  * This file will handle the business logic for API routes.
  *
  * @see {@link https://www.npmjs.com/package/bcryptjs|bcryptjs} for password hashing.
+ * @see {@link https://joi.dev/api/|Joi API Documentation} for input validation.
  */
 
 import { Request, Response } from 'express';
-import bcrypt from 'bcryptjs'; // Import bcryptjs for password hashing
-import User from '../models/User'; // Import the User model
-import Logger from '../utils/logger'; // Import our centralized logger
+import bcrypt from 'bcryptjs';
+import Joi from 'joi'; // <-- NEW: Import Joi for validation
+import User from '../models/User';
+import Logger from '../utils/logger';
+
+/**
+ * @constant {Joi.ObjectSchema} registerSchema
+ * @description Joi schema for validating user registration input.
+ * Ensures email is valid, password meets length requirements, and no unknown fields are present.
+ * This enhances security and data integrity by validating data at the API entry point.
+ */
+const registerSchema = Joi.object({
+  email: Joi.string().email().required().messages({
+    'string.email': 'Please enter a valid email address',
+    'string.empty': 'Email is required',
+    'any.required': 'Email is required',
+  }),
+  password: Joi.string().min(8).required().messages({
+    'string.min': 'Password must be at least {#limit} characters long',
+    'string.empty': 'Password is required',
+    'any.required': 'Password is required',
+  }),
+  // Future: Add other registration fields here with their validation rules
+});
 
 /**
  * @function register
  * @description Handles the user registration process.
- * Performs basic validation, hashes the user's password, and attempts to save the new user to the database.
+ * Performs robust input validation, hashes the user's password, and attempts to save the new user to the database.
  *
  * @route POST /portal/register
  * @param {Request} req - The Express request object, containing user registration data (email, password).
@@ -32,14 +54,16 @@ import Logger from '../utils/logger'; // Import our centralized logger
  */
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password } = req.body; // Extract email and password from request body
-
-    // Basic validation: Check if email and password are provided
-    if (!email || !password) {
-      Logger.warn('Registration attempt failed: Missing email or password.');
-      res.status(400).json({ message: 'Email and password are required' });
+    // Input validation using Joi
+    const { error, value } = registerSchema.validate(req.body, { abortEarly: false }); // Validate all errors
+    if (error) {
+      const validationErrors = error.details.map((detail) => detail.message);
+      Logger.warn(`Registration attempt failed: Input validation errors for email: ${req.body.email}. Errors: ${validationErrors.join(', ')}`);
+      res.status(400).json({ message: 'Validation failed', errors: validationErrors });
       return;
     }
+
+    const { email, password } = value; // Use validated value
 
     // Check if a user with the given email already exists
     const existingUser = await User.findOne({ email });
@@ -50,9 +74,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     }
 
     // Hashing the password
-    // Generate a salt with a cost factor (e.g., 10). A higher cost factor is more secure but slower.
     const salt = await bcrypt.genSalt(10);
-    // Hash the password using the generated salt
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Create a new user instance with the hashed password
@@ -66,15 +88,14 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     Logger.info(`New user registered successfully with ID: ${savedUser._id} and email: ${savedUser.email}`);
 
-    // Respond with success message and optionally the new user's ID (excluding sensitive data like password)
+    // Respond with success message and new user details (excluding sensitive password)
     res.status(201).json({
       message: 'User registered successfully',
       userId: savedUser._id,
       email: savedUser.email,
     });
   } catch (error) {
-    // Log the error and send a 500 server error response.
-    // In a production scenario, specific error types (e.g., Mongoose validation errors) would be handled more granularly.
+    // Catch any unexpected errors during the process (e.g., database issues, bcrypt errors)
     Logger.error('Error during user registration:', error);
     res.status(500).json({ message: 'Server error during registration', error: (error as Error).message });
   }
