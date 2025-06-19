@@ -45,16 +45,16 @@ export class AppError extends Error {
  * Prevents sensitive error details from leaking in production environments.
  *
  * @param {Error} err - The error object caught by Express.
- * @param {Request} req - The Express request object.
+ * @param {Request} _req - The Express request object. Prefixed with _ as it's not directly used in this implementation.
  * @param {Response} res - The Express response object.
- * @param {NextFunction} next - The Express next middleware function.
+ * @param {NextFunction} _next - The Express next middleware function. Prefixed with _ as it's not directly used in this implementation.
  * @returns {void} Sends an error response.
  */
 export const globalErrorHandler = (
   err: Error,
-  req: Request,
+  _req: Request, // <-- NEW: Add underscore here
   res: Response,
-  next: NextFunction, // next is required for Express error middleware signature
+  _next: NextFunction, // <-- NEW: Add underscore here
 ): void => {
   // Set default status code and message for unhandled errors
   const statusCode = (err as AppError).statusCode || 500;
