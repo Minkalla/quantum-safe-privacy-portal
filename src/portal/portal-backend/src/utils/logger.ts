@@ -17,7 +17,18 @@
  */
 
 import winston from 'winston';
-import { TransformableInfo } from 'logform'; // <-- NEW: Import TransformableInfo
+import { TransformableInfo } from 'logform';
+
+/**
+ * @interface CustomLogInfo
+ * @description Extends Winston's TransformableInfo to explicitly include properties
+ * added by formatters (like timestamp) and expected by printf, ensuring strict type safety.
+ */
+interface CustomLogInfo extends TransformableInfo {
+  timestamp: string;
+  level: string;
+  message: string;
+}
 
 /**
  * Define custom log levels and their associated colors.
@@ -63,9 +74,9 @@ const format = winston.format.combine(
   // Add a timestamp to each log entry.
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
   // Customize log message based on environment.
-  // Combine Winston's TransformableInfo with our expected properties for strict type checking.
+  // Use CustomLogInfo to explicitly type the 'info' object for strict checking.
   winston.format.printf(
-    (info: TransformableInfo & { timestamp: string; level: string; message: string }) =>
+    (info: CustomLogInfo) =>
       `${info.timestamp} ${info.level}: ${info.message}`,
   ),
 );
