@@ -1,54 +1,68 @@
-/**
- * @file server.ts
- * @description This file is responsible for starting the Quantum-Safe Privacy Portal Backend server.
- * It connects to the MongoDB database and begins listening for incoming HTTP requests.
- * This separation allows the main 'app' object in index.ts to be easily imported for testing
- * without automatically starting the server or connecting to the live database.
- *
- * @module ServerStartup
- * @author Minkalla
- * @license MIT
- */
+import mongoose from 'mongoose';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import app from './index'; // Import the Express app instance
+import Logger from './utils/logger'; // Assuming you have a logger utility
 
-import app from './index'; // Import the configured Express app
-import mongoose from 'mongoose'; // Import mongoose for database connection
-import Logger from './utils/logger'; // Import the logger
+// Global variable to hold the MongoMemoryServer instance
+let mongoServer: MongoMemoryServer;
 
 /**
- * @constant {number} port - The port number for the server to listen on.
- * Fetched from environment variables (process.env.PORT) or defaults to 3000.
+ * Connects to the database.
+ * Uses MongoMemoryServer for testing environments or a local/Atlas connection otherwise.
  */
-const port: number = parseInt(process.env['PORT'] || '3000', 10);
-
-/**
- * @function connectDB
- * @description Connects to the MongoDB database using the connection string from environment variables.
- * Handles successful connection and connection errors with logging.
- * @returns {Promise<void>} A promise that resolves when the connection is established or rejects on error.
- */
-const connectDB = async (): Promise<void> => {
+export const connectDB = async (): Promise<void> => {
   try {
-    const uri = process.env['MONGODB_URI'];
-    if (!uri) {
-      throw new Error('MONGODB_URI is not defined in .env');
+    let dbUri: string;
+    let dbOptions: mongoose.ConnectOptions = {};
+
+    if (process.env.NODE_ENV === 'test' || process.env.IS_TESTING === 'true') {
+      // For testing, use MongoMemoryServer
+      mongoServer = await MongoMemoryServer.create();
+      dbUri = mongoServer.getUri();
+      Logger.info(`Connected to in-memory MongoDB at: ${dbUri}`);
+    } else {
+      // For development/production, use MONGO_URI from environment variables
+      dbUri = process.env.MONGO_URI || 'mongodb://localhost:27017/minkalla';
+      Logger.info(`Attempting to connect to MongoDB at: ${dbUri}`);
     }
-    await mongoose.connect(uri);
-    Logger.info('Connected to MongoDB (Atlas)');
+
+    await mongoose.connect(dbUri, dbOptions);
+    Logger.info('MongoDB connected successfully');
   } catch (error) {
-    Logger.error('MongoDB connection error:', error);
-    process.exit(1); // Exit the process if the database connection fails
+    Logger.error(`MongoDB connection error: ${error instanceof Error ? error.message : error}`);
+    process.exit(1); // Exit process with failure
   }
 };
 
-// CRITICAL FIX: Only start the server and connect to DB if NOT in a test environment
-// The 'IS_TESTING' environment variable will be set when running Jest.
-Logger.debug(`IS_TESTING environment variable: ${process.env['IS_TESTING']}`); // <-- NEW: Diagnostic log
-if (process.env['IS_TESTING'] !== 'true') {
-  connectDB(); // Connect to the database
-  app.listen(port, () => {
-    // Start listening for requests
-    Logger.info(`Portal Backend listening at http://localhost:${port}`);
+/**
+ * Disconnects from the database.
+ */
+export const disconnectDB = async (): Promise<void> => {
+  try {
+    await mongoose.disconnect();
+    Logger.info('MongoDB disconnected.');
+
+    if (mongoServer) {
+      await mongoServer.stop();
+      Logger.info('MongoMemoryServer stopped.');
+    }
+  } catch (error) {
+    Logger.error(`Error disconnecting MongoDB: ${error instanceof Error ? error.message : error}`);
+  }
+};
+
+/**
+ * Starts the Express server.
+ */
+export const startServer = (): void => {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    Logger.info(`Server running on port ${PORT}`);
   });
-} else {
-  Logger.info('Server startup and DB connection skipped in test environment.');
+};
+
+// Only start the server and connect to DB if not in a testing environment
+if (process.env.NODE_ENV !== 'test' && process.env.IS_TESTING !== 'true') {
+  connectDB();
+  startServer();
 }
