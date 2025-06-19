@@ -18,9 +18,10 @@
 
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import Joi from 'joi'; // <-- NEW: Import Joi for validation
+import Joi from 'joi'; // Import Joi for validation
 import User from '../models/User';
 import Logger from '../utils/logger';
+import mongoose from 'mongoose'; // <-- NEW: Import Mongoose to check for its validation errors
 
 /**
  * @constant {Joi.ObjectSchema} registerSchema
@@ -54,18 +55,20 @@ const registerSchema = Joi.object({
  */
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Input validation using Joi
+    // 1. Input validation using Joi
     const { error, value } = registerSchema.validate(req.body, { abortEarly: false }); // Validate all errors
     if (error) {
       const validationErrors = error.details.map((detail) => detail.message);
-      Logger.warn(`Registration attempt failed: Input validation errors for email: ${req.body.email}. Errors: ${validationErrors.join(', ')}`);
+      // Log with the email if available from parsed body or validated value
+      Logger.warn(`Registration attempt failed: Joi validation errors for email: ${value.email || req.body.email || 'N/A'}. Errors: ${validationErrors.join(', ')}`);
       res.status(400).json({ message: 'Validation failed', errors: validationErrors });
-      return;
+      return; // IMPORTANT: Return here to stop execution on validation failure
     }
 
-    const { email, password } = value; // Use validated value
+    // Extract validated data
+    const { email, password } = value;
 
-    // Check if a user with the given email already exists
+    // 2. Check if a user with the given email already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       Logger.warn(`Registration attempt failed: Email already in use: ${email}`);
@@ -73,30 +76,49 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Hashing the password
+    // 3. Hashing the password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create a new user instance with the hashed password
+    // 4. Create a new user instance with the hashed password
     const newUser = new User({
       email,
       password: hashedPassword,
     });
 
-    // Save the new user to the database
-    const savedUser = await newUser.save();
+    // 5. Save the new user to the database
+    const savedUser = await newUser.save(); // Mongoose will also perform its own schema validation here
 
     Logger.info(`New user registered successfully with ID: ${savedUser._id} and email: ${savedUser.email}`);
 
-    // Respond with success message and new user details (excluding sensitive password)
+    // 6. Respond with success message and new user details (excluding sensitive password)
     res.status(201).json({
       message: 'User registered successfully',
       userId: savedUser._id,
       email: savedUser.email,
     });
   } catch (error) {
-    // Catch any unexpected errors during the process (e.g., database issues, bcrypt errors)
+    // Catch any unexpected errors during the process
     Logger.error('Error during user registration:', error);
+
+    // Specifically handle Mongoose validation errors if they occur (e.g., if Joi somehow misses something)
+    // This is good for robust error handling.
+    if (error instanceof mongoose.Error.ValidationError) {
+      const validationErrors = Object.values(error.errors).map((err: any) => err.message); // Cast to any to access message
+      Logger.warn(`Mongoose validation error during registration: ${validationErrors.join(', ')}`);
+      res.status(400).json({ message: 'Database validation failed', errors: validationErrors });
+      return;
+    }
+
+    // Handle duplicate key errors from MongoDB (e.g., unique email constraint)
+    // MongoDB errors often have 'code' property for specific types. 11000 is for duplicate key.
+    if ((error as any).code === 11000) { // Cast error to any to access code property
+      Logger.warn(`Duplicate key error during registration: ${JSON.stringify(error)}`);
+      res.status(409).json({ message: 'Email already registered (duplicate key)' }); // More specific 409
+      return;
+    }
+
+
     res.status(500).json({ message: 'Server error during registration', error: (error as Error).message });
   }
 };
