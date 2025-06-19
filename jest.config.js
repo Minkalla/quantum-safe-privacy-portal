@@ -46,7 +46,7 @@ module.exports = {
       },
     ],
   },
-  // NEW: Map 'bcryptjs' module to its correct nested location for Jest's resolution
+  // Map 'bcryptjs' module to its correct nested location for Jest's resolution
   moduleNameMapper: {
     '^bcryptjs$': path.resolve(__dirname, 'src/portal/portal-backend/node_modules/bcryptjs'),
   },

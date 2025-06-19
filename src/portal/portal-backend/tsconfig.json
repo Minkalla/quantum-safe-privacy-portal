@@ -4,8 +4,8 @@
     "module": "commonjs",
     "lib": ["es2020"],
     "strict": true,
-    "esModuleInterop": true,          // <-- CRITICAL: Ensure this is TRUE
-    "allowSyntheticDefaultImports": true, // <-- CRITICAL: Ensure this is TRUE
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
