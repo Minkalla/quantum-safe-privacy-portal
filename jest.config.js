@@ -19,8 +19,8 @@
  * @see {@link https://jestjs.io/docs/configuration#projects-arraystring--projectconfig|Jest Projects}
  */
 
-// Import path module to resolve absolute paths
-const path = require('path');
+// No need for 'path' import anymore as we use direct module names
+// const path = require('path');
 
 module.exports = {
   testEnvironment: 'node',
@@ -37,17 +37,12 @@ module.exports = {
   coverageDirectory: 'coverage',
   coverageProvider: 'v8',
   testTimeout: 30000,
-  // FIX: Configure ts-jest directly via 'transform' with explicit path to its nested location
+  // CRITICAL FIX: Simplify transform to direct 'ts-jest' reference now that it's at root node_modules
   transform: {
-    '^.+\\.tsx?$': [
-      path.resolve(__dirname, 'src/portal/portal-backend/node_modules/ts-jest'),
-      {
-        tsconfig: path.resolve(__dirname, 'src/portal/portal-backend/tsconfig.json'),
-      },
-    ],
+    '^.+\\.tsx?$': 'ts-jest', // <-- SIMPLIFIED: Just 'ts-jest'
   },
-  // Map 'bcryptjs' module to its correct nested location for Jest's resolution
+  // CRITICAL FIX: Simplify bcryptjs moduleNameMapper now that it's correctly installed in backend node_modules
   moduleNameMapper: {
-    '^bcryptjs$': path.resolve(__dirname, 'src/portal/portal-backend/node_modules/bcryptjs'),
+    '^bcryptjs$': '<rootDir>/src/portal/portal-backend/node_modules/bcryptjs', // Points to backend's bcryptjs
   },
 };
