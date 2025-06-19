@@ -21,17 +21,23 @@ import request from 'supertest';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server'; // For in-memory MongoDB for tests
 import User from '../models/User';
-import app from '../index'; // Assuming index.ts exports the Express app 'app'
+import app from '../index'; // Import the Express app 'app'
 
 let mongo: MongoMemoryServer; // In-memory MongoDB server instance
 
 /**
  * @function connect
- * @description Connects to an in-memory MongoDB server before all tests.
+ * @description Connects to an in-memory MongoDB server before all tests in this suite.
  * This ensures tests run quickly and independently without affecting a real database.
+ * Handles existing connections to prevent "Can't call openUri()" error during test re-runs.
  */
 beforeAll(async () => {
-  // Connect to in-memory MongoDB
+  // Ensure any existing Mongoose connection is closed before starting new test connection
+  if (mongoose.connection.readyState !== 0) { // 0 = disconnected
+    await mongoose.disconnect();
+  }
+
+  // Create and connect to an in-memory MongoDB instance
   mongo = await MongoMemoryServer.create();
   const uri = mongo.getUri();
   await mongoose.connect(uri);
@@ -40,9 +46,10 @@ beforeAll(async () => {
 /**
  * @function clearDatabase
  * @description Clears all collections in the database after each test.
- * Ensures tests are isolated and don't affect each other.
+ * Ensures tests are isolated and don't affect each other by removing data created during the test.
  */
 afterEach(async () => {
+  // Clear all data from collections in the current test database
   const collections = mongoose.connection.collections;
   for (const key in collections) {
     const collection = collections[key];
@@ -52,17 +59,26 @@ afterEach(async () => {
 
 /**
  * @function disconnect
- * @description Disconnects from the in-memory MongoDB server after all tests.
+ * @description Disconnects from the in-memory MongoDB server and stops MongoMemoryServer after all tests.
+ * This prevents Jest from hanging due to open database connections.
  */
 afterAll(async () => {
-  await mongoose.connection.dropDatabase();
+  // Ensure the Mongoose connection is closed
   await mongoose.connection.close();
-  await mongo.stop();
+  // Stop the in-memory MongoDB server instance
+  if (mongo) {
+    await mongo.stop();
+  }
+  // Ensure all handles are closed if Jest still hangs (optional, often not needed after proper disconnects)
+  // await new Promise(resolve => setTimeout(resolve, 500)); // Give a small buffer
 });
 
 // --- Test Cases for User Registration ---
 
 describe('POST /portal/register', () => {
+  // Add a specific timeout for this test suite if it takes longer, e.g., 20 seconds (20000 ms)
+  // jest.setTimeout(20000); // Uncomment this if tests continue to timeout at 5000ms
+
   it('should register a new user successfully with valid credentials', async () => {
     const res = await request(app)
       .post('/portal/register')
