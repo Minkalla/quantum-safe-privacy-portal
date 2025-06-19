@@ -26,6 +26,11 @@
     "composite": true,
     "jsx": "react-jsx"
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.tsx",
+    "../../types/**/*.d.ts" // This is the last element in the array, so no trailing comma for this line
+  ], // <--- ADD this closing bracket for the "include" array, and a comma afterwards
   "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }
