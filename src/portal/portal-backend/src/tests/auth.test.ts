@@ -17,7 +17,8 @@
  * @see {@link https://github.com/visionmedia/supertest|Supertest Documentation}
  */
 
-import * as request from 'supertest';
+// Use CommonJS require for supertest to avoid import issues
+const request = require('supertest');
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import app from '../index';
@@ -170,5 +171,5 @@ describe('POST /portal/register', () => {
 
     expect(res.statusCode).toEqual(409);
     expect(res.body.message).toEqual('Email already registered');
-  });
+      });
 });
