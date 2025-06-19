@@ -19,14 +19,26 @@
 
 import request from 'supertest';
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryServer } from 'mongodb-memory-server'; // For in-memory MongoDB for tests
 import app from '../index'; // Import the Express app 'app'
 import { default as UserModel, IUser } from '../models/User'; // Import User model and IUser interface
-import bcrypt from 'bcryptjs'; // <-- NEW: Import bcryptjs
+import bcrypt from 'bcryptjs'; // <-- IMPORTANT: Use bcryptjs for consistency
 
 let mongo: MongoMemoryServer; // In-memory MongoDB server instance
 let testConnection: mongoose.Connection; // Specific connection for tests
 let TestUser: mongoose.Model<IUser>; // User model bound to the test connection
+
+// Set a generous global timeout for potentially slow operations (this is also in jest.config.js)
+// jest.setTimeout(30000); // We'll keep this in jest.config.js as global.
+
+// --- NEW: Mock bcryptjs operations to speed up tests ---
+// This prevents actual expensive hashing during tests.
+jest.mock('bcryptjs', () => ({ // Mock the bcryptjs module
+  genSalt: jest.fn().mockResolvedValue('mockSalt'),
+  hash: jest.fn().mockResolvedValue('mockHashedPassword'),
+}));
+// Cast the mocked bcryptjs to JestMocked for type safety in beforeEach/it blocks if needed,
+// but usually direct calls to bcryptjs.hash/genSalt will use the mock.
 
 /**
  * @function beforeAllHook
@@ -46,11 +58,11 @@ beforeAll(async () => {
 
   // Create a *new, isolated* Mongoose connection specifically for this test suite
   testConnection = mongoose.createConnection(uri, {
-    serverSelectionTimeoutMS: 5000, // Give up on initial connection after 5 seconds
-    socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-    connectTimeoutMS: 10000, // Give up on initial connection after 10 seconds
-    bufferCommands: false, // Disable Mongoose buffering for faster test failures on connection issues
-    dbName: 'jest_test_db', // Ensure a specific name for the in-memory test database
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+    connectTimeoutMS: 10000,
+    bufferCommands: false,
+    dbName: 'jest_test_db',
   });
 
   // Bind the User model to this specific test connection
@@ -86,15 +98,12 @@ afterAll(async () => {
   if (mongo) {
     await mongo.stop();
   }
-  // Ensure Jest can exit cleanly (often not needed after proper Mongoose disconnect)
-  // await new Promise(resolve => setTimeout(resolve, 500));
 });
 
 // --- Test Cases for User Registration ---
 
 describe('POST /portal/register', () => {
-  // We set a global timeout in jest.config.js (20000ms). This line is optional now.
-  // jest.setTimeout(20000);
+  // jest.setTimeout(30000); // We'll rely on global timeout in jest.config.js for now.
 
   it('should register a new user successfully with valid credentials', async () => {
     const res = await request(app)
@@ -113,7 +122,7 @@ describe('POST /portal/register', () => {
     const user = await TestUser.findOne({ email: 'test@example.com' });
     expect(user).toBeDefined();
     expect(user?.email).toEqual('test@example.com');
-    expect(user?.password).not.toEqual('StrongPassword123!'); // Password should be hashed
+    expect(user?.password).toEqual('mockHashedPassword'); // Password should be the mocked value
   });
 
   it('should return 400 if email is missing', async () => {
@@ -160,8 +169,8 @@ describe('POST /portal/register', () => {
     // Register the first user DIRECTLY using TestUser model to set up the test condition efficiently
     await TestUser.create({
       email: 'duplicate@example.com',
-      // Provide a valid-looking hashed password directly, as this bypasses the API hashing
-      password: await bcrypt.hash('InitialHashedPassword123!', await bcrypt.genSalt(10)), // Use bcrypt to hash
+      // Provide the mocked hashed password directly
+      password: 'mockHashedPassword',
     });
 
     // Try to register with the same email again via API

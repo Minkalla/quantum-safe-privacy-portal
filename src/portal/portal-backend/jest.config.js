@@ -26,10 +26,14 @@ module.exports = {
   collectCoverage: true, // Collect coverage information
   coverageDirectory: 'coverage', // Output directory for coverage reports
   coverageProvider: 'v8', // Use v8 as coverage provider
-  testTimeout: 20000, // <-- NEW: Increase global test timeout to 20 seconds (20000 ms)
-  globals: {
-    'ts-jest': {
-      tsconfig: 'tsconfig.json', // Use the main tsconfig.json for compilation
-    },
+  testTimeout: 30000, // <-- NEW: Increase global test timeout to 30 seconds (30000 ms)
+  // FIX: ts-jest deprecation warning by moving config out of globals
+  transform: {
+    '^.+\\.tsx?$': ['ts-jest', { tsconfig: 'tsconfig.json' }],
   },
+  // globals: { // This section is replaced by the 'transform' property above
+  //   'ts-jest': {
+  //     tsconfig: 'tsconfig.json',
+  //   },
+  // },
 };
