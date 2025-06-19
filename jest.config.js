@@ -37,17 +37,17 @@ module.exports = {
   coverageDirectory: 'coverage',
   coverageProvider: 'v8',
   testTimeout: 30000,
-  // FIX: Configure ts-jest directly via 'transform' and pass the correct tsconfig.json
+  // FIX: Configure ts-jest directly via 'transform' with explicit path to its nested location
   transform: {
-    // This is an array now. The first element is the transformer module path.
-    // The second element is an options object for ts-jest.
     '^.+\\.tsx?$': [
       path.resolve(__dirname, 'src/portal/portal-backend/node_modules/ts-jest'),
       {
-        // CRITICAL: Explicitly tell ts-jest where the tsconfig.json for the backend is.
-        // '__dirname' is the monorepo root (where jest.config.js is).
         tsconfig: path.resolve(__dirname, 'src/portal/portal-backend/tsconfig.json'),
       },
     ],
+  },
+  // NEW: Map 'bcryptjs' module to its correct nested location for Jest's resolution
+  moduleNameMapper: {
+    '^bcryptjs$': path.resolve(__dirname, 'src/portal/portal-backend/node_modules/bcryptjs'),
   },
 };
