@@ -40,7 +40,7 @@ jest.mock('bcryptjs', () => ({
  * Uses `mongoose.createConnection` for isolated test connections, preventing conflicts.
  */
 beforeAll(async () => {
-  // Ensure any existing global Mongoose connection is completely closed before starting test-specific one
+  // Ensure any existing global Mongoose connection (e.g., from index.ts or a previous test run) is completely closed
   if (mongoose.connection.readyState !== 0) { // 0 = disconnected
     await mongoose.disconnect();
   }
