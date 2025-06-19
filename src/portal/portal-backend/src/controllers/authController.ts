@@ -41,21 +41,40 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // Check if a user with the given email already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      Logger.warn(`Registration attempt failed: Email already in use: ${email}`);
+      res.status(409).json({ message: 'Email already registered' }); // 409 Conflict
+      return;
+    }
+
     // Hashing the password
     // Generate a salt with a cost factor (e.g., 10). A higher cost factor is more secure but slower.
     const salt = await bcrypt.genSalt(10);
     // Hash the password using the generated salt
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    Logger.info(`Registration request received for email: ${email}. Password hashed successfully.`);
+    // Create a new user instance with the hashed password
+    const newUser = new User({
+      email,
+      password: hashedPassword,
+    });
 
-    // For now, we're just logging the hashed password and sending a dummy success.
-    // The actual user creation and saving to MongoDB will be implemented in the next sub-step.
-    res.status(200).json({
-      message: 'User registration processing (password hashed). Database saving to follow.',
-      hashedPassword,
+    // Save the new user to the database
+    const savedUser = await newUser.save();
+
+    Logger.info(`New user registered successfully with ID: ${savedUser._id} and email: ${savedUser.email}`);
+
+    // Respond with success message and optionally the new user's ID (excluding sensitive data like password)
+    res.status(201).json({
+      message: 'User registered successfully',
+      userId: savedUser._id,
+      email: savedUser.email,
     });
   } catch (error) {
+    // Log the error and send a 500 server error response.
+    // In a production scenario, specific error types (e.g., Mongoose validation errors) would be handled more granularly.
     Logger.error('Error during user registration:', error);
     res.status(500).json({ message: 'Server error during registration', error: (error as Error).message });
   }
