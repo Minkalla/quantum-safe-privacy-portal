@@ -2,12 +2,12 @@
  * @file index.ts
  * @description The primary entry point for the Quantum-Safe Privacy Portal Backend.
  * This file initializes the Express application, sets up global middleware,
- * and defines the main routes for the portal's API. It serves as the
- * foundational server for managing user data rights, consent, and authentication.
+ * and defines the main routes for the portal's API.
+ * It exports the Express `app` instance, allowing it to be easily imported for testing
+ * or for server startup logic in a separate file (e.g., server.ts).
  *
  * @module PortalBackend
  * @author Minkalla
- * @version 1.0.0
  * @license MIT
  *
  * @remarks
@@ -28,6 +28,10 @@ import path from 'path';
 dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
 import express, { Request, Response } from 'express';
+// No longer importing mongoose or Logger directly here if they are only for server start
+// However, Logger is used in authController and globalErrorHandler, so keep it.
+// Mongoose is no longer needed here if connectDB is moved.
+// We will keep mongoose import for type hinting/declaration if models implicitly use it globally.
 import mongoose from 'mongoose';
 import Logger from './utils/logger';
 import { register } from './controllers/authController';
@@ -35,14 +39,6 @@ import { globalErrorHandler } from './middleware/errorHandler';
 
 // Initialize the Express application
 const app = express();
-
-/**
- * @constant {number} port - The port number for the server to listen on.
- * Fetched from environment variables (process.env.PORT) or defaults to 3000.
- * @remarks Using bracket notation for process.env property access to satisfy TypeScript strictness (TS4111),
- * and parseInt to ensure it's treated as a number.
- */
-const port: number = parseInt(process.env['PORT'] || '3000', 10); // Explicitly cast to number and strict access
 
 // Middleware (These lines define the app's structure and should always be executed)
 /**
@@ -83,49 +79,7 @@ app.post('/portal/register', register);
  */
 app.use(globalErrorHandler);
 
-// This block ensures the server starts and connects to the database ONLY when index.ts is run directly (e.g., `npm start`),
-// and NOT when it's imported as a module (e.g., during Jest tests).
-if (require.main === module) {
-  // MongoDB Connection
-  /**
-   * @function connectDB
-   * @description Connects to the MongoDB database using the connection string from environment variables.
-   * Handles successful connection and connection errors with logging.
-   * @returns {Promise<void>} A promise that resolves when the connection is established or rejects on error.
-   */
-  const connectDB = async (): Promise<void> => {
-    try {
-      const uri = process.env['MONGODB_URI'];
-      if (!uri) {
-        throw new Error('MONGODB_URI is not defined in .env after explicit load attempt.');
-      }
-      // Only connect to Atlas if not already connected (for rare cases of Jest conflicts)
-      if (mongoose.connection.readyState === 0) { // 0 = disconnected
-        await mongoose.connect(uri);
-        Logger.info('Connected to MongoDB (Atlas)');
-      } else {
-        Logger.info('MongoDB (Atlas) connection already established or connecting.');
-      }
-    } catch (error) {
-      Logger.error('MongoDB connection error:', error);
-      process.exit(1); // Exit the process if the database connection fails
-    }
-  };
+// REMOVED: The entire 'if (require.main === module)' block from here.
+// The server start and DB connect logic will be moved to a separate 'server.ts' file.
 
-  // Call the connectDB function to establish the connection
-  connectDB();
-
-  // Start the server and listen for incoming requests
-  /**
-   * @method listen
-   * @description Starts the Express server on the configured port.
-   * @param {number} port - The port number to listen on.
-   * @param {Function} callback - A callback function executed once the server starts successfully.
-   * @returns {Server} The HTTP server instance.
-   */
-  app.listen(port, (): void => {
-    Logger.info(`Portal Backend listening at http://localhost:${port}`);
-  });
-}
-
-export default app; // This line ensures the Express app is exported for testing frameworks
+export default app; // This line is crucial: it exports the configured Express app instance
