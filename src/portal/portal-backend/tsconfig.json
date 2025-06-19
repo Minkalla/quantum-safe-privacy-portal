@@ -4,7 +4,7 @@
     "module": "commonjs",
     "lib": ["es2020"],
     "strict": true,
-    "esModuleInterop": true,
+    "esModuleInterop": true,          // <-- NEW / MODIFIED: Set to true
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
