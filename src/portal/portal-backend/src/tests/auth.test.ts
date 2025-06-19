@@ -19,9 +19,10 @@
 
 import request from 'supertest';
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server'; // For in-memory MongoDB for tests
+import { MongoMemoryServer } from 'mongodb-memory-server';
 import app from '../index'; // Import the Express app 'app'
 import { default as UserModel, IUser } from '../models/User'; // Import User model and IUser interface
+import bcrypt from 'bcryptjs'; // <-- NEW: Import bcryptjs
 
 let mongo: MongoMemoryServer; // In-memory MongoDB server instance
 let testConnection: mongoose.Connection; // Specific connection for tests
@@ -160,7 +161,7 @@ describe('POST /portal/register', () => {
     await TestUser.create({
       email: 'duplicate@example.com',
       // Provide a valid-looking hashed password directly, as this bypasses the API hashing
-      password: await bcrypt.hash('InitialHashedPassword123!', await bcrypt.genSalt(10)),
+      password: await bcrypt.hash('InitialHashedPassword123!', await bcrypt.genSalt(10)), // Use bcrypt to hash
     });
 
     // Try to register with the same email again via API
