@@ -17,7 +17,7 @@
  * @see {@link https://github.com/visionmedia/supertest|Supertest Documentation}
  */
 
-import request from 'supertest';
+import * as request from 'supertest';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import app from '../index';
