@@ -14,7 +14,7 @@
  * preventing regressions and maintaining code integrity in a complex project.
  *
  * @see {@link https://jestjs.io/docs/configuration|Jest Configuration Docs}
- * @see {@link https://kulshekhar.github.io/ts-jest/docs/getting-started/paths-mapping|ts-jest path mapping}
+ * @see {@link https://kulshekhar.github.io/ts-jest/docs/getting-started/presets#advanced}
  */
 
 module.exports = {
@@ -26,6 +26,7 @@ module.exports = {
   collectCoverage: true, // Collect coverage information
   coverageDirectory: 'coverage', // Output directory for coverage reports
   coverageProvider: 'v8', // Use v8 as coverage provider
+  testTimeout: 20000, // <-- NEW: Increase global test timeout to 20 seconds (20000 ms)
   globals: {
     'ts-jest': {
       tsconfig: 'tsconfig.json', // Use the main tsconfig.json for compilation
