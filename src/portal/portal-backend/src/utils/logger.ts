@@ -74,11 +74,11 @@ const format = winston.format.combine(
   // Add a timestamp to each log entry.
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
   // Customize log message based on environment.
-  // Use CustomLogInfo to explicitly type the 'info' object for strict checking.
-  winston.format.printf(
-    (info: CustomLogInfo) =>
-      `${info.timestamp} ${info.level}: ${info.message}`,
-  ),
+  // Use a type assertion within the printf callback to guarantee properties for strict TS.
+  winston.format.printf((info) => {
+    const customInfo = info as CustomLogInfo; // <-- NEW: Type assertion here
+    return `${customInfo.timestamp} ${customInfo.level}: ${customInfo.message}`;
+  }),
 );
 
 /**
