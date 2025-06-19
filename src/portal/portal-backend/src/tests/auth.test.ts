@@ -22,12 +22,13 @@ import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import app from '../index';
 import { default as UserModel, IUser } from '../models/User';
-import bcrypt from 'bcryptjs'; // <-- NEW: Clean import with semicolon
+import * as bcrypt from 'bcryptjs'; // <-- CRITICAL: Use import * as bcrypt
 
 let mongo: MongoMemoryServer;
 let testConnection: mongoose.Connection;
 let TestUser: mongoose.Model<IUser>;
 
+// --- NEW: Mock bcryptjs operations to speed up tests ---
 jest.mock('bcryptjs', () => ({
   genSalt: jest.fn().mockResolvedValue('mockSalt'),
   hash: jest.fn().mockResolvedValue('mockHashedPassword'),
@@ -40,7 +41,7 @@ jest.mock('bcryptjs', () => ({
  * Uses `mongoose.createConnection` for isolated test connections, preventing conflicts.
  */
 beforeAll(async () => {
-  // Ensure any existing global Mongoose connection (e.g., from index.ts or a previous test run) is completely closed
+  // Ensure any existing global Mongoose connection is completely closed before starting test-specific one
   if (mongoose.connection.readyState !== 0) { // 0 = disconnected
     await mongoose.disconnect();
   }
@@ -96,6 +97,8 @@ afterAll(async () => {
 // --- Test Cases for User Registration ---
 
 describe('POST /portal/register', () => {
+  // No jest.setTimeout here, using global timeout from jest.config.js
+
   it('should register a new user successfully with valid credentials', async () => {
     const res = await request(app)
       .post('/portal/register')
@@ -112,7 +115,7 @@ describe('POST /portal/register', () => {
     const user = await TestUser.findOne({ email: 'test@example.com' });
     expect(user).toBeDefined();
     expect(user?.email).toEqual('test@example.com');
-    expect(user?.password).toEqual('mockHashedPassword');
+    expect(user?.password).toEqual('mockHashedPassword'); // Password should be the mocked value
   });
 
   it('should return 400 if email is missing', async () => {
@@ -156,11 +159,14 @@ describe('POST /portal/register', () => {
   });
 
   it('should return 409 if email is already registered', async () => {
+    // Register the first user DIRECTLY using TestUser model to set up the test condition efficiently
     await TestUser.create({
       email: 'duplicate@example.com',
+      // Provide the mocked hashed password directly
       password: 'mockHashedPassword',
     });
 
+    // Try to register with the same email again via API
     const res = await request(app)
       .post('/portal/register')
       .send({

@@ -23,7 +23,6 @@
 const path = require('path');
 
 module.exports = {
-  // CRITICAL: The 'preset' property should NOT be here. Its removal is the key fix.
   testEnvironment: 'node',
   // We are defining roots relative to the monorepo root
   roots: [
@@ -38,11 +37,10 @@ module.exports = {
   coverageDirectory: 'coverage',
   coverageProvider: 'v8',
   testTimeout: 30000,
-  // FIX: Configure ts-jest directly via 'transform' with explicit path
+  // FIX: Configure ts-jest directly via 'transform' with explicit path to its nested location
   transform: {
-    // Explicitly resolve 'ts-jest' relative to the jest.config.js file itself (__dirname is monorepo root here)
-    '^.+\\.tsx?$': path.resolve(__dirname, 'node_modules/ts-jest'), // THIS LINE IS CORRECT
+    // __dirname is the monorepo root (where jest.config.js is)
+    // We need to navigate into 'src/portal/portal-backend/node_modules/ts-jest' from there.
+    '^.+\\.tsx?$': path.resolve(__dirname, 'src/portal/portal-backend/node_modules/ts-jest'), // <-- CRITICAL NEW PATH
   },
-  // The 'globals' section for 'ts-jest' is not needed when using 'transform' this way.
-  // We don't need moduleDirectories if transform is configured directly and Jest is run from root.
 };
