@@ -1,30 +1,11 @@
-/**
- * @file index.ts
- * @description The primary entry point for the Quantum-Safe Privacy Portal Backend.
- * This file initializes the Express application, sets up global middleware,
- * and defines the main routes for the portal's API. It serves as the
- * foundational server for managing user data rights, consent, and authentication.
- *
- * @module PortalBackend
- * @author Minkalla
- * @version 1.0.0
- * @license MIT
- *
- * @remarks
- * This backend is designed with a "no regrets" approach, prioritizing quantum-safe security,
- * regulatory compliance (GDPR, CCPA, HIPAA, etc.), and ethical data practices.
- * Future development will integrate QynAuth for PQC authentication, ZynConsent for granular
- * consent management, and Valyze for data value insights and rights fulfillment.
- *
- * @see {@link https://github.com/Minkalla/quantum-safe-privacy-portal|Minkalla GitHub Repo}
- */
+import mongoose from 'mongoose';
+import Logger from './utils/logger';
 
 // Ensure environment variables are loaded from .env file FIRST.
 // This must be the very first import to ensure process.env is populated before other modules use it.
 import 'dotenv/config';
 
 import express, { Request, Response } from 'express';
-import Logger from './utils/logger'; // Import our centralized logger
 
 // Initialize the Express application
 const app = express();
@@ -36,6 +17,30 @@ const app = express();
  * and parseInt to ensure it's treated as a number.
  */
 const port: number = parseInt(process.env['PORT'] || '3000', 10); // Explicitly cast to number and strict access
+
+// MongoDB Connection
+/**
+ * @function connectDB
+ * @description Connects to the MongoDB database using the connection string from environment variables.
+ * Handles successful connection and connection errors with logging.
+ * @returns {Promise<void>} A promise that resolves when the connection is established or rejects on error.
+ */
+const connectDB = async (): Promise<void> => {
+  try {
+    const uri = process.env['MONGODB_URI'];
+    if (!uri) {
+      throw new Error('MONGODB_URI is not defined in .env');
+    }
+    await mongoose.connect(uri);
+    Logger.info('Connected to MongoDB');
+  } catch (error) {
+    Logger.error('MongoDB connection error:', error);
+    process.exit(1); // Exit the process if the database connection fails
+  }
+};
+
+// Call the connectDB function to establish the connection
+connectDB();
 
 // Define a basic root route for health checks or initial access
 /**
