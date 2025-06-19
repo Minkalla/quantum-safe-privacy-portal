@@ -31,7 +31,7 @@ import express, { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import Logger from './utils/logger';
 import { register } from './controllers/authController';
-import { globalErrorHandler } from './middleware/errorHandler'; // <-- NEW: Import globalErrorHandler
+import { globalErrorHandler } from './middleware/errorHandler';
 
 // Initialize the Express application
 const app = express();
@@ -44,7 +44,7 @@ const app = express();
  */
 const port: number = parseInt(process.env['PORT'] || '3000', 10); // Explicitly cast to number and strict access
 
-// Middleware
+// Middleware (These lines define the app's structure and should always be executed)
 /**
  * @middleware express.json()
  * @description Parses incoming requests with JSON payloads.
@@ -52,31 +52,7 @@ const port: number = parseInt(process.env['PORT'] || '3000', 10); // Explicitly 
  */
 app.use(express.json());
 
-// MongoDB Connection
-/**
- * @function connectDB
- * @description Connects to the MongoDB database using the connection string from environment variables.
- * Handles successful connection and connection errors with logging.
- * @returns {Promise<void>} A promise that resolves when the connection is established or rejects on error.
- */
-const connectDB = async (): Promise<void> => {
-  try {
-    const uri = process.env['MONGODB_URI'];
-    if (!uri) {
-      throw new Error('MONGODB_URI is not defined in .env after explicit load attempt.');
-    }
-    await mongoose.connect(uri);
-    Logger.info('Connected to MongoDB');
-  } catch (error) {
-    Logger.error('MongoDB connection error:', error);
-    process.exit(1); // Exit the process if the database connection fails
-  }
-};
-
-// Call the connectDB function to establish the connection
-connectDB();
-
-// Routes
+// Routes (These lines define the app's structure and should always be executed)
 /**
  * @route GET /
  * @description Provides a simple "Hello World" message to verify the backend is running.
@@ -98,30 +74,53 @@ app.get('/', (_req: Request, res: Response): void => {
  */
 app.post('/portal/register', register);
 
-// Global Error Handling Middleware
+// Global Error Handling Middleware (must be after all routes, also always executed)
 /**
  * @middleware globalErrorHandler
  * @description This is the last middleware in the chain, designed to catch all errors
  * (both operational and programming errors) and send a standardized error response.
  * It ensures consistent error formatting and prevents sensitive details from leaking.
  */
-app.use(globalErrorHandler); // <-- NEW: Add global error handler as the last middleware
+app.use(globalErrorHandler);
 
-// Start the server and listen for incoming requests
-/**
- * @method listen
- * @description Starts the Express server on the configured port.
- * @param {number} port - The port number to listen on.
- * @param {Function} callback - A callback function executed once the server starts successfully.
- * @returns {Server} The HTTP server instance.
- */
-app.listen(port, (): void => {
-  Logger.info(`Portal Backend listening at http://localhost:${port}`);
-});
-// ... (rest of the file)
+// This block ensures the server starts and connects to the database ONLY when index.ts is run directly (e.g., `npm start`),
+// and NOT when it's imported as a module (e.g., during Jest tests).
+if (require.main === module) {
+  // MongoDB Connection
+  /**
+   * @function connectDB
+   * @description Connects to the MongoDB database using the connection string from environment variables.
+   * Handles successful connection and connection errors with logging.
+   * @returns {Promise<void>} A promise that resolves when the connection is established or rejects on error.
+   */
+  const connectDB = async (): Promise<void> => {
+    try {
+      const uri = process.env['MONGODB_URI'];
+      if (!uri) {
+        throw new Error('MONGODB_URI is not defined in .env after explicit load attempt.');
+      }
+      await mongoose.connect(uri);
+      Logger.info('Connected to MongoDB');
+    } catch (error) {
+      Logger.error('MongoDB connection error:', error);
+      process.exit(1); // Exit the process if the database connection fails
+    }
+  };
 
-app.listen(port, (): void => {
-  Logger.info(`Portal Backend listening at http://localhost:${port}`);
-});
+  // Call the connectDB function to establish the connection
+  connectDB();
 
-export default app; // <-- NEW: Export the Express app for testing purposes
+  // Start the server and listen for incoming requests
+  /**
+   * @method listen
+   * @description Starts the Express server on the configured port.
+   * @param {number} port - The port number to listen on.
+   * @param {Function} callback - A callback function executed once the server starts successfully.
+   * @returns {Server} The HTTP server instance.
+   */
+  app.listen(port, (): void => {
+    Logger.info(`Portal Backend listening at http://localhost:${port}`);
+  });
+}
+
+export default app; // This line ensures the Express app is exported for testing frameworks
