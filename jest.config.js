@@ -15,20 +15,17 @@
  * Automated testing is crucial for preventing regressions and maintaining code integrity.
  *
  * @see {@link https://jestjs.io/docs/configuration|Jest Configuration Docs}
- * @see {@link https://kulshekhar.github.io/ts-jest/docs/getting-started/presets#advanced}
+ * @see {@link https://kulshekhar.github.io/ts-jest/docs/getting-started#using-typescript}
  * @see {@link https://jestjs.io/docs/configuration#projects-arraystring--projectconfig|Jest Projects}
  */
 
 module.exports = {
-  preset: 'ts-jest', // ts-jest is now directly resolvable from root node_modules
+  // REMOVED: preset: 'ts-jest', - This was causing resolution issues.
   testEnvironment: 'node',
   // We are defining roots relative to the monorepo root
-  // This tells Jest where to look for tests within our packages
   roots: [
     '<rootDir>/src/portal/portal-backend/src', // Look for backend tests
-    // Add other package test roots here as they are developed
   ],
-  // Define specific test file patterns
   testMatch: [
     '**/__tests__/**/*.ts',
     '**/?(*.)+(spec|test).ts',
@@ -38,15 +35,10 @@ module.exports = {
   coverageDirectory: 'coverage',
   coverageProvider: 'v8',
   testTimeout: 30000, // Global timeout for all tests
+  // FIX: Configure ts-jest directly via 'transform'
   transform: {
-    '^.+\\.tsx?$': ['ts-jest', { tsconfig: '<rootDir>/src/portal/portal-backend/tsconfig.json' }], // Reference specific tsconfig
+    '^.+\\.tsx?$': 'ts-jest', // <-- NEW: Configure ts-jest as a direct transformer
   },
-  // When running tests from the monorepo root, we need to ensure modules are resolved correctly
-  // This is especially important for imports like `../models/User` from `authController.ts`
-  moduleNameMapper: {
-    // Map paths within portal-backend for correct module resolution during tests
-    '^@portal-backend/(.*)$': '<rootDir>/src/portal/portal-backend/src/$1',
-  },
-  // Jest will now find ts-jest and other modules in the root node_modules by default
-  // No need for moduleDirectories or explicit path.resolve(__dirname, '../../node_modules') here
+  // We don't need moduleDirectories if transform is configured directly and Jest is run from root.
+  // moduleDirectories: ['node_modules', '<rootDir>/../../node_modules'],
 };
