@@ -19,13 +19,14 @@
  * @see {@link https://jestjs.io/docs/configuration#projects-arraystring--projectconfig|Jest Projects}
  */
 
-// No need for 'path' import anymore as we use direct module names
-// const path = require('path');
+// Import path module to resolve absolute paths
+const path = require('path');
 
 module.exports = {
   testEnvironment: 'node',
+  // We are defining roots relative to the monorepo root
   roots: [
-    '<rootDir>/src/portal/portal-backend/src',
+    '<rootDir>/src/portal/portal-backend/src', // Look for backend tests
   ],
   testMatch: [
     '**/__tests__/**/*.ts',
@@ -36,14 +37,22 @@ module.exports = {
   coverageDirectory: 'coverage',
   coverageProvider: 'v8',
   testTimeout: 30000,
+  // CRITICAL FIX: Configure ts-jest directly via 'transform' and FORCE esModuleInterop
   transform: {
     '^.+\\.tsx?$': [
-      'ts-jest',
+      path.resolve(__dirname, 'src/portal/portal-backend/node_modules/ts-jest'),
       {
-        tsconfig: '<rootDir>/src/portal/portal-backend/tsconfig.json',
+        // Explicitly tell ts-jest which tsconfig.json to use
+        tsconfig: path.resolve(__dirname, 'src/portal/portal-backend/tsconfig.json'),
+        // CRITICAL NEW ADDITION: Force esModuleInterop directly via compilerOptions
+        compilerOptions: {
+          esModuleInterop: true,
+          allowSyntheticDefaultImports: true,
+        },
       },
     ],
   },
+  // Map 'bcryptjs' module to its correct nested location for Jest's resolution
   moduleNameMapper: {
     '^bcryptjs$': '<rootDir>/src/portal/portal-backend/node_modules/bcryptjs',
   },
