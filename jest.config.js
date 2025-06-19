@@ -45,4 +45,10 @@ module.exports = {
   moduleNameMapper: {
     '^bcryptjs$': '<rootDir>/src/portal/portal-backend/node_modules/bcryptjs', // Points to backend's bcryptjs
   },
+  // Force ts-jest to use the correct tsconfig with esModuleInterop enabled
+  globals: {
+    'ts-jest': {
+      tsconfig: '<rootDir>/src/portal/portal-backend/tsconfig.json',
+    },
+  },
 };
