@@ -14,14 +14,16 @@
  *
  * @see {@link https://www.npmjs.com/package/bcryptjs|bcryptjs} for password hashing.
  * @see {@link https://joi.dev/api/|Joi API Documentation} for input validation.
+ * @see {@link ../middleware/errorHandler.ts|Centralized Error Handling} for AppError definition.
  */
 
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import Joi from 'joi'; // Import Joi for validation
+import Joi from 'joi';
 import User from '../models/User';
 import Logger from '../utils/logger';
-import mongoose from 'mongoose'; // <-- NEW: Import Mongoose to check for its validation errors
+import mongoose from 'mongoose';
+import { AppError } from '../middleware/errorHandler'; // <-- NEW: Import AppError
 
 /**
  * @constant {Joi.ObjectSchema} registerSchema
@@ -40,7 +42,6 @@ const registerSchema = Joi.object({
     'string.empty': 'Password is required',
     'any.required': 'Password is required',
   }),
-  // Future: Add other registration fields here with their validation rules
 });
 
 /**
@@ -56,13 +57,12 @@ const registerSchema = Joi.object({
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     // 1. Input validation using Joi
-    const { error, value } = registerSchema.validate(req.body, { abortEarly: false }); // Validate all errors
+    const { error, value } = registerSchema.validate(req.body, { abortEarly: false });
     if (error) {
       const validationErrors = error.details.map((detail) => detail.message);
-      // Log with the email if available from parsed body or validated value
       Logger.warn(`Registration attempt failed: Joi validation errors for email: ${value.email || req.body.email || 'N/A'}. Errors: ${validationErrors.join(', ')}`);
-      res.status(400).json({ message: 'Validation failed', errors: validationErrors });
-      return; // IMPORTANT: Return here to stop execution on validation failure
+      // Throw an AppError for validation failures, which will be caught by globalErrorHandler
+      throw new AppError('Validation failed', 400);
     }
 
     // Extract validated data
@@ -72,8 +72,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       Logger.warn(`Registration attempt failed: Email already in use: ${email}`);
-      res.status(409).json({ message: 'Email already registered' }); // 409 Conflict
-      return;
+      // Throw an AppError for conflict, which will be caught by globalErrorHandler
+      throw new AppError('Email already registered', 409);
     }
 
     // 3. Hashing the password
@@ -87,7 +87,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     });
 
     // 5. Save the new user to the database
-    const savedUser = await newUser.save(); // Mongoose will also perform its own schema validation here
+    const savedUser = await newUser.save();
 
     Logger.info(`New user registered successfully with ID: ${savedUser._id} and email: ${savedUser.email}`);
 
@@ -98,27 +98,28 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       email: savedUser.email,
     });
   } catch (error) {
-    // Catch any unexpected errors during the process
-    Logger.error('Error during user registration:', error);
+    // If it's already an AppError (thrown by us), just pass it to the next error middleware
+    if (error instanceof AppError) {
+      throw error;
+    }
 
-    // Specifically handle Mongoose validation errors if they occur (e.g., if Joi somehow misses something)
-    // This is good for robust error handling.
+    // Handle specific Mongoose errors that might occur after AppError checks
     if (error instanceof mongoose.Error.ValidationError) {
-      const validationErrors = Object.values(error.errors).map((err: any) => err.message); // Cast to any to access message
+      const validationErrors = Object.values(error.errors).map((err: any) => err.message);
       Logger.warn(`Mongoose validation error during registration: ${validationErrors.join(', ')}`);
-      res.status(400).json({ message: 'Database validation failed', errors: validationErrors });
-      return;
+      // Throw a new AppError for Mongoose validation, consistent with Joi validation
+      throw new AppError(`Database validation failed: ${validationErrors.join(', ')}`, 400);
     }
 
     // Handle duplicate key errors from MongoDB (e.g., unique email constraint)
-    // MongoDB errors often have 'code' property for specific types. 11000 is for duplicate key.
-    if ((error as any).code === 11000) { // Cast error to any to access code property
+    if ((error as any).code === 11000) {
       Logger.warn(`Duplicate key error during registration: ${JSON.stringify(error)}`);
-      res.status(409).json({ message: 'Email already registered (duplicate key)' }); // More specific 409
-      return;
+      // Throw a new AppError for duplicate email, consistent with our conflict handling
+      throw new AppError('Email already registered', 409);
     }
 
-
-    res.status(500).json({ message: 'Server error during registration', error: (error as Error).message });
+    // For any other unexpected errors, re-throw as a generic AppError (500)
+    // This ensures all errors eventually hit our global handler in a controlled way.
+    throw new AppError('An unexpected server error occurred during registration', 500);
   }
 };

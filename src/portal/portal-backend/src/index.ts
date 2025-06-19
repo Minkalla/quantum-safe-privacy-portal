@@ -29,8 +29,9 @@ dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
 import express, { Request, Response } from 'express';
 import mongoose from 'mongoose';
-import Logger from './utils/logger'; // Import our centralized logger
-import { register } from './controllers/authController'; // <-- NEW: Import the register function
+import Logger from './utils/logger';
+import { register } from './controllers/authController';
+import { globalErrorHandler } from './middleware/errorHandler'; // <-- NEW: Import globalErrorHandler
 
 // Initialize the Express application
 const app = express();
@@ -49,7 +50,7 @@ const port: number = parseInt(process.env['PORT'] || '3000', 10); // Explicitly 
  * @description Parses incoming requests with JSON payloads.
  * This middleware is required to correctly parse request bodies for POST/PUT requests (e.g., user registration data).
  */
-app.use(express.json()); // <-- NEW: Add middleware to parse JSON request bodies
+app.use(express.json());
 
 // MongoDB Connection
 /**
@@ -95,7 +96,16 @@ app.get('/', (_req: Request, res: Response): void => {
  * @param {Response} res - The Express response object.
  * @returns {void} Handled by authController.register.
  */
-app.post('/portal/register', register); // <-- NEW: Define the registration route
+app.post('/portal/register', register);
+
+// Global Error Handling Middleware
+/**
+ * @middleware globalErrorHandler
+ * @description This is the last middleware in the chain, designed to catch all errors
+ * (both operational and programming errors) and send a standardized error response.
+ * It ensures consistent error formatting and prevents sensitive details from leaking.
+ */
+app.use(globalErrorHandler); // <-- NEW: Add global error handler as the last middleware
 
 // Start the server and listen for incoming requests
 /**
