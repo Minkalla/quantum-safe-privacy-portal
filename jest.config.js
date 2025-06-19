@@ -24,9 +24,8 @@
 
 module.exports = {
   testEnvironment: 'node',
-  // We are defining roots relative to the monorepo root
   roots: [
-    '<rootDir>/src/portal/portal-backend/src', // Look for backend tests
+    '<rootDir>/src/portal/portal-backend/src',
   ],
   testMatch: [
     '**/__tests__/**/*.ts',
@@ -37,18 +36,15 @@ module.exports = {
   coverageDirectory: 'coverage',
   coverageProvider: 'v8',
   testTimeout: 30000,
-  // CRITICAL FIX: Simplify transform to direct 'ts-jest' reference now that it's at root node_modules
   transform: {
-    '^.+\\.tsx?$': 'ts-jest', // <-- SIMPLIFIED: Just 'ts-jest'
+    '^.+\\.tsx?$': [
+      'ts-jest',
+      {
+        tsconfig: '<rootDir>/src/portal/portal-backend/tsconfig.json',
+      },
+    ],
   },
-  // CRITICAL FIX: Simplify bcryptjs moduleNameMapper now that it's correctly installed in backend node_modules
   moduleNameMapper: {
-    '^bcryptjs$': '<rootDir>/src/portal/portal-backend/node_modules/bcryptjs', // Points to backend's bcryptjs
-  },
-  // Force ts-jest to use the correct tsconfig with esModuleInterop enabled
-  globals: {
-    'ts-jest': {
-      tsconfig: '<rootDir>/src/portal/portal-backend/tsconfig.json',
-    },
+    '^bcryptjs$': '<rootDir>/src/portal/portal-backend/node_modules/bcryptjs',
   },
 };
