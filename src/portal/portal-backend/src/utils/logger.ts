@@ -62,8 +62,10 @@ const format = winston.format.combine(
   // Add a timestamp to each log entry.
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
   // Customize log message based on environment.
+  // Explicitly define the structure of the 'info' object for TypeScript strictness.
   winston.format.printf(
-    (info) => `${info.timestamp} ${info.level}: ${info.message}`,
+    (info: { timestamp: string; level: string; message: string }) =>
+      `${info.timestamp} ${info.level}: ${info.message}`,
   ),
 );
 
