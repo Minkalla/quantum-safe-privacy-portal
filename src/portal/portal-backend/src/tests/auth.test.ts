@@ -22,11 +22,10 @@ import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import app from '../index';
 import { default as UserModel, IUser } from '../models/User';
-// REMOVED: import * as bcrypt from 'bcryptjs'; // <-- This line is removed as it's not directly used after mocking
 
-let mongo: MongoMemoryServer;
-let testConnection: mongoose.Connection;
-let TestUser: mongoose.Model<IUser>;
+let mongo: MongoMemoryServer; // In-memory MongoDB server instance
+let testConnection: mongoose.Connection; // Specific connection for tests
+let TestUser: mongoose.Model<IUser>; // User model bound to the test connection
 
 // --- Mock bcryptjs operations to speed up tests ---
 jest.mock('bcryptjs', () => ({
@@ -113,7 +112,7 @@ describe('POST /portal/register', () => {
     const user = await TestUser.findOne({ email: 'test@example.com' });
     expect(user).toBeDefined();
     expect(user?.email).toEqual('test@example.com');
-    expect(user?.password).toEqual('mockHashedPassword'); // Password should be the mocked value
+    expect(user?.password).toEqual('mockHashedPassword');
   });
 
   it('should return 400 if email is missing', async () => {
