@@ -23,7 +23,7 @@ import Joi from 'joi';
 import User from '../models/User';
 import Logger from '../utils/logger';
 import mongoose from 'mongoose';
-import { AppError } from '../middleware/errorHandler'; // <-- NEW: Import AppError
+import { AppError } from '../middleware/errorHandler';
 
 /**
  * @constant {Joi.ObjectSchema} registerSchema
@@ -61,7 +61,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     if (error) {
       const validationErrors = error.details.map((detail) => detail.message);
       Logger.warn(`Registration attempt failed: Joi validation errors for email: ${value.email || req.body.email || 'N/A'}. Errors: ${validationErrors.join(', ')}`);
-      // Throw an AppError for validation failures, which will be caught by globalErrorHandler
       throw new AppError('Validation failed', 400);
     }
 
@@ -72,7 +71,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       Logger.warn(`Registration attempt failed: Email already in use: ${email}`);
-      // Throw an AppError for conflict, which will be caught by globalErrorHandler
       throw new AppError('Email already registered', 409);
     }
 
@@ -107,19 +105,17 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     if (error instanceof mongoose.Error.ValidationError) {
       const validationErrors = Object.values(error.errors).map((err: any) => err.message);
       Logger.warn(`Mongoose validation error during registration: ${validationErrors.join(', ')}`);
-      // Throw a new AppError for Mongoose validation, consistent with Joi validation
       throw new AppError(`Database validation failed: ${validationErrors.join(', ')}`, 400);
     }
 
     // Handle duplicate key errors from MongoDB (e.g., unique email constraint)
     if ((error as any).code === 11000) {
       Logger.warn(`Duplicate key error during registration: ${JSON.stringify(error)}`);
-      // Throw a new AppError for duplicate email, consistent with our conflict handling
       throw new AppError('Email already registered', 409);
     }
 
-    // For any other unexpected errors, re-throw as a generic AppError (500)
-    // This ensures all errors eventually hit our global handler in a controlled way.
+    // For any other unexpected errors, log the details and re-throw as a generic AppError (500)
+    Logger.error('An unexpected server error occurred during registration:', error); // <-- NEW: Log the 'error' object itself for more detail
     throw new AppError('An unexpected server error occurred during registration', 500);
   }
 };
