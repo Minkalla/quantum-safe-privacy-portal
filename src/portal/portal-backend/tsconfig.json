@@ -21,7 +21,7 @@
     "noFallthroughCasesInSwitch": true,
     "noPropertyAccessFromIndexSignature": true,
     "allowSyntheticDefaultImports": true,
-    "declaration": false,
+    "declaration": true,
     "incremental": true,
     "composite": true,
     "jsx": "react-jsx"
