@@ -22,7 +22,7 @@ import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import app from '../index';
 import { default as UserModel, IUser } from '../models/User';
-import * as bcrypt from 'bcryptjs'; // <-- CRITICAL: Use import * as bcrypt for compatibility
+
 
 let mongo: MongoMemoryServer; // In-memory MongoDB server instance
 let testConnection: mongoose.Connection; // Specific connection for tests
