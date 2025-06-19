@@ -20,37 +20,52 @@
 import request from 'supertest';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server'; // For in-memory MongoDB for tests
-import User from '../models/User';
 import app from '../index'; // Import the Express app 'app'
+import { default as UserModel, IUser } from '../models/User'; // Import User model and IUser interface
 
 let mongo: MongoMemoryServer; // In-memory MongoDB server instance
+let testConnection: mongoose.Connection; // Specific connection for tests
+let TestUser: mongoose.Model<IUser>; // User model bound to the test connection
 
 /**
- * @function connect
+ * @function beforeAllHook
  * @description Connects to an in-memory MongoDB server before all tests in this suite.
  * This ensures tests run quickly and independently without affecting a real database.
- * Handles existing connections to prevent "Can't call openUri()" error during test re-runs.
+ * Uses `mongoose.createConnection` for isolated test connections, preventing conflicts.
  */
 beforeAll(async () => {
-  // Ensure any existing Mongoose connection is closed before starting new test connection
+  // Ensure any existing global Mongoose connection (e.g., from index.ts or a previous test run) is completely closed
   if (mongoose.connection.readyState !== 0) { // 0 = disconnected
     await mongoose.disconnect();
   }
 
-  // Create and connect to an in-memory MongoDB instance
+  // Create an in-memory MongoDB instance for testing
   mongo = await MongoMemoryServer.create();
   const uri = mongo.getUri();
-  await mongoose.connect(uri);
+
+  // Create a *new, isolated* Mongoose connection specifically for this test suite
+  testConnection = mongoose.createConnection(uri, {
+    serverSelectionTimeoutMS: 5000, // Give up on initial connection after 5 seconds
+    socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+    connectTimeoutMS: 10000, // Give up on initial connection after 10 seconds
+    bufferCommands: false, // Disable Mongoose buffering for faster test failures on connection issues
+    dbName: 'jest_test_db', // Ensure a specific name for the in-memory test database
+  });
+
+  // Bind the User model to this specific test connection
+  // This is crucial: operations on TestUser will only affect the in-memory DB
+  TestUser = testConnection.model<IUser>('User', UserModel.schema);
 });
 
 /**
- * @function clearDatabase
+ * @function afterEachHook
  * @description Clears all collections in the database after each test.
  * Ensures tests are isolated and don't affect each other by removing data created during the test.
+ * Operates on the test-specific connection.
  */
 afterEach(async () => {
-  // Clear all data from collections in the current test database
-  const collections = mongoose.connection.collections;
+  // Delete all documents from all collections in the current test database
+  const collections = testConnection.collections; // Use the test-specific connection's collections
   for (const key in collections) {
     const collection = collections[key];
     await collection.deleteMany({});
@@ -58,26 +73,27 @@ afterEach(async () => {
 });
 
 /**
- * @function disconnect
+ * @function afterAllHook
  * @description Disconnects from the in-memory MongoDB server and stops MongoMemoryServer after all tests.
  * This prevents Jest from hanging due to open database connections.
+ * Operates on the test-specific connection.
  */
 afterAll(async () => {
-  // Ensure the Mongoose connection is closed
-  await mongoose.connection.close();
-  // Stop the in-memory MongoDB server instance
+  // Close the test-specific Mongoose connection
+  await testConnection.close();
+  // Stop the in-memory MongoDB server
   if (mongo) {
     await mongo.stop();
   }
-  // Ensure all handles are closed if Jest still hangs (optional, often not needed after proper disconnects)
-  // await new Promise(resolve => setTimeout(resolve, 500)); // Give a small buffer
+  // Ensure Jest can exit cleanly (often not needed after proper Mongoose disconnect)
+  // await new Promise(resolve => setTimeout(resolve, 500));
 });
 
 // --- Test Cases for User Registration ---
 
 describe('POST /portal/register', () => {
-  // Add a specific timeout for this test suite if it takes longer, e.g., 20 seconds (20000 ms)
-  // jest.setTimeout(20000); // Uncomment this if tests continue to timeout at 5000ms
+  // We set a global timeout in jest.config.js (20000ms). This line is optional now.
+  // jest.setTimeout(20000);
 
   it('should register a new user successfully with valid credentials', async () => {
     const res = await request(app)
@@ -92,7 +108,8 @@ describe('POST /portal/register', () => {
     expect(res.body.userId).toBeDefined();
     expect(res.body.email).toEqual('test@example.com');
 
-    const user = await User.findOne({ email: 'test@example.com' });
+    // Use TestUser model (bound to test connection) to verify user existence
+    const user = await TestUser.findOne({ email: 'test@example.com' });
     expect(user).toBeDefined();
     expect(user?.email).toEqual('test@example.com');
     expect(user?.password).not.toEqual('StrongPassword123!'); // Password should be hashed
@@ -139,13 +156,14 @@ describe('POST /portal/register', () => {
   });
 
   it('should return 409 if email is already registered', async () => {
-    // Register the first user
-    await request(app).post('/portal/register').send({
+    // Register the first user DIRECTLY using TestUser model to set up the test condition efficiently
+    await TestUser.create({
       email: 'duplicate@example.com',
-      password: 'StrongPassword123!',
+      // Provide a valid-looking hashed password directly, as this bypasses the API hashing
+      password: await bcrypt.hash('InitialHashedPassword123!', await bcrypt.genSalt(10)),
     });
 
-    // Try to register with the same email again
+    // Try to register with the same email again via API
     const res = await request(app)
       .post('/portal/register')
       .send({

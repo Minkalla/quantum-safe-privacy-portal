@@ -99,8 +99,13 @@ if (require.main === module) {
       if (!uri) {
         throw new Error('MONGODB_URI is not defined in .env after explicit load attempt.');
       }
-      await mongoose.connect(uri);
-      Logger.info('Connected to MongoDB');
+      // Only connect to Atlas if not already connected (for rare cases of Jest conflicts)
+      if (mongoose.connection.readyState === 0) { // 0 = disconnected
+        await mongoose.connect(uri);
+        Logger.info('Connected to MongoDB (Atlas)');
+      } else {
+        Logger.info('MongoDB (Atlas) connection already established or connecting.');
+      }
     } catch (error) {
       Logger.error('MongoDB connection error:', error);
       process.exit(1); // Exit the process if the database connection fails
