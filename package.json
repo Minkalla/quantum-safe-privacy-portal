@@ -4,7 +4,7 @@
   "description": "Root package.json for Minkalla monorepo to manage shared dependencies.",
   "private": true,
   "scripts": {
-    "test": "npx jest",
+    "test": "IS_TESTING=true npx jest",
     "postinstall": "npm install --prefix src/portal/portal-backend"
   },
   "devDependencies": {

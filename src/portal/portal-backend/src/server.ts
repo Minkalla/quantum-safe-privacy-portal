@@ -40,11 +40,14 @@ const connectDB = async (): Promise<void> => {
   }
 };
 
-// Start the server only if this file is executed directly (i.e., `node dist/server.js`)
-if (require.main === module) {
+// CRITICAL FIX: Only start the server and connect to DB if NOT in a test environment
+// The 'IS_TESTING' environment variable will be set when running Jest.
+if (process.env['IS_TESTING'] !== 'true') {
   connectDB(); // Connect to the database
   app.listen(port, () => {
     // Start listening for requests
     Logger.info(`Portal Backend listening at http://localhost:${port}`);
   });
+} else {
+  Logger.info('Server startup and DB connection skipped in test environment.');
 }
