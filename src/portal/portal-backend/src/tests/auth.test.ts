@@ -22,13 +22,13 @@ import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import app from '../index';
 import { default as UserModel, IUser } from '../models/User';
-import * as bcrypt from 'bcryptjs'; // <-- CRITICAL: Use import * as bcrypt
+// REMOVED: import * as bcrypt from 'bcryptjs'; // <-- This line is removed as it's not directly used after mocking
 
 let mongo: MongoMemoryServer;
 let testConnection: mongoose.Connection;
 let TestUser: mongoose.Model<IUser>;
 
-// --- NEW: Mock bcryptjs operations to speed up tests ---
+// --- Mock bcryptjs operations to speed up tests ---
 jest.mock('bcryptjs', () => ({
   genSalt: jest.fn().mockResolvedValue('mockSalt'),
   hash: jest.fn().mockResolvedValue('mockHashedPassword'),
@@ -97,8 +97,6 @@ afterAll(async () => {
 // --- Test Cases for User Registration ---
 
 describe('POST /portal/register', () => {
-  // No jest.setTimeout here, using global timeout from jest.config.js
-
   it('should register a new user successfully with valid credentials', async () => {
     const res = await request(app)
       .post('/portal/register')
@@ -159,14 +157,11 @@ describe('POST /portal/register', () => {
   });
 
   it('should return 409 if email is already registered', async () => {
-    // Register the first user DIRECTLY using TestUser model to set up the test condition efficiently
     await TestUser.create({
       email: 'duplicate@example.com',
-      // Provide the mocked hashed password directly
       password: 'mockHashedPassword',
     });
 
-    // Try to register with the same email again via API
     const res = await request(app)
       .post('/portal/register')
       .send({
