@@ -40,7 +40,7 @@ module.exports = {
   // CRITICAL FIX: Configure ts-jest directly via 'transform' and FORCE esModuleInterop
   transform: {
     '^.+\\.tsx?$': [
-      path.resolve(__dirname, 'src/portal/portal-backend/node_modules/ts-jest'),
+      path.resolve(__dirname, 'node_modules/ts-jest'),
       {
         // Explicitly tell ts-jest which tsconfig.json to use
         tsconfig: path.resolve(__dirname, './tsconfig.json'),
