@@ -22,23 +22,18 @@ import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server'; // For in-memory MongoDB for tests
 import app from '../index'; // Import the Express app 'app'
 import { default as UserModel, IUser } from '../models/User'; // Import User model and IUser interface
-import bcrypt from 'bcryptjs'; // <-- IMPORTANT: Use bcryptjs for consistency
+import bcrypt from 'bcryptjs'; // <-- NEW: Add semicolon here and ensure others have it
 
 let mongo: MongoMemoryServer; // In-memory MongoDB server instance
 let testConnection: mongoose.Connection; // Specific connection for tests
 let TestUser: mongoose.Model<IUser>; // User model bound to the test connection
 
-// Set a generous global timeout for potentially slow operations (this is also in jest.config.js)
-// jest.setTimeout(30000); // We'll keep this in jest.config.js as global.
-
 // --- NEW: Mock bcryptjs operations to speed up tests ---
 // This prevents actual expensive hashing during tests.
-jest.mock('bcryptjs', () => ({ // Mock the bcryptjs module
+jest.mock('bcryptjs', () => ({
   genSalt: jest.fn().mockResolvedValue('mockSalt'),
   hash: jest.fn().mockResolvedValue('mockHashedPassword'),
 }));
-// Cast the mocked bcryptjs to JestMocked for type safety in beforeEach/it blocks if needed,
-// but usually direct calls to bcryptjs.hash/genSalt will use the mock.
 
 /**
  * @function beforeAllHook
@@ -103,8 +98,6 @@ afterAll(async () => {
 // --- Test Cases for User Registration ---
 
 describe('POST /portal/register', () => {
-  // jest.setTimeout(30000); // We'll rely on global timeout in jest.config.js for now.
-
   it('should register a new user successfully with valid credentials', async () => {
     const res = await request(app)
       .post('/portal/register')
