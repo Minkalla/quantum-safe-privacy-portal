@@ -22,16 +22,15 @@
 // Explicitly load environment variables from the .env file.
 // This ensures that process.env is populated before other modules use it.
 // We specify the path to the .env file relative to the compiled JavaScript file's location.
-import dotenv from 'dotenv'; // NEW: Import dotenv
-import path from 'path';     // NEW: Import path module for resolving file paths
+import dotenv from 'dotenv';
+import path from 'path';
 
-// __dirname refers to the directory of the currently executing script (dist/ in this case).
-// We need to go up one level (..) to reach the portal-backend directory which contains .env.
-dotenv.config({ path: path.resolve(__dirname, '..', '.env') }); // NEW: Explicit dotenv config call
+dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
 import express, { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import Logger from './utils/logger'; // Import our centralized logger
+import { register } from './controllers/authController'; // <-- NEW: Import the register function
 
 // Initialize the Express application
 const app = express();
@@ -44,6 +43,14 @@ const app = express();
  */
 const port: number = parseInt(process.env['PORT'] || '3000', 10); // Explicitly cast to number and strict access
 
+// Middleware
+/**
+ * @middleware express.json()
+ * @description Parses incoming requests with JSON payloads.
+ * This middleware is required to correctly parse request bodies for POST/PUT requests (e.g., user registration data).
+ */
+app.use(express.json()); // <-- NEW: Add middleware to parse JSON request bodies
+
 // MongoDB Connection
 /**
  * @function connectDB
@@ -55,8 +62,6 @@ const connectDB = async (): Promise<void> => {
   try {
     const uri = process.env['MONGODB_URI'];
     if (!uri) {
-      // This error means MONGODB_URI was not found in .env despite explicit pathing.
-      // Indicates a potential problem with .env file content or existence.
       throw new Error('MONGODB_URI is not defined in .env after explicit load attempt.');
     }
     await mongoose.connect(uri);
@@ -70,7 +75,7 @@ const connectDB = async (): Promise<void> => {
 // Call the connectDB function to establish the connection
 connectDB();
 
-// Define a basic root route for health checks or initial access
+// Routes
 /**
  * @route GET /
  * @description Provides a simple "Hello World" message to verify the backend is running.
@@ -82,6 +87,16 @@ app.get('/', (_req: Request, res: Response): void => {
   res.send('Hello from Quantum-Safe Privacy Portal Backend!');
 });
 
+/**
+ * @route POST /portal/register
+ * @description API endpoint for user registration.
+ * Delegates the registration logic to the authController.register function.
+ * @param {Request} req - The Express request object containing user email and password in the body.
+ * @param {Response} res - The Express response object.
+ * @returns {void} Handled by authController.register.
+ */
+app.post('/portal/register', register); // <-- NEW: Define the registration route
+
 // Start the server and listen for incoming requests
 /**
  * @method listen
@@ -91,5 +106,5 @@ app.get('/', (_req: Request, res: Response): void => {
  * @returns {Server} The HTTP server instance.
  */
 app.listen(port, (): void => {
-  Logger.info(`Portal Backend listening at http://localhost:${port}`); // Use the logger instead of console.log
+  Logger.info(`Portal Backend listening at http://localhost:${port}`);
 });
