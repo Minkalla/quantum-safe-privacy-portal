@@ -19,6 +19,9 @@
  * @see {@link https://github.com/Minkalla/quantum-safe-privacy-portal|Minkalla GitHub Repo}
  */
 
+// MODIFIED: Import express-async-errors at the very top to patch Express
+import 'express-async-errors'; // This line patches Express for async error handling
+
 // Explicitly load environment variables from the .env file.
 // This ensures that process.env is populated before other modules use it.
 // We specify the path to the .env file relative to the compiled JavaScript file's location.
@@ -28,8 +31,6 @@ import path from 'path';
 dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
 import express, { Request, Response } from 'express';
-// REMOVED: import mongoose from 'mongoose'; // No longer used directly in index.ts
-// REMOVED: import Logger from './utils/logger'; // No longer used directly in index.ts
 import { register } from './controllers/authController';
 import { globalErrorHandler } from './middleware/errorHandler';
 

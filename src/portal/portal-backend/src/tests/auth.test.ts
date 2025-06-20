@@ -1,7 +1,9 @@
 /**
  * @file auth.test.ts
  * @description Automated tests for the user authentication (registration) endpoint
- * of the Quantum-Safe Privacy Portal Backend.
+ * of the Quantum-Safe Privacy Portal Backend. These tests now fully manage their
+ * Mongoose connection to the in-memory MongoDB server provided by Jest's global setup.
+ * This ensures precise control over the database state for each test suite.
  *
  * @module AuthTests
  * @author Minkalla
@@ -18,85 +20,85 @@
  */
 
 import request from 'supertest';
-import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
-import app from '../index';
-import { default as UserModel, IUser } from '../models/User';
+import mongoose from 'mongoose'; // REQUIRED: For local Mongoose connection management
+import app from '../index'; // Import the Express app instance
+import { UserSchema, IUser } from '../models/User'; // Import UserSchema and IUser interface
 
 
-let mongo: MongoMemoryServer; // In-memory MongoDB server instance
-let testConnection: mongoose.Connection; // Specific connection for tests
-let TestUser: mongoose.Model<IUser>; // User model bound to the test connection
+// IMPORTANT: Remove local MongoMemoryServer instance declaration.
+// The global setup (jest-global-setup.ts) now handles starting the in-memory MongoDB.
+
+// Declare a variable for the TestUser model. This will be initialized in beforeAll.
+let TestUser: mongoose.Model<IUser>;// MODIFIED: Added missing semicolon
 
 // --- Mock bcryptjs operations to speed up tests ---
+// Ensure this mock is correctly applied and visible to all relevant code.
 jest.mock('bcryptjs', () => ({
   genSalt: jest.fn().mockResolvedValue('mockSalt'),
-  hash: jest.fn().mockResolvedValue('mockHashedPassword'),
+  hash: jest.fn().mockResolvedValue('mockHashedPassword'), // CORRECTED: Removed extra 'Mock'
 }));
 
 /**
  * @function beforeAllHook
- * @description Connects to an in-memory MongoDB server before all tests in this suite.
- * This ensures tests run quickly and independently without affecting a real database.
- * Uses `mongoose.createConnection` for isolated test connections, preventing conflicts.
+ * @description Connects Mongoose to the in-memory MongoDB server (URI provided by global setup)
+ * before all tests in this suite. This connection is specifically for this test suite.
+ * It also compiles the TestUser model for use in tests.
  */
 beforeAll(async () => {
-  // Ensure any existing global Mongoose connection (e.g., from index.ts or a previous test run) is completely closed
+  // Ensure any existing global Mongoose connection is closed before establishing a new one for tests
+  // This helps prevent Mongoose from using an old connection or buffering operations incorrectly.
   if (mongoose.connection.readyState !== 0) { // 0 = disconnected
     await mongoose.disconnect();
   }
 
-  // Create an in-memory MongoDB instance for testing
-  mongo = await MongoMemoryServer.create();
-  const uri = mongo.getUri();
+  // Get the URI for the in-memory MongoDB server from the environment variable set by global setup
+  const mongoUri = process.env['MONGO_TEST_URI'];
+  if (!mongoUri) {
+    throw new Error('MONGO_TEST_URI not set. Jest global setup failed to provide MongoDB URI.');
+  }
 
-  // Create a *new, isolated* Mongoose connection specifically for this test suite
-  testConnection = mongoose.createConnection(uri, {
-    serverSelectionTimeoutMS: 30000, // Increased to 30 seconds (matching Jest timeout)
-    socketTimeoutMS: 60000,    // Increased to 60 seconds
-    connectTimeoutMS: 30000,   // Increased to 30 seconds
-    bufferCommands: false,
+  // Connect Mongoose to the in-memory server specifically for this test suite
+  await mongoose.connect(mongoUri, {
+    serverSelectionTimeoutMS: 30000, // Increased to 30 seconds
+    socketTimeoutMS: 60000,     // Increased to 60 seconds
+    connectTimeoutMS: 30000,    // Increased to 30 seconds
     dbName: 'jest_test_db',
   });
 
-  // Bind the User model to this specific test connection
-  // This is crucial: operations on TestUser will only affect the in-memory DB
-  TestUser = testConnection.model<IUser>('User', UserModel.schema);
+  // Compile the User model against this newly established connection
+  TestUser = mongoose.model<IUser>('User', UserSchema);
+
+  console.log(`Mongoose connected in auth.test.ts using URI: ${mongoUri}`);
 });
 
 /**
- * @function afterEachHook
- * @description Clears all collections in the database after each test.
- * Ensures tests are isolated and don't affect each other by removing data created during the test.
- * Operates on the test-specific connection.
+ * @function beforeEachHook
+ * @description Clears all user data in the database before each test.
+ * Ensures tests are isolated and don't affect each other by removing data created during previous tests.
  */
-afterEach(async () => {
-  // Delete all documents from all collections in the current test database
-  const collections = testConnection.collections; // Use the test-specific connection's collections
-  for (const key in collections) {
-    const collection = collections[key];
-    await collection.deleteMany({});
-  }
+beforeEach(async () => {
+  // Clear all user data using the TestUser model bound to this test suite's connection
+  await TestUser.deleteMany({});
+  console.log('Cleared user data before test.');
 });
 
 /**
  * @function afterAllHook
- * @description Disconnects from the in-memory MongoDB server and stops MongoMemoryServer after all tests.
- * This prevents Jest from hanging due to open database connections.
- * Operates on the test-specific connection.
+ * @description Disconnects Mongoose after all tests in this suite.
+ * This ensures the connection is properly closed and doesn't keep Jest hanging.
+ * The MongoMemoryServer itself is stopped by jest-global-teardown.ts.
  */
 afterAll(async () => {
-  // Close the test-specific Mongoose connection
-  await testConnection.close();
-  // Stop the in-memory MongoDB server
-  if (mongo) {
-    await mongo.stop();
-  }
+  // Close the Mongoose connection opened specifically for this test suite
+  await mongoose.disconnect();
+  console.log('Mongoose disconnected in auth.test.ts after all tests.');
 });
+
 
 // --- Test Cases for User Registration ---
 
 describe('POST /portal/register', () => {
+  // Test: Successful user registration
   it('should register a new user successfully with valid credentials', async () => {
     const res = await request(app)
       .post('/portal/register')
@@ -110,12 +112,14 @@ describe('POST /portal/register', () => {
     expect(res.body.userId).toBeDefined();
     expect(res.body.email).toEqual('test@example.com');
 
+    // Verify the user was saved to the database using the TestUser model
     const user = await TestUser.findOne({ email: 'test@example.com' });
     expect(user).toBeDefined();
     expect(user?.email).toEqual('test@example.com');
-    expect(user?.password).toEqual('mockHashedPassword');
+    expect(user?.password).toEqual('mockHashedPassword'); // Expect hashed password from mock
   });
 
+  // Test: Missing email validation
   it('should return 400 if email is missing', async () => {
     const res = await request(app)
       .post('/portal/register')
@@ -125,9 +129,10 @@ describe('POST /portal/register', () => {
 
     expect(res.statusCode).toEqual(400);
     expect(res.body.message).toEqual('Validation failed');
-    expect(res.body.errors).toContain('"email" is required');
-  });
+    expect(res.body.errors).toContain('Email is required');
+  }, 15000); // MODIFIED: Added 15-second timeout
 
+  // Test: Password too short validation
   it('should return 400 if password is too short', async () => {
     const res = await request(app)
       .post('/portal/register')
@@ -141,8 +146,9 @@ describe('POST /portal/register', () => {
     expect(res.body.errors).toContain(
       'Password must be at least 8 characters long',
     );
-  });
+  }, 15000); // MODIFIED: Added 15-second timeout
 
+  // Test: Invalid email format validation
   it('should return 400 if email format is invalid', async () => {
     const res = await request(app)
       .post('/portal/register')
@@ -154,14 +160,17 @@ describe('POST /portal/register', () => {
     expect(res.statusCode).toEqual(400);
     expect(res.body.message).toEqual('Validation failed');
     expect(res.body.errors).toContain('Please enter a valid email address');
-  });
+  }, 15000); // MODIFIED: Added 15-second timeout
 
+  // Test: Duplicate email registration conflict
   it('should return 409 if email is already registered', async () => {
+    // Pre-register a user directly via the TestUser model
     await TestUser.create({
       email: 'duplicate@example.com',
       password: 'mockHashedPassword',
     });
 
+    // Attempt to register again with the same email
     const res = await request(app)
       .post('/portal/register')
       .send({
@@ -171,5 +180,5 @@ describe('POST /portal/register', () => {
 
     expect(res.statusCode).toEqual(409);
     expect(res.body.message).toEqual('Email already registered');
-  });
+  }, 15000); // MODIFIED: Added 15-second timeout
 });

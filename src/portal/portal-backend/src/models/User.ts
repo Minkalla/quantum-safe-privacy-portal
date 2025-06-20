@@ -40,7 +40,7 @@ export interface IUser extends Document {
  * @description Defines the Mongoose schema for the User model.
  * Sets up field types, validation, and schema options.
  */
-const UserSchema = new Schema<IUser>(
+export const UserSchema = new Schema<IUser>( // MODIFIED: Added 'export' here
   {
     email: {
       type: String,

@@ -14,7 +14,8 @@
  *
  * @see {@link https://www.npmjs.com/package/bcryptjs|bcryptjs} for password hashing.
  * @see {@link https://joi.dev/api/|Joi API Documentation} for input validation.
- * @see {@link ../middleware/errorHandler.ts|Centralized Error Handling} for AppError definition.
+ * @see {@link ../utils/appError.ts|Custom AppError Definition} for structured error handling.
+ * @see {@link https://www.npmjs.com/package/express-async-errors|express-async-errors} for robust async error handling.
  */
 
 import { Request, Response } from 'express';
@@ -22,8 +23,8 @@ import bcrypt from 'bcryptjs';
 import Joi from 'joi';
 import User from '../models/User';
 import Logger from '../utils/logger';
-import mongoose from 'mongoose';
-import { AppError } from '../middleware/errorHandler';
+// REMOVED: import mongoose from 'mongoose'; // MODIFIED: Removed - no longer directly used in this file
+import AppError from '../utils/appError'; // MODIFIED: Import AppError from its dedicated utils file
 
 /**
  * @constant {Joi.ObjectSchema} registerSchema
@@ -48,6 +49,7 @@ const registerSchema = Joi.object({
  * @function register
  * @description Handles the user registration process.
  * Performs robust input validation, hashes the user's password, and attempts to save the new user to the database.
+ * With `express-async-errors`, thrown errors will automatically propagate to the global error handler.
  *
  * @route POST /portal/register
  * @param {Request} req - The Express request object, containing user registration data (email, password).
@@ -55,67 +57,44 @@ const registerSchema = Joi.object({
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  */
 export const register = async (req: Request, res: Response): Promise<void> => {
-  try {
-    // 1. Input validation using Joi
-    const { error, value } = registerSchema.validate(req.body, { abortEarly: false });
-    if (error) {
-      const validationErrors = error.details.map((detail) => detail.message);
-      Logger.warn(`Registration attempt failed: Joi validation errors for email: ${value.email || req.body.email || 'N/A'}. Errors: ${validationErrors.join(', ')}`);
-      throw new AppError('Validation failed', 400);
-    }
-
-    // Extract validated data
-    const { email, password } = value;
-
-    // 2. Check if a user with the given email already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      Logger.warn(`Registration attempt failed: Email already in use: ${email}`);
-      throw new AppError('Email already registered', 409);
-    }
-
-    // 3. Hashing the password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // 4. Create a new user instance with the hashed password
-    const newUser = new User({
-      email,
-      password: hashedPassword,
-    });
-
-    // 5. Save the new user to the database
-    const savedUser = await newUser.save();
-
-    Logger.info(`New user registered successfully with ID: ${savedUser._id} and email: ${savedUser.email}`);
-
-    // 6. Respond with success message and new user details (excluding sensitive password)
-    res.status(201).json({
-      message: 'User registered successfully',
-      userId: savedUser._id,
-      email: savedUser.email,
-    });
-  } catch (error) {
-    // If it's already an AppError (thrown by us), just pass it to the next error middleware
-    if (error instanceof AppError) {
-      throw error;
-    }
-
-    // Handle specific Mongoose errors that might occur after AppError checks
-    if (error instanceof mongoose.Error.ValidationError) {
-      const validationErrors = Object.values(error.errors).map((err: any) => err.message);
-      Logger.warn(`Mongoose validation error during registration: ${validationErrors.join(', ')}`);
-      throw new AppError(`Database validation failed: ${validationErrors.join(', ')}`, 400);
-    }
-
-    // Handle duplicate key errors from MongoDB (e.g., unique email constraint)
-    if ((error as any).code === 11000) {
-      Logger.warn(`Duplicate key error during registration: ${JSON.stringify(error)}`);
-      throw new AppError('Email already registered', 409);
-    }
-
-    // For any other unexpected errors, log the details and re-throw as a generic AppError (500)
-    Logger.error('An unexpected server error occurred during registration:', error); // <-- NEW: Log the 'error' object itself for more detail
-    throw new AppError('An unexpected server error occurred during registration', 500);
+  // 1. Input validation using Joi
+  const { error, value } = registerSchema.validate(req.body, { abortEarly: false });
+  if (error) {
+    const validationErrors = error.details.map((detail) => detail.message);
+    Logger.warn(`Registration attempt failed: Joi validation errors for email: ${value.email || req.body.email || 'N/A'}. Errors: ${validationErrors.join(', ')}`);
+    // Pass detailed validation errors to AppError constructor
+    throw new AppError('Validation failed', 400, validationErrors);
   }
+
+  // Extract validated data
+  const { email, password } = value;
+
+  // 2. Check if a user with the given email already exists
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    Logger.warn(`Registration attempt failed: Email already in use: ${email}`);
+    throw new AppError('Email already registered', 409);
+  }
+
+  // 3. Hashing the password
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(password, salt);
+
+  // 4. Create a new user instance with the hashed password
+  const newUser = new User({
+    email,
+    password: hashedPassword,
+  });
+
+  // 5. Save the new user to the database
+  const savedUser = await newUser.save();
+
+  Logger.info(`New user registered successfully with ID: ${savedUser._id} and email: ${savedUser.email}`);
+
+  // 6. Respond with success message and new user details (excluding sensitive password)
+  res.status(201).json({
+    message: 'User registered successfully',
+    userId: savedUser._id,
+    email: savedUser.email,
+  });
 };

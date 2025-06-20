@@ -1,25 +1,24 @@
 // jest-global-teardown.ts
-// This file manages the teardown of the test environment after all Jest test suites have run.
+// This file manages the stopping of the in-memory MongoDB server only.
+// Mongoose connection and disconnection are handled per test suite in auth.test.ts.
 
-import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server'; // Consistent import for type reference
+// @ts-ignore: TS6133 - MongoMemoryServer is used via global.__MONGO_MEM_SERVER__
+import { MongoMemoryServer } from 'mongodb-memory-server'; 
+// Removed mongoose import and related logic.
 
-// Declare global properties for TypeScript.
-// NOTE: The 'declare global' block is removed from here and setup,
-// and 'any' casts are used as a workaround for persistent TS7017 errors in Jest's global hooks.
+// Using 'any' cast as a workaround for stubborn TS7017 error in Jest's global hooks context.
+// NOTE: The 'declare global' block is not needed here as we are using 'any' cast.
 
 async function globalTeardown() {
   console.log('\n--- Jest Global Teardown ---');
   try {
-    // Disconnect Mongoose from the database
-    await mongoose.disconnect();
-    console.log('MongoDB connection closed in teardown.');
-
     // Stop the MongoMemoryServer instance that was started in global setup.
     // Using 'any' cast as a workaround for TS7017 error.
     if ((global as any).__MONGO_MEM_SERVER__) {
       await (global as any).__MONGO_MEM_SERVER__.stop();
       console.log('MongoMemoryServer stopped in teardown.');
+    } else {
+      console.warn('MongoMemoryServer instance not found in global teardown.');
     }
   } catch (error) {
     console.error('Error during Jest global teardown:', error instanceof Error ? error.message : error);
