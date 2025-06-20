@@ -24,6 +24,7 @@ import mongoose from 'mongoose'; // REQUIRED: For local Mongoose connection mana
 import app from '../index'; // Import the Express app instance
 import { UserSchema, IUser } from '../models/User'; // Import UserSchema and IUser interface
 import bcrypt from 'bcryptjs'; // Import bcrypt for direct password hashing in test setup
+// MODIFIED: Removed import of securityConfig - no longer needed here for overrides
 
 // IMPORTANT: Remove local MongoMemoryServer instance declaration.
 // The global setup (jest-global-setup.ts) now handles starting the in-memory MongoDB.
@@ -32,12 +33,27 @@ import bcrypt from 'bcryptjs'; // Import bcrypt for direct password hashing in t
 let TestUser: mongoose.Model<IUser>;
 
 // --- Mock bcryptjs operations ---
-// MODIFIED: Make bcrypt.hash always return mockHashedPassword by default,
-// and allow compare to be overridden later.
 jest.mock('bcryptjs', () => ({
   genSalt: jest.fn().mockResolvedValue('mockSalt'),
-  hash: jest.fn().mockResolvedValue('mockHashedPassword'), // Default mock for hash
-  compare: jest.fn(), // Compare will be mocked per test in login's beforeEach
+  hash: jest.fn().mockImplementation((password, salt) => {
+    if (password === 'StrongPassword123!' && salt === 'mockSalt') {
+      return Promise.resolve('mockHashedPassword');
+    }
+    return Promise.resolve(`default_hashed_${password}_${salt}`);
+  }),
+  compare: jest.fn(),
+}));
+
+// MODIFIED: Mock the rate limiting middleware to always allow requests for auth tests
+jest.mock('../middleware/rateLimitMiddleware', () => ({
+  // Mock the exported instances to be simple pass-through middleware
+  globalApiLimiter: (req: any, res: any, next: any) => next(),
+  loginApiLimiter: (req: any, res: any, next: any) => next(),
+  registerApiLimiter: (req: any, res: any, next: any) => next(),
+  // Also mock the test factory functions, though they won't be used by auth.test.ts
+  createTestGlobalLimiter: jest.fn(() => (req: any, res: any, next: any) => next()),
+  createTestLoginLimiter: jest.fn(() => (req: any, res: any, next: any) => next()),
+  createTestRegisterLimiter: jest.fn(() => (req: any, res: any, next: any) => next()),
 }));
 
 
@@ -48,26 +64,22 @@ jest.mock('bcryptjs', () => ({
  * It also compiles the TestUser model for use in tests.
  */
 beforeAll(async () => {
-  // Ensure any existing global Mongoose connection is closed before establishing a new one for tests
-  if (mongoose.connection.readyState !== 0) { // 0 = disconnected
+  if (mongoose.connection.readyState !== 0) {
     await mongoose.disconnect();
   }
 
-  // Get the URI for the in-memory MongoDB server from the environment variable set by global setup
   const mongoUri = process.env['MONGO_TEST_URI'];
   if (!mongoUri) {
     throw new Error('MONGO_TEST_URI not set. Jest global setup failed to provide MongoDB URI.');
   }
 
-  // Connect Mongoose to the in-memory server specifically for this test suite
   await mongoose.connect(mongoUri, {
-    serverSelectionTimeoutMS: 30000, // Increased to 30 seconds
-    socketTimeoutMS: 60000,     // Increased to 60 seconds
-    connectTimeoutMS: 30000,    // Increased to 30 seconds
+    serverSelectionTimeoutMS: 30000, 
+    socketTimeoutMS: 60000,     
+    connectTimeoutMS: 30000,    
     dbName: 'jest_test_db',
   });
 
-  // Compile the User model against this newly established connection
   TestUser = mongoose.model<IUser>('User', UserSchema);
 
   console.log(`Mongoose connected in auth.test.ts using URI: ${mongoUri}`);
@@ -79,7 +91,6 @@ beforeAll(async () => {
  * Ensures tests are isolated and don't affect each other by removing data created during previous tests.
  */
 beforeEach(async () => {
-  // Clear all user data using the TestUser model bound to this test suite's connection
   await TestUser.deleteMany({});
   console.log('Cleared user data before test.');
 });
@@ -91,7 +102,6 @@ beforeEach(async () => {
  * The MongoMemoryServer itself is stopped by jest-global-teardown.ts.
  */
 afterAll(async () => {
-  // Close the Mongoose connection opened specifically for this test suite
   await mongoose.disconnect();
   console.log('Mongoose disconnected in auth.test.ts after all tests.');
 });
@@ -100,9 +110,7 @@ afterAll(async () => {
 // --- Test Cases for User Registration ---
 
 describe('POST /portal/register', () => {
-  // Test: Successful user registration
   it('should register a new user successfully with valid credentials', async () => {
-    // Ensure bcrypt.hash returns the specific mock value for this test
     (bcrypt.hash as jest.Mock).mockResolvedValueOnce('mockHashedPassword'); 
 
     const res = await request(app)
@@ -117,14 +125,12 @@ describe('POST /portal/register', () => {
     expect(res.body.userId).toBeDefined();
     expect(res.body.email).toEqual('test@example.com');
 
-    // Verify the user was saved to the database using the TestUser model
     const user = await TestUser.findOne({ email: 'test@example.com' });
     expect(user).toBeDefined();
     expect(user?.email).toEqual('test@example.com');
-    expect(user?.password).toEqual('mockHashedPassword'); // Expect hashed password from mock
-  });
+    expect(user?.password).toEqual('mockHashedPassword'); 
+  }, 15000); 
 
-  // Test: Missing email validation
   it('should return 400 if email is missing', async () => {
     const res = await request(app)
       .post('/portal/register')
@@ -135,9 +141,8 @@ describe('POST /portal/register', () => {
     expect(res.statusCode).toEqual(400);
     expect(res.body.message).toEqual('Validation failed');
     expect(res.body.errors).toContain('Email is required');
-  }, 15000); // MODIFIED: Added 15-second timeout
+  }, 15000); 
 
-  // Test: Password too short validation
   it('should return 400 if password is too short', async () => {
     const res = await request(app)
       .post('/portal/register')
@@ -151,9 +156,8 @@ describe('POST /portal/register', () => {
     expect(res.body.errors).toContain(
       'Password must be at least 8 characters long',
     );
-  }, 15000); // MODIFIED: Added 15-second timeout
+  }, 15000); 
 
-  // Test: Invalid email format validation
   it('should return 400 if email format is invalid', async () => {
     const res = await request(app)
       .post('/portal/register')
@@ -165,17 +169,14 @@ describe('POST /portal/register', () => {
     expect(res.statusCode).toEqual(400);
     expect(res.body.message).toEqual('Validation failed');
     expect(res.body.errors).toContain('Please enter a valid email address');
-  }, 15000); // MODIFIED: Added 15-second timeout
+  }, 15000); 
 
-  // Test: Duplicate email registration conflict
   it('should return 409 if email is already registered', async () => {
-    // Pre-register a user directly via the TestUser model
     await TestUser.create({
       email: 'duplicate@example.com',
       password: 'mockHashedPassword',
     });
 
-    // Attempt to register again with the same email
     const res = await request(app)
       .post('/portal/register')
       .send({
@@ -185,7 +186,7 @@ describe('POST /portal/register', () => {
 
     expect(res.statusCode).toEqual(409);
     expect(res.body.message).toEqual('Email already registered');
-  }, 15000); // MODIFIED: Added 15-second timeout
+  }, 15000); 
 });
 
 
@@ -195,37 +196,26 @@ describe('POST /portal/login', () => {
   const userPassword = 'correctpassword';
   let hashedPassword = '';
 
-  // Before any login test, ensure a user exists for login attempts
   beforeEach(async () => {
-    // MODIFIED: Clear all mocks before setting new ones for login tests
     jest.clearAllMocks(); 
 
-    // Re-mock bcrypt.compare for specific compare behavior in login tests
     (bcrypt.compare as jest.Mock).mockImplementation((password, hash) => {
       return Promise.resolve(password === userPassword && hash === hashedPassword);
     });
-    // MODIFIED: Mock bcrypt.hash for refresh token hashing during login tests
-    // Ensure it does not interfere with the outer jest.mock's default
     (bcrypt.hash as jest.Mock).mockImplementation((password, salt) => {
-      // If hashing the user's main password for initial setup in this beforeEach
       if (password === userPassword) { 
-        // Using actual bcrypt.hash for user password in test setup
-        return jest.requireActual('bcryptjs').hash(password, salt); 
+        return Promise.resolve(jest.requireActual<typeof bcrypt>('bcryptjs').hashSync(password, salt)); 
       }
-      // For hashing the refresh token, provide a distinct mock hash
       return Promise.resolve(`mockHashedRefreshToken_${password}_${salt}`);
     });
 
-    // Hash the password for the test user to simulate real registration
-    // This hash is now performed using the actual bcrypt module, not the global mock
-    // Temporarily bypass the mock for this line
-    const originalBcryptHash = jest.requireActual('bcryptjs').hash;
-    const originalBcryptGenSalt = jest.requireActual('bcryptjs').genSalt;
+    const originalBcryptHash = jest.requireActual<typeof bcrypt>('bcryptjs').hash;
+    const originalBcryptGenSalt = jest.requireActual<typeof bcrypt>('bcryptjs').genSalt;
     hashedPassword = await originalBcryptHash(userPassword, await originalBcryptGenSalt(10));
 
     await TestUser.create({
       email: userEmail,
-      password: hashedPassword, // Ensure password is correctly set
+      password: hashedPassword, 
       failedLoginAttempts: 0,
       lockUntil: null,
     });
@@ -241,21 +231,18 @@ describe('POST /portal/login', () => {
     expect(res.body.status).toEqual('success');
     expect(res.body.message).toEqual('Logged in successfully');
     expect(res.body.accessToken).toBeDefined();
-    // Check for HTTP-only cookie
     expect(res.headers['set-cookie']).toBeDefined();
     expect(res.headers['set-cookie'][0]).toContain('refreshToken');
     expect(res.headers['set-cookie'][0]).toContain('HttpOnly');
     expect(res.headers['set-cookie'][0]).toContain('Path=/');
 
-    // Verify user fields updated in DB
     const user = await TestUser.findOne({ email: userEmail });
     expect(user?.lastLoginAt).toBeDefined();
-    expect(user?.failedLoginAttempts).toEqual(0); // Should be reset
-    expect(user?.lockUntil).toBeNull(); // Should be null
-    // Ensure refreshTokenHash is selected for verification
+    expect(user?.failedLoginAttempts).toEqual(0); 
+    expect(user?.lockUntil).toBeNull(); 
     const userWithTokenHash = await TestUser.findOne({ email: userEmail }).select('+refreshTokenHash');
-    expect(userWithTokenHash?.refreshTokenHash).toBeDefined(); // Should be hashed refresh token
-  }, 15000); // 15-second timeout
+    expect(userWithTokenHash?.refreshTokenHash).toBeDefined(); 
+  }, 15000); 
 
   // Test: Login with incorrect password
   it('should return 401 for incorrect password', async () => {
@@ -266,7 +253,6 @@ describe('POST /portal/login', () => {
     expect(res.statusCode).toEqual(401);
     expect(res.body.message).toEqual('Invalid credentials');
 
-    // Verify failed attempts count incremented
     const user = await TestUser.findOne({ email: userEmail });
     expect(user?.failedLoginAttempts).toEqual(1);
     expect(user?.lockUntil).toBeNull();
@@ -280,7 +266,6 @@ describe('POST /portal/login', () => {
 
     expect(res.statusCode).toEqual(401);
     expect(res.body.message).toEqual('Invalid credentials');
-    // No user found, so no failed attempts in DB for this email
   }, 15000);
 
   // Test: Login with missing email
@@ -301,22 +286,22 @@ describe('POST /portal/login', () => {
       .send({ email: userEmail });
 
     expect(res.statusCode).toEqual(400);
-    expect(res.body.message).toEqual('Validation failed'); // MODIFIED: Check general validation message
-    expect(res.body.errors).toContain('Password is required'); // MODIFIED: Check specific error in errors array
+    expect(res.body.message).toEqual('Validation failed'); 
+    expect(res.body.errors).toContain('Password is required'); 
   }, 15000);
 
   // Test: Account locked due to failed attempts
   it('should return 403 if account is locked due to too many failed attempts', async () => {
     // Simulate failed attempts to lock the account
-    for (let i = 0; i < 5; i++) { // MAX_FAILED_ATTEMPTS is 5
+    for (let i = 0; i < 5; i++) { 
       await request(app)
         .post('/portal/login')
         .send({ email: userEmail, password: 'wrongpassword' });
     }
 
     const userBeforeFinalAttempt = await TestUser.findOne({ email: userEmail });
-    expect(userBeforeFinalAttempt?.failedLoginAttempts).toEqual(0); // Should be reset after locking
-    expect(userBeforeFinalAttempt?.lockUntil).toBeDefined(); // Should have a lock timestamp
+    expect(userBeforeFinalAttempt?.failedLoginAttempts).toEqual(0); 
+    expect(userBeforeFinalAttempt?.lockUntil).toBeDefined(); 
 
     // Attempt to log in again while locked
     const res = await request(app)
@@ -325,7 +310,7 @@ describe('POST /portal/login', () => {
 
     expect(res.statusCode).toEqual(403);
     expect(res.body.message).toMatch(/Account locked\. Please try again in \d+ minutes\./);
-  }, 30000); // Increased timeout for brute-force simulation
+  }, 30000); 
 
   // Test: Successful login after previous failed attempts (but not locked)
   it('should allow successful login after previous failed attempts (below lock threshold)', async () => {
@@ -344,9 +329,8 @@ describe('POST /portal/login', () => {
     expect(res.statusCode).toEqual(200);
     expect(res.body.status).toEqual('success');
 
-    // Verify failed attempts count reset to 0
     const user = await TestUser.findOne({ email: userEmail });
     expect(user?.failedLoginAttempts).toEqual(0);
     expect(user?.lockUntil).toBeNull();
-  }, 15000); // 15-second timeout
+  }, 15000); 
 });

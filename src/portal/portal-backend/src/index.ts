@@ -28,23 +28,43 @@ dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
 import express, { Request, Response } from 'express';
 import cookieParser from 'cookie-parser'; 
+import cors from 'cors'; 
+import helmet from 'helmet'; 
+import hpp from 'hpp'; 
+import { securityConfig } from './config/security'; 
+// MODIFIED: Import specific limiter instances (not factories anymore)
+import { globalApiLimiter, loginApiLimiter, registerApiLimiter } from './middleware/rateLimitMiddleware'; 
 import { register, login } from './controllers/authController'; 
-import globalErrorHandler from './middleware/errorHandler'; // MODIFIED: Import as default
+import globalErrorHandler from './middleware/errorHandler'; 
 
 const app = express();
 
+// Middleware (These lines define the app's structure and should always be executed)
 app.use(express.json());
 
 app.use(cookieParser());
 
+app.use(helmet(securityConfig.helmet));
+
+app.use(hpp());
+
+app.use(cors(securityConfig.cors));
+
+// --- Rate Limiting ---
+// MODIFIED: Always apply production global rate limit. Tests will mock/override as needed.
+app.use('/portal/', globalApiLimiter); 
+
+// Routes (These lines define the app's structure and should always be executed)
 app.get('/', (_req: Request, res: Response): void => {
   res.send('Hello from Quantum-Safe Privacy Portal Backend!');
 });
 
-app.post('/portal/register', register);
+// MODIFIED: Always apply production specific rate limiters to routes. Tests will mock/override.
+app.post('/portal/register', registerApiLimiter, register);
+app.post('/portal/login', loginApiLimiter, login);
 
-app.post('/portal/login', login);
-
+// Global Error Handling Middleware (must be after all routes, also always executed)
 app.use(globalErrorHandler);
 
+// This line is crucial: it exports the configured Express app instance
 export default app;
