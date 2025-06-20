@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "es2020",
     "module": "commonjs",
-    "lib": ["es2020"],
+    "lib": ["es2020", "dom", "dom.iterable", "esnext"],
     "strict": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -24,13 +24,14 @@
     "declaration": true,
     "incremental": true,
     "composite": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    // "types": ["jest", "node"], // MODIFIED: REMOVED the 'types' array
+    "typeRoots": ["./node_modules/@types", "./types"] // Keep this as it is
   },
   "include": [
     "src/**/*.ts",
     "src/**/*.d.ts",
-    "src/**/*.tsx",
-    "../../types/**/*.d.ts" // This is the last element in the array, so no trailing comma for this line
-  ], // <--- ADD this closing bracket for the "include" array, and a comma afterwards
+    "src/**/*.tsx"
+  ],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }
