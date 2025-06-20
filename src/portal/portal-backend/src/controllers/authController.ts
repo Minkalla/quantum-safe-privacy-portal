@@ -1,3 +1,4 @@
+// src/portal/portal-backend/src/controllers/authController.ts
 /**
  * @file authController.ts
  * @description Controller for authentication-related operations, including user registration and login.
@@ -26,7 +27,7 @@ import Joi from 'joi';
 import User from '../models/User';
 import Logger from '../utils/logger';
 import AppError from '../utils/appError';
-import { generateTokens } from '../utils/jwtService'; // MODIFIED: Import generateTokens
+import { generateTokens } from '../utils/jwtService';
 
 // Brute-force protection settings
 const MAX_FAILED_ATTEMPTS = 5;
@@ -67,15 +68,61 @@ const loginSchema = Joi.object({
 });
 
 /**
- * @function register
- * @description Handles the user registration process.
- * Performs robust input validation, hashes the user's password, and attempts to save the new user to the database.
- * With `express-async-errors`, thrown errors will automatically propagate to the global error handler.
- *
- * @route POST /portal/register
- * @param {Request} req - The Express request object, containing user registration data (email, password).
- * @param {Response} res - The Express response object, used to send back API responses.
- * @returns {Promise<void>} A promise that resolves when the response is sent.
+ * @swagger
+ * /portal/register:
+ * post:
+ * summary: Register a new user account
+ * description: Creates a new user account with provided email and password. Ensures password complexity and email uniqueness. Implements rate limiting and validates input rigorously.
+ * tags: [Authentication]
+ * requestBody:
+ * required: true
+ * content:
+ * application/json:
+ * schema:
+ * $ref: '#/components/schemas/UserCredentials'
+ * examples:
+ * validRegistration:
+ * summary: Example of a valid registration request
+ * value:
+ * email: "newuser@minkalla.com"
+ * password: "StrongPassword123!"
+ * missingFields:
+ * summary: Example of a registration with missing required fields
+ * value:
+ * email: ""
+ * password: "Short1!"
+ * responses:
+ * 201:
+ * description: User successfully registered.
+ * content:
+ * application/json:
+ * schema:
+ * $ref: '#/components/schemas/UserRegisteredResponse'
+ * 400:
+ * description: Validation failed (e.g., weak password, invalid email format, missing fields).
+ * content:
+ * application/json:
+ * schema:
+ * $ref: '#/components/schemas/ErrorResponse'
+ * 409:
+ * description: Email already registered.
+ * content:
+ * application/json:
+ * schema:
+ * $ref: '#/components/schemas/ErrorResponse'
+ * 429:
+ * description: Too many registration attempts from this IP.
+ * content:
+ * application/json:
+ * schema:
+ * $ref: '#/components/schemas/ErrorResponse'
+ * security: [] # This endpoint does not require prior authentication
+ * @compliance NIST SP 800-53:IA-5 (Authenticator Management), AC-7 (Unsuccessful Login Attempts), CM-3 (Configuration Management)
+ * @compliance PCI DSS:2.2 (Secure Configurations), 8.2 (Authentication Controls)
+ * @compliance ISO 27001:A.9.2.1 (User Registration), A.10.1.1 (Control of Operational Software)
+ * @pii-data email, password (during input validation), IP address (for rate limiting)
+ * @threat-model Account Enumeration, Weak Credential Attacks, Brute-Force Registration
+ * @mitigation Rate Limiting, Strong Password Policy, Email Uniqueness Check, Joi Validation
  */
 export const register = async (req: Request, res: Response): Promise<void> => {
   // 1. Input validation using Joi
@@ -120,15 +167,78 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 };
 
 /**
- * @function login
- * @description Handles the user login process.
- * Performs input validation, user authentication, brute-force protection,
- * and generates access and refresh tokens.
- * @route POST /portal/login
- * @param {Request} req - The Express request object, containing user login data (email, password, rememberMe).
- * @param {Response} res - The Express response object, used to send back API responses and set cookies.
- * @returns {Promise<void>} A promise that resolves when the response is sent.
- * MODIFIED: New login function.
+ * @swagger
+ * /portal/login:
+ * post:
+ * summary: Authenticate user and issue access/refresh tokens
+ * description: Logs in a user with provided credentials. On successful authentication, issues a short-lived access token in the response body and a long-lived refresh token in an HTTP-only, secure, SameSite=Strict cookie. Implements brute-force protection with account lockout.
+ * tags: [Authentication]
+ * requestBody:
+ * required: true
+ * content:
+ * application/json:
+ * schema:
+ * $ref: '#/components/schemas/UserCredentials'
+ * examples:
+ * validLogin:
+ * summary: Example of a valid login request
+ * value:
+ * email: "testuser@minkalla.com"
+ * password: "SecurePassword123!"
+ * incorrectPassword:
+ * summary: Example of an incorrect password attempt
+ * value:
+ * email: "testuser@minkalla.com"
+ * password: "WrongPassword"
+ * missingFields:
+ * summary: Example of a login request with missing required fields
+ * value:
+ * email: ""
+ * password: "password"
+ * responses:
+ * 200:
+ * description: Successful authentication, returns access token. Refresh token set as HTTP-only cookie.
+ * content:
+ * application/json:
+ * schema:
+ * $ref: '#/components/schemas/UserLoginResponse'
+ * headers:
+ * Set-Cookie:
+ * schema:
+ * type: string
+ * example: refreshToken=eyJhbGciOiJIUzI1Ni...; Path=/; HttpOnly; Secure; SameSite=Strict; Expires=Fri, 27 Jun 2025 10:00:00 GMT
+ * description: The refresh token is set as an HTTP-only, secure, SameSite=Strict cookie.
+ * 400:
+ * description: Validation failed (e.g., missing email/password).
+ * content:
+ * application/json:
+ * schema:
+ * $ref: '#/components/schemas/ErrorResponse'
+ * 401:
+ * description: Invalid credentials (e.g., incorrect password, user not found).
+ * content:
+ * application/json:
+ * schema:
+ * $ref: '#/components/schemas/ErrorResponse'
+ * 403:
+ * description: Account locked due to too many failed attempts.
+ * content:
+ * application/json:
+ * schema:
+ * $ref: '#/components/schemas/ErrorResponse'
+ * 429:
+ * description: Too many login attempts from this IP.
+ * content:
+ * application/json:
+ * schema:
+ * $ref: '#/components/schemas/ErrorResponse'
+ * security: [] # This endpoint does not require prior authentication
+ * @compliance NIST SP 800-53:AU-12 (Audit Generation), AC-7 (Unsuccessful Login Attempts), IA-2(1) (Centralized Account Management), IA-5(1) (Authenticated Access), SC-5 (Denial of Service Protection)
+ * @compliance PCI DSS:8.1.5 (Authentication Controls), 10.2.1 (Audit Trails)
+ * @compliance ISO 27001:A.9.2.3 (Privileged Access Management), A.10.1.1 (Control of Operational Software)
+ * @pii-data email, password (during input validation), IP address (for rate limiting)
+ * @threat-model Brute-Force, Credential Stuffing, Session Hijacking (via insecure Refresh Token handling)
+ * @mitigation Brute-Force Protection (Rate Limiting, Account Lockout), Dual-Token Strategy (Access Token short-lived, Refresh Token HttpOnly/Secure/SameSite cookie), Joi Validation
  */
 export const login = async (req: Request, res: Response): Promise<void> => {
   // 1. Input validation
