@@ -1,6 +1,6 @@
 {
   "name": "portal-backend",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Backend services for the Quantum-Safe Privacy Portal.",
   "main": "dist/index.js",
   "scripts": {
