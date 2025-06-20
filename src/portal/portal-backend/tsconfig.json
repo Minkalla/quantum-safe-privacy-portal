@@ -25,13 +25,15 @@
     "incremental": true,
     "composite": true,
     "jsx": "react-jsx",
-    // "types": ["jest", "node"], // MODIFIED: REMOVED the 'types' array
-    "typeRoots": ["./node_modules/@types", "./types"] // Keep this as it is
+    "types": ["jest", "node"], // MODIFIED: Re-introduced 'types' array with Jest and Node
+    "typeRoots": ["./node_modules/@types", "./types"], // Ensure './types' is included in typeRoots
+    "moduleResolution": "node" // Re-introduced moduleResolution
   },
   "include": [
     "src/**/*.ts",
     "src/**/*.d.ts",
-    "src/**/*.tsx"
+    "src/**/*.tsx",
+    "types/**/*.d.ts" // Explicitly include custom .d.ts files
   ],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }

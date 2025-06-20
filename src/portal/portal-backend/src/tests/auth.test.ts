@@ -29,13 +29,13 @@ import { UserSchema, IUser } from '../models/User'; // Import UserSchema and IUs
 // The global setup (jest-global-setup.ts) now handles starting the in-memory MongoDB.
 
 // Declare a variable for the TestUser model. This will be initialized in beforeAll.
-let TestUser: mongoose.Model<IUser>;// MODIFIED: Added missing semicolon
+let TestUser: mongoose.Model<IUser>;
 
 // --- Mock bcryptjs operations to speed up tests ---
 // Ensure this mock is correctly applied and visible to all relevant code.
 jest.mock('bcryptjs', () => ({
   genSalt: jest.fn().mockResolvedValue('mockSalt'),
-  hash: jest.fn().mockResolvedValue('mockHashedPassword'), // CORRECTED: Removed extra 'Mock'
+  hash: jest.fn().mockResolvedValue('mockHashedPassword'),
 }));
 
 /**

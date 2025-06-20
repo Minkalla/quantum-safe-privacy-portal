@@ -69,7 +69,13 @@ const loginSchema = Joi.object({
 /**
  * @function register
  * @description Handles the user registration process.
+ * Performs robust input validation, hashes the user's password, and attempts to save the new user to the database.
+ * With `express-async-errors`, thrown errors will automatically propagate to the global error handler.
+ *
  * @route POST /portal/register
+ * @param {Request} req - The Express request object, containing user registration data (email, password).
+ * @param {Response} res - The Express response object, used to send back API responses.
+ * @returns {Promise<void>} A promise that resolves when the response is sent.
  */
 export const register = async (req: Request, res: Response): Promise<void> => {
   // 1. Input validation using Joi

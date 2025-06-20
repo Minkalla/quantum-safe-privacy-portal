@@ -19,62 +19,32 @@
  * @see {@link https://github.com/Minkalla/quantum-safe-privacy-portal|Minkalla GitHub Repo}
  */
 
-// MODIFIED: Import express-async-errors at the very top to patch Express
-import 'express-async-errors'; // This line patches Express for async error handling
+import 'express-async-errors'; 
 
-// Explicitly load environment variables from the .env file.
-// This ensures that process.env is populated before other modules use it.
-// We specify the path to the .env file relative to the compiled JavaScript file's location.
 import dotenv from 'dotenv';
 import path from 'path';
 
 dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
 import express, { Request, Response } from 'express';
-import { register } from './controllers/authController';
-import { globalErrorHandler } from './middleware/errorHandler';
+import cookieParser from 'cookie-parser'; 
+import { register, login } from './controllers/authController'; 
+import globalErrorHandler from './middleware/errorHandler'; // MODIFIED: Import as default
 
-// Initialize the Express application
 const app = express();
 
-// Middleware (These lines define the app's structure and should always be executed)
-/**
- * @middleware express.json()
- * @description Parses incoming requests with JSON payloads.
- * This middleware is required to correctly parse request bodies for POST/PUT requests (e.g., user registration data).
- */
 app.use(express.json());
 
-// Routes (These lines define the app's structure and should always be executed)
-/**
- * @route GET /
- * @description Provides a simple "Hello World" message to verify the backend is running.
- * @param {Request} _req - The Express request object. Underscore indicates it's intentionally unused to satisfy TS6133.
- * @param {Response} res - The Express response object.
- * @returns {void} Sends a string response.
- */
+app.use(cookieParser());
+
 app.get('/', (_req: Request, res: Response): void => {
   res.send('Hello from Quantum-Safe Privacy Portal Backend!');
 });
 
-/**
- * @route POST /portal/register
- * @description API endpoint for user registration.
- * Delegates the registration logic to the authController.register function.
- * @param {Request} req - The Express request object containing user email and password in the body.
- * @param {Response} res - The Express response object.
- * @returns {void} Handled by authController.register.
- */
 app.post('/portal/register', register);
 
-// Global Error Handling Middleware (must be after all routes, also always executed)
-/**
- * @middleware globalErrorHandler
- * @description This is the last middleware in the chain, designed to catch all errors
- * (both operational and programming errors) and send a standardized error response.
- * It ensures consistent error formatting and prevents sensitive details from leaking.
- */
+app.post('/portal/login', login);
+
 app.use(globalErrorHandler);
 
-// This line is crucial: it exports the configured Express app instance
 export default app;

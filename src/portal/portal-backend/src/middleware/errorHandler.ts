@@ -3,6 +3,7 @@
  * @file errorHandler.ts
  * @description Centralized error handling middleware for the Quantum-Safe Privacy Portal Backend.
  * Catches and standardizes all application errors by leveraging the custom AppError class.
+ * MODIFIED: Changed to default export to resolve potential circular dependency/loading issues.
  *
  * @module ErrorHandling
  * @author Minkalla
@@ -16,8 +17,15 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import Logger from '../utils/logger'; // Import our centralized logger
-import AppError from '../utils/appError'; // MODIFIED: Import AppError from its dedicated file
+import Logger from '../utils/logger'; 
+// MODIFIED: Removed 'import AppError from '../utils/appError';' to break circular dependency.
+
+interface IAppErrorProperties extends Error {
+  statusCode?: number;
+  status?: string;
+  isOperational?: boolean;
+  errors?: string[];
+}
 
 /**
  * @function globalErrorHandler
@@ -30,35 +38,32 @@ import AppError from '../utils/appError'; // MODIFIED: Import AppError from its 
  * @param {Response} res - The Express response object.
  * @param {NextFunction} _next - The Express next middleware function. Prefixed with _ as it's not directly used in this implementation.
  * @returns {void} Sends an error response.
+ * MODIFIED: This function is now the default export.
  */
-export const globalErrorHandler = (
+const globalErrorHandler = ( // MODIFIED: Removed 'export const'
   err: Error,
   _req: Request,
   res: Response,
   _next: NextFunction,
 ): void => {
-  // MODIFIED: Type assert err as AppError to access its properties, assuming it's an AppError instance
-  let error = err as AppError;
+  let error: IAppErrorProperties = err;
 
-  // Set default status code and message for unhandled errors
   const statusCode = error.statusCode || 500;
   const status = `${statusCode}`.startsWith('4') ? 'fail' : 'error';
   const message = error.message || 'Something went wrong!';
-  const errors = error.errors; // MODIFIED: Get the 'errors' array if present
+  const errors = error.errors; 
 
-  Logger.error(`Global Error: ${error.message} Stack: ${error.stack}`); // Log full error details internally
+  Logger.error(`Global Error: ${error.message} Stack: ${error.stack}`); 
 
-  // Send error response
   res.status(statusCode).json({
     status,
-    message: statusCode === 500 && process.env['NODE_ENV'] !== 'development' ? 'Something went wrong!' : message, // Hide generic 500 details in production
-    ...(errors && { errors }), // MODIFIED: Conditionally include the 'errors' array
-    // In development, send full error details for debugging
+    message: statusCode === 500 && process.env['NODE_ENV'] !== 'development' ? 'Something went wrong!' : message, 
+    ...(errors && { errors }), 
     ...(process.env['NODE_ENV'] === 'development' && {
-      error: error, // Use the asserted 'error' variable
-      stack: error.stack, // Use the asserted 'error' variable
+      error: error, 
+      stack: error.stack, 
     }),
   });
 };
 
-// MODIFIED: Removed the AppError class definition from here, as it's now in utils/appError.ts
+export default globalErrorHandler; // MODIFIED: Export as default
