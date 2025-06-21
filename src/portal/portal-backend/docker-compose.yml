@@ -1,0 +1,56 @@
+version: '3.8'
+
+# Docker Compose configuration for local development of Minkalla Portal Backend
+#
+# @file docker-compose.yml
+# @description Orchestrates the portal-backend service and a local MongoDB instance.
+# Provides a consistent and isolated local development environment.
+#
+# @author Minkalla
+# @license MIT
+#
+# @remarks
+# Aligns with "no regrets" quality by ensuring environment parity with production.
+# Simplifies local setup for developers and future contributors.
+
+services:
+  # Backend Service
+  backend:
+    build:
+      context: . # Build context is the current directory (portal-backend)
+      dockerfile: Dockerfile # Use the Dockerfile we just created
+    ports:
+      - "8080:8080" # Map host port 8080 to container port 8080
+    environment:
+      # These environment variables override any defaults in the Dockerfile
+      # and mimic how they will be passed in production, but for local values.
+      - NODE_ENV=development
+      - PORT=8080
+      - MONGO_URI=mongodb://mongo:27017/portal_dev # Connect to the 'mongo' service defined below
+      - JWT_ACCESS_SECRET=local_dev_jwt_secret # RENAMED: from JWT_SECRET
+      - JWT_REFRESH_SECRET=local_dev_refresh_secret # RENAMED: from REFRESH_TOKEN_SECRET
+      - ENABLE_SWAGGER_DOCS=true # Enable Swagger UI for local development
+    depends_on:
+      - mongo # Ensures MongoDB starts before the backend service
+    # Healthcheck for backend service. Uses the one defined in Dockerfile.
+    # We can add a restart policy for resilience during development
+    restart: always 
+
+  # MongoDB Service
+  mongo:
+    image: mongo:5.0 # Use a specific version of MongoDB
+    ports:
+      - "27017:27017" # Map host port 27017 to container port 27017
+    volumes:
+      - mongo-data:/data/db # Persist MongoDB data to a named volume
+    # Healthcheck for MongoDB (ensures database is ready)
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.runCommand({ping: 1})"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+# Named volume for MongoDB data persistence
+volumes:
+  mongo-data:

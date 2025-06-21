@@ -2,17 +2,17 @@
   "compilerOptions": {
     "target": "es2020",
     "module": "commonjs",
-    "lib": ["es2020", "esnext", "dom"], // Added 'dom' back, as Request/Response types often rely on it implicitly
+    "lib": ["es2020", "esnext", "dom"],
     "strict": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "skipLibCheck": true, 
+    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
     "rootDir": "./src",
     "resolveJsonModule": true,
     "sourceMap": true,
-    "noImplicitAny": true, // Keep strictness
+    "noImplicitAny": true,
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "noUnusedLocals": true,
@@ -25,15 +25,15 @@
     "incremental": true,
     "composite": true,
     "jsx": "react-jsx",
-    "types": ["jest", "node"], // MODIFIED: Explicitly include 'jest' and 'node' types again
-    "typeRoots": ["./node_modules/@types", "./types"], // Ensure both standard and custom type roots are included
+    "types": ["jest", "node"],
+    "typeRoots": ["./node_modules/@types", "./types"],
     "moduleResolution": "node"
   },
   "include": [
     "src/**/*.ts",
     "src/**/*.d.ts",
     "src/**/*.tsx",
-    "types/**/*.d.ts" // Explicitly include custom .d.ts files
+    "types/**/*.d.ts"
   ],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "exclude": ["dist", "**/*.test.ts"]
 }
