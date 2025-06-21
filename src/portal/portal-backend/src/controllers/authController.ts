@@ -117,12 +117,27 @@ const loginSchema = Joi.object({
  * schema:
  * $ref: '#/components/schemas/ErrorResponse'
  * security: [] # This endpoint does not require prior authentication
- * @compliance NIST SP 800-53:IA-5 (Authenticator Management), AC-7 (Unsuccessful Login Attempts), CM-3 (Configuration Management)
- * @compliance PCI DSS:2.2 (Secure Configurations), 8.2 (Authentication Controls)
- * @compliance ISO 27001:A.9.2.1 (User Registration), A.10.1.1 (Control of Operational Software)
- * @pii-data email, password (during input validation), IP address (for rate limiting)
- * @threat-model Account Enumeration, Weak Credential Attacks, Brute-Force Registration
- * @mitigation Rate Limiting, Strong Password Policy, Email Uniqueness Check, Joi Validation
+ * x-compliance:
+ * - NIST SP 800-53:IA-5 (Authenticator Management)
+ * - AC-7 (Unsuccessful Login Attempts)
+ * - CM-3 (Configuration Management)
+ * - PCI DSS:2.2 (Secure Configurations)
+ * - 8.2 (Authentication Controls)
+ * - ISO 27001:A.9.2.1 (User Registration)
+ * - A.10.1.1 (Control of Operational Software)
+ * x-pii-data:
+ * - email
+ * - password (during input validation)
+ * - IP address (for rate limiting)
+ * x-threat-model:
+ * - Account Enumeration
+ * - Weak Credential Attacks
+ * - Brute-Force Registration
+ * x-mitigation:
+ * - Rate Limiting
+ * - Strong Password Policy
+ * - Email Uniqueness Check
+ * - Joi Validation
  */
 export const register = async (req: Request, res: Response): Promise<void> => {
   // 1. Input validation using Joi
@@ -233,12 +248,28 @@ export const register = async (req: Request, res: Response): Promise<void> => {
  * schema:
  * $ref: '#/components/schemas/ErrorResponse'
  * security: [] # This endpoint does not require prior authentication
- * @compliance NIST SP 800-53:AU-12 (Audit Generation), AC-7 (Unsuccessful Login Attempts), IA-2(1) (Centralized Account Management), IA-5(1) (Authenticated Access), SC-5 (Denial of Service Protection)
- * @compliance PCI DSS:8.1.5 (Authentication Controls), 10.2.1 (Audit Trails)
- * @compliance ISO 27001:A.9.2.3 (Privileged Access Management), A.10.1.1 (Control of Operational Software)
- * @pii-data email, password (during input validation), IP address (for rate limiting)
- * @threat-model Brute-Force, Credential Stuffing, Session Hijacking (via insecure Refresh Token handling)
- * @mitigation Brute-Force Protection (Rate Limiting, Account Lockout), Dual-Token Strategy (Access Token short-lived, Refresh Token HttpOnly/Secure/SameSite cookie), Joi Validation
+ * x-compliance:
+ * - NIST SP 800-53:AU-12 (Audit Generation)
+ * - AC-7 (Unsuccessful Login Attempts)
+ * - IA-2(1) (Centralized Account Management)
+ * - IA-5(1) (Authenticated Access)
+ * - SC-5 (Denial of Service Protection)
+ * - PCI DSS:8.1.5 (Authentication Controls)
+ * - 10.2.1 (Audit Trails)
+ * - ISO 27001:A.9.2.3 (Privileged Access Management)
+ * - A.10.1.1 (Control of Operational Software)
+ * x-pii-data:
+ * - email
+ * - password (during input validation)
+ * - IP address (for rate limiting)
+ * x-threat-model:
+ * - Brute-Force
+ * - Credential Stuffing
+ * - Session Hijacking (via insecure Refresh Token handling)
+ * x-mitigation:
+ * - Brute-Force Protection (Rate Limiting, Account Lockout)
+ * - Dual-Token Strategy (Access Token short-lived, Refresh Token HttpOnly/Secure/SameSite cookie)
+ * - Joi Validation
  */
 export const login = async (req: Request, res: Response): Promise<void> => {
   // 1. Input validation
