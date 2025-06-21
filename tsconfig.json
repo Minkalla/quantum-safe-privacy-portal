@@ -1,33 +1,39 @@
-// tsconfig.json (at monorepo root)
+// src/portal/portal-backend/tsconfig.json
 {
   "compilerOptions": {
-    "target": "es2020",
     "module": "commonjs",
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "strict": true,
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "es2020",
+    "sourceMap": true,
+    "outDir": "./dist",
+    // "baseUrl": "./src", // REMOVED
+    // "paths": {          // REMOVED
+    //   "@auth/*": ["auth/*"],
+    //   "@user/*": ["user/*"],
+    //   "@jwt/*": ["jwt/*"],
+    //   "@models/*": ["models/*"]
+    // },
+    "incremental": true,
     "skipLibCheck": true,
-    "jsx": "react-jsx", // Keep this if frontend uses React JSX
-    "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "forceConsistentCasingInFileNames": false,
+    "noFallthroughCasesInSwitch": false,
+    "lib": ["es2020", "dom", "dom.iterable", "esnext"],
+    "types": ["jest", "node", "express"],
+    "typeRoots": ["./node_modules/@types", "./types"]
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/**/*.d.ts",
-    "jest.config.js", // Include Jest config itself for type checking
-    "jest-global-setup.ts", // Include global setup for type checking
-    "jest-global-teardown.ts" // Include global teardown for type checking
-  ],
+  "include": ["src/**/*.ts", "main.ts"],
   "exclude": [
     "node_modules",
     "dist",
-    "coverage"
-  ],
-  // References to other tsconfig files if needed for monorepo sub-projects.
-  // This is less about compilation and more about IDE understanding.
-  "references": [
-    { "path": "./src/portal/portal-backend" }
-    // Add references to other sub-projects here as needed, e.g., { "path": "./src/portal/portal-frontend" }
+    "**/*spec.ts",
+    "../jest-global-setup.ts",
+    "../jest-global-teardown.ts"
   ]
 }
