@@ -1,10 +1,8 @@
-version: '3.8'
-
-# Docker Compose configuration for local development of Minkalla Portal Backend
+# Docker Compose configuration for local development of Minkalla Portal Backend (NestJS)
 #
 # @file docker-compose.yml
 # @description Orchestrates the portal-backend service and a local MongoDB instance.
-# Provides a consistent and isolated local development environment.
+# Provides a consistent and isolated local development environment for the NestJS application.
 #
 # @author Minkalla
 # @license MIT
@@ -27,14 +25,14 @@ services:
       - NODE_ENV=development
       - PORT=8080
       - MONGO_URI=mongodb://mongo:27017/portal_dev # Connect to the 'mongo' service defined below
-      - JWT_ACCESS_SECRET=local_dev_jwt_secret # RENAMED: from JWT_SECRET
-      - JWT_REFRESH_SECRET=local_dev_refresh_secret # RENAMED: from REFRESH_TOKEN_SECRET
+      - JWT_ACCESS_SECRET=local_dev_jwt_secret
+      - JWT_REFRESH_SECRET=local_dev_refresh_secret
       - ENABLE_SWAGGER_DOCS=true # Enable Swagger UI for local development
+      - FRONTEND_URL=http://localhost:3000 # Add frontend URL for CORS in dev environment
     depends_on:
       - mongo # Ensures MongoDB starts before the backend service
     # Healthcheck for backend service. Uses the one defined in Dockerfile.
-    # We can add a restart policy for resilience during development
-    restart: always 
+    restart: always
 
   # MongoDB Service
   mongo:

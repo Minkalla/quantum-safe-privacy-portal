@@ -1,4 +1,4 @@
-# Dockerfile for Minkalla Portal Backend
+# Dockerfile for Minkalla Portal Backend (NestJS)
 #
 # @file Dockerfile
 # @description Defines the Docker container configuration for the Quantum-Safe Privacy Portal Backend.
@@ -19,28 +19,33 @@ FROM node:18-alpine AS builder
 WORKDIR /app
 
 # Copy package.json and package-lock.json to leverage Docker cache for npm install
-# 'npm ci' is preferred in CI/CD contexts for reproducible builds.
 COPY package*.json ./
 
-# Install production dependencies (and dev dependencies needed for build)
-RUN npm ci
-
-# Copy the rest of the application source code
+# Copy ALL source code.
 COPY . .
 
-# Compile TypeScript code
-# 'npm run build' typically compiles TypeScript to JavaScript in a 'dist' folder
+# Install production and necessary development dependencies for the build
+RUN npm ci
+
+# Compile NestJS modules
 RUN npm run build
 
+# DEBUG: List contents of the dist folder after build in the builder stage (Activity 1.5.3.4.1)
+RUN ls -l dist/ # ADDED DEBUG LINE
+
 # Stage 2: Create the lean production image
-# Use a slim Node.js image for the final runtime to minimize attack surface and image size
 FROM node:18-alpine
 
 # Set working directory for the application
 WORKDIR /app
 
-# Copy only the compiled output and production dependencies from the builder stage
-# This ensures a clean, small image without development dependencies or source code
+# Use the existing 'node' user from the base image for enhanced security
+RUN chown -R node:node /app
+
+# Switch to the non-root user
+USER node
+
+# Copy compiled files and dependencies from the builder stage
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
@@ -53,12 +58,8 @@ ENV PORT=8080
 EXPOSE 8080
 
 # Define a healthcheck to verify container's responsiveness
-# This helps container orchestrators (like EB, Kubernetes) know if the app is truly ready
-# The '/health' endpoint is a placeholder. If you create a specific health check endpoint
-# in your Express app later, ensure this matches. For now, a simple curl to root should suffice.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s \
-  CMD curl -f http://localhost:$PORT/ || exit 1
+  CMD curl -f http://localhost:$PORT/portal/ || exit 1
 
-# Command to run the application when the container starts
-# CORRECTED: Run dist/server.js to start the Express server
-CMD ["node", "dist/server.js"]
+# Command to run the NestJS application when the container starts
+CMD ["node", "dist/src/main.js"]

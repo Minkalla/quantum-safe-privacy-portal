@@ -1,39 +1,33 @@
+// src/portal/portal-backend/tsconfig.json
 {
   "compilerOptions": {
-    "target": "es2020",
     "module": "commonjs",
-    "lib": ["es2020", "esnext", "dom"],
-    "strict": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "resolveJsonModule": true,
-    "sourceMap": true,
-    "noImplicitAny": true,
-    "noImplicitReturns": true,
-    "noImplicitThis": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "allowUnreachableCode": false,
-    "allowUnusedLabels": false,
-    "noFallthroughCasesInSwitch": true,
-    "noPropertyAccessFromIndexSignature": true,
     "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "es2020",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "rootDir": "./src",
+    "paths": {
+      "@app/*": ["src/*"],
+      "@auth/*": ["src/auth/*"],
+      "@user/*": ["src/user/*"],
+      "@jwt/*": ["src/jwt/*"]
+    },
     "incremental": true,
-    "composite": true,
-    "jsx": "react-jsx",
-    "types": ["jest", "node"],
-    "typeRoots": ["./node_modules/@types", "./types"],
-    "moduleResolution": "node"
+    "skipLibCheck": true,
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "forceConsistentCasingInFileNames": false,
+    "noFallthroughCasesInSwitch": false,
+    "lib": ["es2020", "dom", "dom.iterable", "esnext"],
+    "types": ["jest", "node", "express"],
+    "typeRoots": ["./node_modules/@types", "./types"]
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.d.ts",
-    "src/**/*.tsx",
-    "types/**/*.d.ts"
-  ],
-  "exclude": ["dist", "**/*.test.ts"]
+  "exclude": ["node_modules", "dist", "**/*spec.ts"]
 }
