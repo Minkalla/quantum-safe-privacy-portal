@@ -80,6 +80,15 @@ jobs:
     defaults:
       run:
         working-directory: src/portal/portal-backend
+    # NEW: Define environment variables at the job level
+    env:
+      MONGODB_URI: 'mongodb://mongo:27017/portal_dev'
+      JWT_ACCESS_SECRET: 'super-secret-access-token-for-testing-only'
+      JWT_REFRESH_SECRET: 'super-secret-refresh-token-for-testing-only'
+      AWS_REGION: 'us-east-1'
+      AWS_ACCESS_KEY_ID: 'dummy'
+      AWS_SECRET_ACCESS_KEY: 'dummy'
+      NODE_ENV: 'development'
 
     steps:
     - name: Checkout Repository
@@ -106,17 +115,7 @@ jobs:
         docker compose version
 
     - name: Start Backend Services with Docker Compose
-      run: |
-        # Create a temporary .env file for Docker Compose
-        echo "MONGODB_URI=mongodb://mongo:27017/portal_dev" > .env_ci
-        echo "JWT_ACCESS_SECRET=super-secret-access-token-for-testing-only" >> .env_ci
-        echo "JWT_REFRESH_SECRET=super-secret-refresh-token-for-testing-only" >> .env_ci
-        echo "AWS_REGION=us-east-1" >> .env_ci
-        echo "AWS_ACCESS_KEY_ID=dummy" >> .env_ci
-        echo "AWS_SECRET_ACCESS_KEY=dummy" >> .env_ci
-        echo "NODE_ENV=development" >> .env_ci
-        # Execute docker compose using the temporary .env file
-        docker compose --env-file .env_ci up -d
+      run: docker compose up -d # Simplified, as env vars are now at job level
       continue-on-error: true
 
     - name: Get Backend Container Logs
@@ -159,8 +158,7 @@ jobs:
       if: always()
       run: |
         docker compose down
-        # Clean up the temporary .env file
-        rm -f .env_ci
+        rm -f .env_ci # Remove this line as .env_ci is no longer created
 
     - name: Upload OWASP ZAP Report
       uses: actions/upload-artifact@v4
