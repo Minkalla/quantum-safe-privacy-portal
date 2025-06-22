@@ -106,17 +106,17 @@ jobs:
         docker compose version
 
     - name: Start Backend Services with Docker Compose
-      run: docker compose --env-file /dev/null up -d # **CRITICAL FIX: Added --env-file /dev/null**
-      continue-on-error: true # **NEW LINE: Allow job to continue if services struggle to start**
-      env:
-        # These variables are now explicitly used by docker compose
-        MONGODB_URI: 'mongodb://mongo:27017/portal_dev'
-        JWT_ACCESS_SECRET: 'super-secret-access-token-for-testing-only'
-        JWT_REFRESH_SECRET: 'super-secret-refresh-token-for-testing-only'
-        AWS_REGION: 'us-east-1'
-        AWS_ACCESS_KEY_ID: 'dummy'
-        AWS_SECRET_ACCESS_KEY: 'dummy'
-        NODE_ENV: 'development'
+      # Remove --env-file /dev/null as we are exporting variables directly
+      run: |
+        export MONGODB_URI='mongodb://mongo:27017/portal_dev'
+        export JWT_ACCESS_SECRET='super-secret-access-token-for-testing-only'
+        export JWT_REFRESH_SECRET='super-secret-refresh-token-for-testing-only'
+        export AWS_REGION='us-east-1'
+        export AWS_ACCESS_KEY_ID='dummy'
+        export AWS_SECRET_ACCESS_KEY='dummy'
+        export NODE_ENV='development'
+        docker compose up -d # Run docker compose command after exporting env vars
+      continue-on-error: true # Allow job to continue if services struggle to start
 
     - name: Wait for Backend to be Ready
       uses: nev7n/wait_for_response@v1
