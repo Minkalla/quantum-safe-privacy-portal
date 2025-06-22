@@ -5,22 +5,23 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
-    # CRITICAL: Use env_file to load ALL environment variables from .env
     env_file:
-      - .env
-    # Only put truly fixed or dev-specific overrides here.
-    # We also explicitly pass AWS credentials from host here.
+      - .env # Ensure this .env file contains all your non-sensitive app variables
     environment:
-      - NODE_ENV=development # Explicitly set for dev environment
-      - ENABLE_SWAGGER_DOCS=true # Explicitly set for dev environment
-      - PORT=8080 # Explicitly set for dev environment
-      # ADDED: Pass AWS credentials from your host environment
+      - NODE_ENV=development
+      - ENABLE_SWAGGER_DOCS=true
+      - PORT=8080
+      # Pass AWS credentials from the host's environment (your PowerShell session)
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      # - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN} # Uncomment if you use temporary session tokens
+      # - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN} # Uncomment if you use a temporary AWS Session Token
+      - AWS_REGION=${AWS_REGION} # Ensure this matches your AWS_REGION in .env and your actual region
+      # ADDED: X-Ray Daemon address for the backend service
+      - AWS_XRAY_DAEMON_ADDRESS=xray-daemon:2000
 
     depends_on:
       - mongo
+      - xray-daemon # ADDED: Backend depends on X-Ray daemon
     restart: always
 
   mongo:
@@ -34,6 +35,17 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: always
+
+  # ADDED: X-Ray Daemon Service
+  xray-daemon:
+    image: amazon/aws-xray-daemon:latest
+    ports:
+      - "2000:2000/udp" # UDP port for sending traces
+    environment:
+      - AWS_REGION=${AWS_REGION} # Pass AWS region to the daemon
+      # The daemon typically uses the same host AWS credentials if they are configured
+      # or relies on IAM roles if deployed on EC2.
     restart: always
 
 volumes:

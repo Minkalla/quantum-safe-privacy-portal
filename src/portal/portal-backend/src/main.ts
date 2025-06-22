@@ -24,9 +24,21 @@ import * as hpp from 'hpp';
 import { Logger as WinstonLogger } from 'winston';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-// Removed: import { ConfigService as NestConfigService } from '@nestjs/config'; // No longer needed here
+// Removed: import { ConfigService } from '@nestjs/config'; // REMOVED: Unused import
 import * as express from 'express';
 import { AppConfigService } from './config/config.service';
+
+import * as AWSXRay from 'aws-xray-sdk'; // X-Ray SDK import
+import * as http from 'http'; // http module for X-Ray capture
+import * as https from 'https'; // https module for X-Ray capture
+
+// IMPORTANT: Capture Node.js HTTP/HTTPS modules globally for outgoing calls
+AWSXRay.captureHTTPsGlobal(http);
+AWSXRay.captureHTTPsGlobal(https);
+
+// Optional: If you need to capture all AWS SDK calls (recommended for X-Ray)
+// You might need to install 'aws-sdk' via npm if not already there.
+// AWSXRay.captureAWS(require('aws-sdk'));
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -92,6 +104,8 @@ async function bootstrap() {
 
   app.use(hpp());
 
+  app.use(AWSXRay.express.openSegment('MinkallaBackend')); // X-Ray Express middleware
+
   app.setGlobalPrefix('portal');
 
   if (enableSwaggerDocs || nodeEnv === 'development') {
@@ -121,8 +135,9 @@ async function bootstrap() {
     winstonLogger.log('info', 'API documentation available at /api-docs (without global prefix)');
   }
 
-  app.setGlobalPrefix('portal');
   winstonLogger.log('info', 'Global prefix set to /portal. API routes now accessible at /portal/*');
+
+  app.use(AWSXRay.express.closeSegment());
 
   await app.listen(port);
   winstonLogger.log('info', `Server running on port ${port}`);
