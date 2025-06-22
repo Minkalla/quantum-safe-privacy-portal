@@ -11,9 +11,10 @@ on:
 jobs:
   build-and-test-backend:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: src/portal/portal-backend
+    # Temporarily remove working-directory for the entire job to allow Jest to find root config
+    # defaults:
+    #   run:
+    #     working-directory: src/portal/portal-backend
 
     steps:
     - name: Checkout Repository
@@ -24,27 +25,35 @@ jobs:
       with:
         node-version: '20'
         cache: 'npm'
+        # The cache-dependency-path should now be relative to the monorepo root
         cache-dependency-path: 'src/portal/portal-backend/package-lock.json'
 
-    - name: Install Dependencies
-      run: npm ci
+    - name: Install Monorepo Root Dependencies
+      # Install root dependencies if any, or just navigate to backend for backend dependencies
+      run: npm ci # This assumes root package.json for monorepo setup, if no root package.json for deps, skip or adjust
+      working-directory: . # Run from monorepo root
 
-    - name: Run Lint
+    - name: Install Backend Dependencies
+      run: npm ci
+      working-directory: src/portal/portal-backend # Install backend specific dependencies
+
+    - name: Run Backend Lint
       run: npm run lint
+      working-directory: src/portal/portal-backend
 
     - name: Build Backend
       run: npm run build
+      working-directory: src/portal/portal-backend
 
     - name: Build Docker Image
       run: docker build -t portal-backend:latest .
+      working-directory: src/portal/portal-backend # Build image from backend directory context
 
     - name: Run Backend Tests
-      run: npm test
+      # Explicitly tell Jest to use the root config and run tests from the backend directory
+      run: npx jest --config ../../jest.config.js src/portal/portal-backend
       env:
         # Provide dummy values for testing environment
-        # These are NOT used for actual secrets, which are managed by AWS Secrets Manager in production.
-        # This allows tests to run without failing due to missing environment variables.
-        # For a full CI/CD deployment that involves fetching real secrets, a different strategy would be used.
         JWT_ACCESS_SECRET_NAME: 'test/access/secret'
         JWT_REFRESH_SECRET_NAME: 'test/refresh/secret'
         MONGODB_URI: 'mongodb://localhost:27017/test_db'
@@ -53,12 +62,13 @@ jobs:
         AWS_SECRET_ACCESS_KEY: 'test_secret_key'
         NODE_ENV: 'test'
 
+
     - name: Run Trivy Docker Image Scan
       uses: aquasecurity/trivy-action@master
       with:
         image-ref: 'portal-backend:latest'
         format: 'table'
-        output: 'trivy-results.txt'
+        output: 'src/portal/portal-backend/trivy-results.txt' # Ensure this path is correct
         exit-code: '1'
         severity: 'HIGH,CRITICAL'
         ignore-unfixed: true
@@ -72,11 +82,11 @@ jobs:
 
 
   dast-scan-backend:
-    needs: build-and-test-backend # This job runs after the build-and-test-backend job completes successfully
+    needs: build-and-test-backend
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: src/portal/portal-backend # This sets the working directory for the job
+        working-directory: src/portal/portal-backend
 
     steps:
     - name: Checkout Repository
@@ -84,40 +94,33 @@ jobs:
 
     - name: Start Backend Services with Docker Compose
       run: docker-compose up -d
-      # Ensure that the .env file for the backend is available or variables are passed.
-      # For CI, it's generally fine to use the .env.example values or dummy values if not interacting with real services.
       env:
-        MONGODB_URI: 'mongodb://mongo:27017/portal_dev' # Use service name 'mongo' for inter-container communication
+        MONGODB_URI: 'mongodb://mongo:27017/portal_dev'
         JWT_ACCESS_SECRET: 'super-secret-access-token-for-testing-only'
         JWT_REFRESH_SECRET: 'super-secret-refresh-token-for-testing-only'
         AWS_REGION: 'us-east-1'
         AWS_ACCESS_KEY_ID: 'dummy'
         AWS_SECRET_ACCESS_KEY: 'dummy'
-        NODE_ENV: 'development' # Ensure the app starts in a development/test mode suitable for DAST
+        NODE_ENV: 'development'
 
     - name: Wait for Backend to be Ready
-      # Waits for the Swagger UI endpoint to be accessible before running ZAP.
-      # Adjust URL and timeout as needed.
       uses: nev7n/wait_for_response@v1
       with:
         url: 'http://localhost:8080/api-docs/'
-        timeout: 120 # seconds
-        interval: 5 # seconds
+        timeout: 120
+        interval: 5
 
     - name: Run OWASP ZAP Scan
-      uses: zaproxy/action@v0.10.0 # Use the official ZAP GitHub Action
+      uses: zaproxy/action@v0.10.0
       with:
-        target: 'http://localhost:8080/portal/auth/login' # Target a specific API endpoint for an initial scan
-        rules_file: '.zap/rules.tsv' # Optional: Specify a ZAP rules file if you have custom rules
-        cmd_options: '-z "-config api.parameters.url=http://localhost:8080/api-docs -config api.openapi.url=http://localhost:8080/api-docs -config report.template=traditionalHtml"' # Use the API docs as context for ZAP
+        target: 'http://localhost:8080/portal/auth/login'
+        rules_file: '.zap/rules.tsv'
+        cmd_options: '-z "-config api.parameters.url=http://localhost:8080/api-docs -config api.openapi.url=http://localhost:8080/api-docs -config report.template=traditionalHtml"'
         issue_title: 'OWASP ZAP DAST Findings'
         issue_body: 'Automated DAST scan found potential vulnerabilities.'
-        # ZAP will generate an HTML report by default.
-        # sarif_output: true # Uncomment to output SARIF format for GitHub Security Code Scanning
-        # fail_action: true # Uncomment to fail the action if issues are found
 
     - name: Stop Backend Services
-      if: always() # Ensure services are stopped even if ZAP scan fails
+      if: always()
       run: docker-compose down
 
     - name: Upload OWASP ZAP Report
@@ -125,4 +128,4 @@ jobs:
       if: always()
       with:
         name: owasp-zap-report
-        path: src/portal/portal-backend/owasp_zap_report.html # Path to the generated ZAP report
+        path: src/portal/portal-backend/owasp_zap_report.html
