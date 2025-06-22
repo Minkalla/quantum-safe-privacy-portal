@@ -41,7 +41,7 @@ jobs:
 
     - name: Build Docker Image
       run: docker build -t portal-backend:latest .
-      working-directory: src/portal/portal-backend # **CRITICAL FIX: Corrected path here**
+      working-directory: src/portal/portal-backend
 
     - name: Run Backend Tests
       run: npm test
@@ -104,7 +104,7 @@ jobs:
         interval: 5
 
     - name: Run OWASP ZAP Scan
-      uses: zaproxy/zaproxy-action@v0.10.0
+      uses: zaproxy/zaproxy-action@main # **CRITICAL FIX: Changed version to @main**
       with:
         target: 'http://localhost:8080/portal/auth/login'
         rules_file: '.zap/rules.tsv'
