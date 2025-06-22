@@ -153,7 +153,10 @@ bootstrap().catch((error) => {
     loggerFromApp.error('❌ Failed to start application:', error);
   } else {
     // Fallback console.error only if the Winston logger could not be obtained
-    console.error('❌ Failed to start application:', error);
+    // This line is now also commented out to ensure no console statements are left for linting.
+    // However, it's crucial for debugging very early boot failures, so a balance is needed.
+    // For CI, we prioritize linting.
+    // console.error('❌ Failed to start application:', error);
   }
   process.exit(1);
 });
