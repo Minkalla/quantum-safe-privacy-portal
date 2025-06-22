@@ -11,7 +11,7 @@
  * @remarks
  * This centralized configuration ensures consistent testing across all monorepo packages.
  * By placing it at the root, Jest's module resolution is simplified, preventing "preset not found" errors.
- * It uses a `projects` array or `testMatch` patterns to target specific packages.
+ * It uses explicit `testMatch` patterns to target specific packages from the monorepo root.
  * Automated testing is crucial for preventing regressions and maintaining code integrity in a complex project.
  *
  * Updates in June 2025:
@@ -21,6 +21,7 @@
  * - Refined `collectCoverageFrom` paths to exclude non-core-logic files from coverage reporting.
  * - Maintained explicit `ts-jest` transform configuration and `moduleNameMapper` for `bcryptjs`
  * as previously established "CRITICAL FIXES" and best practices.
+ * - **Crucially, updated `testMatch` to explicitly locate backend test files relative to the monorepo root (June 22, 2025).**
  *
  * @see {@link https://jestjs.io/docs/configuration|Jest Configuration Docs}
  * @see {@link https://kulshekhar.github.io/ts-jest/docs/getting-started#using-typescript}
@@ -34,16 +35,16 @@ module.exports = {
   // The test environment that will be used for testing. 'node' environment is suitable for backend tests.
   testEnvironment: 'node',
 
-  // Define roots relative to the monorepo root. This helps Jest locate source files.
-  roots: [
-    '<rootDir>/src/portal/portal-backend/src', // Look for backend tests
-    // Add other package roots here as they are developed, e.g., '<rootDir>/src/portal/portal-frontend/src'
-  ],
+  // IMPORTANT: Remove 'roots' array when using explicit testMatch paths from rootDir.
+  // roots: [
+  //   '<rootDir>/src/portal/portal-backend/src',
+  // ],
 
-  // Patterns to match test files. These patterns are inclusive.
+  // Patterns to match test files. These patterns are now explicit paths relative to rootDir.
   testMatch: [
-    '**/__tests__/**/*.ts', // Standard Jest convention for tests in __tests__ folders
-    '**/?(*.)+(spec|test).ts', // Matches .spec.ts or .test.ts files
+    '<rootDir>/src/portal/portal-backend/src/**/__tests__/**/*.ts', // Tests in __tests__ folders within backend's src
+    '<rootDir>/src/portal/portal-backend/src/**/*.spec.ts',       // .spec.ts files within backend's src
+    '<rootDir>/src/portal/portal-backend/src/**/*.test.ts',        // .test.ts files within backend's src
   ],
 
   // File extensions that Jest should look for.
