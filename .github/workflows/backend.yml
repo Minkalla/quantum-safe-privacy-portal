@@ -41,12 +41,12 @@ jobs:
 
     - name: Build Docker Image
       run: docker build -t portal-backend:latest .
-      working-directory: src/portal/portal-backend
+      working-directory: src/portal/portal/portal-backend
 
     - name: Run Backend Tests
       run: npm test
       working-directory: .
-      continue-on-error: true # Allow job to continue even if tests fail (since they are currently absent)
+      continue-on-error: true
       env:
         JWT_ACCESS_SECRET_NAME: 'test/access/secret'
         JWT_REFRESH_SECRET_NAME: 'test/refresh/secret'
@@ -65,7 +65,7 @@ jobs:
         exit-code: '1'
         severity: 'HIGH,CRITICAL'
         ignore-unfixed: true
-      continue-on-error: true # **NEW LINE: Allow job to continue even if Trivy finds critical vulns**
+      continue-on-error: true
 
     - name: Upload Trivy Scan Results
       uses: actions/upload-artifact@v4
@@ -104,7 +104,7 @@ jobs:
         interval: 5
 
     - name: Run OWASP ZAP Scan
-      uses: zaproxy/action@v0.10.0
+      uses: zaproxy/zaproxy-action@v0.10.0 # **CHANGE HERE: Corrected action name**
       with:
         target: 'http://localhost:8080/portal/auth/login'
         rules_file: '.zap/rules.tsv'
