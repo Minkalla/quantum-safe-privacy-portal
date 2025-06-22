@@ -37,7 +37,8 @@ jobs:
       run: npm run lint
 
     - name: Run tests
-      run: npm test
+      # Explicitly run Jest using the monorepo root configuration to find all tests
+      run: npx jest --config ../../jest.config.js
 
     - name: Build backend Docker image
       run: docker build -t portal-backend:latest .
