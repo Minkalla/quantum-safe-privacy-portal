@@ -1,0 +1,80 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/portal/portal-backend/**'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'src/portal/portal-backend/**'
+      - '.github/workflows/ci.yml'
+
+jobs:
+  backend_ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/portal/portal-backend
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20' # Use Node.js 20, as it's the latest LTS
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run lint
+      run: npm run lint
+
+    - name: Run tests
+      run: npm test
+
+    - name: Build backend Docker image
+      run: docker build -t portal-backend:latest .
+
+    - name: Run Trivy vulnerability scan on Docker image
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'portal-backend:latest'
+        format: 'table'
+        exit-code: '1' # Fail if any vulnerabilities are found
+        severity: 'CRITICAL,HIGH'
+        ignore-unfixed: true # Only report fixed vulnerabilities
+        vuln-type: 'os,library'
+
+    - name: Install OWASP ZAP (Placeholder for DAST)
+      # Note: OWASP ZAP requires a running application.
+      # For a real DAST scan, you would deploy your app to a test environment first,
+      # then run ZAP against the deployed endpoint.
+      # This step merely installs ZAP for future configuration.
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y default-jdk
+        wget https://github.com/zaproxy/zaproxy/releases/download/v2.14.0/ZAP_2.14.0_Linux.tar.gz -O /tmp/ZAP_2.14.0_Linux.tar.gz
+        sudo tar -xf /tmp/ZAP_2.14.0_Linux.tar.gz -C /opt
+        echo 'export PATH=$PATH:/opt/ZAP_2.14.0' >> ~/.bashrc # Add ZAP to PATH
+        source ~/.bashrc
+        # Verify ZAP installation
+        /opt/ZAP_2.14.0/zap.sh -cmd -version
+
+    # - name: Run OWASP ZAP DAST scan (Future step - requires deployed application)
+    #   # This step is commented out as it requires a deployed application to scan.
+    #   # Will be configured in detail when deployment (Task 1.5.9) is ready.
+    #   run: |
+    #     # Example for future DAST scan (requires ZAP daemon and target URL)
+    #     # /opt/ZAP_2.14.0/zap.sh -cmd -daemon -port 8080 -host 127.0.0.1 &
+    #     # sleep 10 # Give ZAP time to start
+    #     # zap-cli status
+    #     # zap-cli quickscan --url http://your-deployed-app-url.com/portal/auth/login --self-contained --json-output | tee zap_report.json
+    #     # zap-cli htmlreport -o zap_report.html
+    #     # zap-cli shutdown
