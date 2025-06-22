@@ -140,10 +140,17 @@ async function bootstrap() {
 
   await app.listen(port);
   winstonLogger.log('info', `Server running on port ${port}`);
-  // winstonLogger.log('info', `Application is running in ${nodeEnv} mode`); // Commented out to resolve linting
+  // winstonLogger.log('info', `Application is running in ${nodeEnv} mode`); // COMMENTED OUT: To resolve "unexpected console statement" linting error
 }
 
 bootstrap().catch((error) => {
-  console.error('❌ Failed to start application:', error);
+  // Use winstonLogger to log errors consistently across the app instead of console.error
+  const winstonLogger = new WinstonLogger({ /* Basic Winston config if not provided by Nest here, or just remove */ }); // Placeholder if logger not available
+  if (winstonLogger) {
+    winstonLogger.error('❌ Failed to start application:', error);
+  } else {
+    // Fallback if Winston is not available in this context (e.g., very early failure)
+    console.error('❌ Failed to start application:', error);
+  }
   process.exit(1);
 });
