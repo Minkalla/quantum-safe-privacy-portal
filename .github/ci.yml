@@ -1,0 +1,128 @@
+name: Minkalla CI Workflow
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test-backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/portal/portal-backend
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: 'src/portal/portal-backend/package-lock.json'
+
+    - name: Install Dependencies
+      run: npm ci
+
+    - name: Run Lint
+      run: npm run lint
+
+    - name: Build Backend
+      run: npm run build
+
+    - name: Build Docker Image
+      run: docker build -t portal-backend:latest .
+
+    - name: Run Backend Tests
+      run: npm test
+      env:
+        # Provide dummy values for testing environment
+        # These are NOT used for actual secrets, which are managed by AWS Secrets Manager in production.
+        # This allows tests to run without failing due to missing environment variables.
+        # For a full CI/CD deployment that involves fetching real secrets, a different strategy would be used.
+        JWT_ACCESS_SECRET_NAME: 'test/access/secret'
+        JWT_REFRESH_SECRET_NAME: 'test/refresh/secret'
+        MONGODB_URI: 'mongodb://localhost:27017/test_db'
+        AWS_REGION: 'us-east-1'
+        AWS_ACCESS_KEY_ID: 'test_access_key'
+        AWS_SECRET_ACCESS_KEY: 'test_secret_key'
+        NODE_ENV: 'test'
+
+    - name: Run Trivy Docker Image Scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'portal-backend:latest'
+        format: 'table'
+        output: 'trivy-results.txt'
+        exit-code: '1'
+        severity: 'HIGH,CRITICAL'
+        ignore-unfixed: true
+
+    - name: Upload Trivy Scan Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: trivy-scan-results
+        path: src/portal/portal-backend/trivy-results.txt
+
+
+  dast-scan-backend:
+    needs: build-and-test-backend # This job runs after the build-and-test-backend job completes successfully
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/portal/portal-backend # This sets the working directory for the job
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Start Backend Services with Docker Compose
+      run: docker-compose up -d
+      # Ensure that the .env file for the backend is available or variables are passed.
+      # For CI, it's generally fine to use the .env.example values or dummy values if not interacting with real services.
+      env:
+        MONGODB_URI: 'mongodb://mongo:27017/portal_dev' # Use service name 'mongo' for inter-container communication
+        JWT_ACCESS_SECRET: 'super-secret-access-token-for-testing-only'
+        JWT_REFRESH_SECRET: 'super-secret-refresh-token-for-testing-only'
+        AWS_REGION: 'us-east-1'
+        AWS_ACCESS_KEY_ID: 'dummy'
+        AWS_SECRET_ACCESS_KEY: 'dummy'
+        NODE_ENV: 'development' # Ensure the app starts in a development/test mode suitable for DAST
+
+    - name: Wait for Backend to be Ready
+      # Waits for the Swagger UI endpoint to be accessible before running ZAP.
+      # Adjust URL and timeout as needed.
+      uses: nev7n/wait_for_response@v1
+      with:
+        url: 'http://localhost:8080/api-docs/'
+        timeout: 120 # seconds
+        interval: 5 # seconds
+
+    - name: Run OWASP ZAP Scan
+      uses: zaproxy/action@v0.10.0 # Use the official ZAP GitHub Action
+      with:
+        target: 'http://localhost:8080/portal/auth/login' # Target a specific API endpoint for an initial scan
+        rules_file: '.zap/rules.tsv' # Optional: Specify a ZAP rules file if you have custom rules
+        cmd_options: '-z "-config api.parameters.url=http://localhost:8080/api-docs -config api.openapi.url=http://localhost:8080/api-docs -config report.template=traditionalHtml"' # Use the API docs as context for ZAP
+        issue_title: 'OWASP ZAP DAST Findings'
+        issue_body: 'Automated DAST scan found potential vulnerabilities.'
+        # ZAP will generate an HTML report by default.
+        # sarif_output: true # Uncomment to output SARIF format for GitHub Security Code Scanning
+        # fail_action: true # Uncomment to fail the action if issues are found
+
+    - name: Stop Backend Services
+      if: always() # Ensure services are stopped even if ZAP scan fails
+      run: docker-compose down
+
+    - name: Upload OWASP ZAP Report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: owasp-zap-report
+        path: src/portal/portal-backend/owasp_zap_report.html # Path to the generated ZAP report
