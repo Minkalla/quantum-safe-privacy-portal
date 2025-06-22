@@ -24,8 +24,9 @@ import * as hpp from 'hpp';
 import { Logger as WinstonLogger } from 'winston';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { ConfigService } from '@nestjs/config';
+// Removed: import { ConfigService as NestConfigService } from '@nestjs/config'; // No longer needed here
 import * as express from 'express';
+import { AppConfigService } from './config/config.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -35,7 +36,7 @@ async function bootstrap() {
   const winstonLogger = app.get<WinstonLogger>(WINSTON_MODULE_NEST_PROVIDER);
   app.useLogger(winstonLogger);
 
-  const configService = app.get(ConfigService);
+  const configService = app.get(AppConfigService);
   const nodeEnv = configService.get<string>('NODE_ENV') || 'development';
   const port = configService.get<number>('PORT') || 3000;
   const enableSwaggerDocs = configService.get<boolean>('ENABLE_SWAGGER_DOCS') || false;
@@ -91,8 +92,8 @@ async function bootstrap() {
 
   app.use(hpp());
 
-  // Setup Swagger BEFORE setting global prefix if you want it at /api-docs
-  // OR define it with the global prefix explicitly if you want it under /portal/api-docs
+  app.setGlobalPrefix('portal');
+
   if (enableSwaggerDocs || nodeEnv === 'development') {
     const options = new DocumentBuilder()
       .setTitle('Minkalla Quantum-Safe Privacy Portal API')
@@ -111,22 +112,17 @@ async function bootstrap() {
 
     const document = SwaggerModule.createDocument(app, options);
 
-    // CHANGED: Use a separate, non-global-prefixed path for Swagger
     SwaggerModule.setup('api-docs', app, document, {
       explorer: true,
       swaggerOptions: {
         persistAuthorization: true,
       },
-      // Note: useGlobalPrefix: false is for NestJS v8+. For newer versions,
-      // setting up Swagger before setGlobalPrefix is the standard approach.
     });
     winstonLogger.log('info', 'API documentation available at /api-docs (without global prefix)');
   }
 
-  // Set global prefix AFTER Swagger setup if you want Swagger to be at its own root.
   app.setGlobalPrefix('portal');
   winstonLogger.log('info', 'Global prefix set to /portal. API routes now accessible at /portal/*');
-
 
   await app.listen(port);
   winstonLogger.log('info', `Server running on port ${port}`);

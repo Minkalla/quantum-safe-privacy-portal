@@ -3,7 +3,8 @@
  * @file jwt.module.ts
  * @description NestJS module for JSON Web Token (JWT) related functionalities.
  * This module encapsulates the JwtService for token generation and verification,
- * making it available for injection across the application.
+ * making it available for injection across the application. It now imports
+ * SecretsModule to allow JwtService to fetch secrets dynamically.
  *
  * @module JwtModule
  * @author Minkalla
@@ -15,10 +16,16 @@
  */
 
 import { Module } from '@nestjs/common';
-import { JwtService } from './jwt.service'; // To be created
+import { JwtService } from './jwt.service';
+import { SecretsModule } from '../secrets/secrets.module'; // ADDED: Import SecretsModule
+import { ConfigModule } from '../config/config.module'; // ADDED: Import ConfigModule if ConfigService is used directly here
 
 @Module({
+  imports: [
+    ConfigModule, // JwtService uses ConfigService, so ConfigModule must be imported
+    SecretsModule, // CHANGED: Import SecretsModule to resolve SecretsService dependency
+  ],
   providers: [JwtService],
-  exports: [JwtService], // Export JwtService so it can be used in other modules (e.g., AuthModule)
+  exports: [JwtService],
 })
 export class JwtModule {}
