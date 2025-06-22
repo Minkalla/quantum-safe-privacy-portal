@@ -5,8 +5,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
-    env_file:
-      - .env # Ensure this .env file contains all your non-sensitive app variables
+    # env_file: # Commented out for CI compatibility
+    #   - .env # Commented out as .env is not present in CI environment
     environment:
       - NODE_ENV=development
       - ENABLE_SWAGGER_DOCS=true
