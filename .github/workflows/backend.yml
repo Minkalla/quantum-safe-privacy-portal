@@ -117,17 +117,18 @@ jobs:
         docker compose up -d
       continue-on-error: true
 
-    # NEW: Custom curl loop for waiting
+    # NEW STEP: Get Backend Container Logs
+    - name: Get Backend Container Logs
+      run: docker compose logs backend || true # Use || true to prevent step failure if logs are empty/unavailable yet
+
     - name: Wait for Backend API to be Ready
       run: |
         echo "Waiting for http://localhost:8080/api-docs/ to be ready..."
-        # Max 30 retries (10s interval * 30 retries = 300 seconds total timeout)
         for i in $(seq 1 30); do
           curl -f http://localhost:8080/api-docs/ && echo "Backend API is ready!" && break
           echo "Backend API not ready yet. Retrying in 10 seconds..."
           sleep 10
         done
-        # Fail the step if not ready after max retries
         curl -f http://localhost:8080/api-docs/ || { echo "Backend API did not become ready within timeout."; exit 1; }
 
     - name: Download and Install OWASP ZAP
