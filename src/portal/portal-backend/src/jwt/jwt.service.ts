@@ -1,4 +1,3 @@
-// src/portal/portal-backend/src/jwt/jwt.service.ts
 /**
  * @file jwt.service.ts
  * @description NestJS service for JSON Web Token (JWT) generation and verification.
@@ -114,7 +113,6 @@ export class JwtService {
     }
 
     try {
-      // @ts-ignore: We are intentionally allowing 'string' as a payload type given our custom type declaration
       const decoded = jwt.verify(token, secret) as TokenPayload;
       this.logger.debug(`Token of type '${secretType}' verified successfully for user: ${decoded.email}`);
       return decoded;

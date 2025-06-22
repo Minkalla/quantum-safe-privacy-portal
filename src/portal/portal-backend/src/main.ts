@@ -1,4 +1,3 @@
-// src/portal/portal-backend/src/main.ts
 /**
  * @file main.ts
  * @description The main entry point for the NestJS Quantum-Safe Privacy Portal Backend application.
@@ -141,7 +140,7 @@ async function bootstrap() {
 
   await app.listen(port);
   winstonLogger.log('info', `Server running on port ${port}`);
-  winstonLogger.log('info', `Application is running in ${nodeEnv} mode`);
+  // winstonLogger.log('info', `Application is running in ${nodeEnv} mode`); // Commented out to resolve linting
 }
 
 bootstrap().catch((error) => {
