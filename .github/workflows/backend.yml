@@ -85,12 +85,28 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    # NEW STEP: Setup Docker environment, including Docker Compose v2 (docker compose)
-    - name: Setup Docker
-      uses: docker/setup-docker@v3 # Recommended way to set up Docker on GitHub Actions runners
+    # NEW STEPS: Manual Docker and Docker Compose (v2 plugin) installation
+    - name: Install Docker and Docker Compose Plugin
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ca-certificates curl gnupg
+        sudo install -m 0755 -d /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        sudo chmod a+r /etc/apt/keyrings/docker.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+          $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+          sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        sudo apt-get update
+        sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+        sudo usermod -aG docker $USER # Add current user to docker group
+        newgrp docker # Activate new group (may not fully apply in non-interactive shell, but for safety)
+
+    - name: Verify Docker and Docker Compose Installation
+      run: |
+        docker --version
+        docker compose version # Verify the new 'docker compose' syntax
 
     - name: Start Backend Services with Docker Compose
-      # Use the newer 'docker compose' syntax (with a space)
       run: docker compose up -d
       env:
         MONGODB_URI: 'mongodb://mongo:27017/portal_dev'
@@ -133,7 +149,7 @@ jobs:
 
     - name: Stop Backend Services
       if: always()
-      run: docker compose down # Use the newer 'docker compose' syntax (with a space)
+      run: docker compose down
 
     - name: Upload OWASP ZAP Report
       uses: actions/upload-artifact@v4
