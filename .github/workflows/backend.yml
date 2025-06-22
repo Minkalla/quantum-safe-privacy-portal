@@ -103,15 +103,32 @@ jobs:
         timeout: 120
         interval: 5
 
-    - name: Run OWASP ZAP Scan
-      # **CRITICAL FIX: Changed to specific commit SHA to resolve 'action not found'**
-      uses: zaproxy/zaproxy-action@5aade698c71450badf8db028be61e12ec85c6248 
-      with:
-        target: 'http://localhost:8080/portal/auth/login'
-        rules_file: '.zap/rules.tsv'
-        cmd_options: '-z "-config api.parameters.url=http://localhost:8080/api-docs -config api.openapi.url=http://localhost:8080/api-docs -config report.template=traditionalHtml"'
-        issue_title: 'OWASP ZAP DAST Findings'
-        issue_body: 'Automated DAST scan found potential vulnerabilities.'
+    # New Steps for direct OWASP ZAP CLI installation and execution
+    - name: Download and Install OWASP ZAP
+      run: |
+        ZAP_VERSION="2.15.0" # You can update this to the latest stable version
+        wget https://github.com/zaproxy/zaproxy/releases/download/v${ZAP_VERSION}/ZAP_CLI-${ZAP_VERSION}.zip -O zap_cli.zip
+        sudo unzip zap_cli.zip -d /opt/zap
+        sudo chmod +x /opt/zap/zap.sh
+        echo "/opt/zap" >> $GITHUB_PATH # Add ZAP to PATH
+
+    - name: Run OWASP ZAP Scan (CLI)
+      # Run ZAP in a non-GUI headless mode, using the OpenAPI definition
+      # This command initiates a scan, specifying the target and API definition.
+      # The report will be generated in HTML format.
+      run: |
+        zap.sh -cmd \
+               -port 8090 \
+               -host 127.0.0.1 \
+               -addoninstall zaproxy-openapi \
+               -newsession zap_session \
+               -config api.parameters.url=http://localhost:8080/api-docs \
+               -config api.openapi.url=http://localhost:8080/api-docs \
+               -target http://localhost:8080/portal/auth/login \
+               -report /home/runner/work/quantum-safe-privacy-portal/quantum-safe-privacy-portal/src/portal/portal-backend/owasp_zap_report.html \
+               -format html \
+               -addonupdate \
+               -cmd
 
     - name: Stop Backend Services
       if: always()
