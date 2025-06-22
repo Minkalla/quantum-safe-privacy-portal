@@ -144,13 +144,16 @@ async function bootstrap() {
 }
 
 bootstrap().catch((error) => {
-  // Use winstonLogger to log errors consistently across the app instead of console.error
-  const winstonLogger = new WinstonLogger({ /* Basic Winston config if not provided by Nest here, or just remove */ }); // Placeholder if logger not available
-  if (winstonLogger) {
-    winstonLogger.error('❌ Failed to start application:', error);
+  // Use winstonLogger to log errors consistently across the app.
+  // This explicitly uses the 'error' parameter, resolving the 'unused' warning.
+  // We cannot assume winstonLogger is available in this catch block's scope without
+  // explicitly getting it, so we ensure it's available or fallback if necessary.
+  const loggerInstance = new WinstonLogger({ /* Basic Winston config or ensure injected properly */ });
+  if (loggerInstance) {
+    loggerInstance.error('Failed to start application:', error);
   } else {
-    // Fallback if Winston is not available in this context (e.g., very early failure)
-    console.error('❌ Failed to start application:', error);
+    // Fallback if Winston logger instance is not available (e.g., very early startup failure)
+    console.error('❌ Failed to start application:', error); // Fallback console.error
   }
   process.exit(1);
 });
