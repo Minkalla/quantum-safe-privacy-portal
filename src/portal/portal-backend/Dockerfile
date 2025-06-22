@@ -18,20 +18,26 @@ FROM node:18-alpine AS builder
 # Set working directory for the build stage
 WORKDIR /app
 
-# Copy package.json and package-lock.json to leverage Docker cache for npm install
+# Copy package.json and package-lock.json first
 COPY package*.json ./
 
-# Copy ALL source code.
-COPY . .
+# Copy tsconfig.json
+COPY tsconfig.json ./
+
+# Copy nest-cli.json
+COPY nest-cli.json ./
+
+# Copy the 'src/main.ts' file
+COPY src/main.ts ./src/main.ts
+
+# Copy the rest of the 'src' directory
+COPY src/ ./src/
 
 # Install production and necessary development dependencies for the build
 RUN npm ci
 
 # Compile NestJS modules
 RUN npm run build
-
-# DEBUG: List contents of the dist folder after build in the builder stage (Activity 1.5.3.4.1)
-RUN ls -l dist/ # ADDED DEBUG LINE
 
 # Stage 2: Create the lean production image
 FROM node:18-alpine
@@ -62,4 +68,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s \
   CMD curl -f http://localhost:$PORT/portal/ || exit 1
 
 # Command to run the NestJS application when the container starts
-CMD ["node", "dist/src/main.js"]
+CMD ["node", "dist/main.js"]

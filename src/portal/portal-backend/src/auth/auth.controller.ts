@@ -14,12 +14,12 @@
  * for API documentation.
  */
 
-import { Controller, Post, Body, Res, HttpCode, HttpStatus, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Post, Body, Res, HttpCode, HttpStatus } from '@nestjs/common'; // Removed: UsePipes, ValidationPipe (unused imports)
 import { Response } from 'express';
-import { AuthService } from './auth.service'; // REVERTED: Removed .js extension
+import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { ApiTags, ApiResponse, ApiBody, ApiOperation, ApiCookieAuth, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiResponse, ApiBody, ApiOperation } from '@nestjs/swagger'; // Removed: ApiCookieAuth, ApiBearerAuth (unused imports)
 
 @ApiTags('Authentication') // Tag for Swagger UI
 @Controller('auth') // Base route for this controller: /portal/auth
@@ -92,7 +92,6 @@ export class AuthController {
    * - Brute-Force Registration
    * - Rate Limiting
    * - Strong Password Policy
-   * - Email Uniqueness Check
    * - DTO Validation
    */
   @Post('register')
@@ -204,7 +203,7 @@ export class AuthController {
     const cookieOptions = {
       expires: new Date(Date.now() + (loginDto.rememberMe ? 30 * 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000)),
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env['NODE_ENV'] === 'production', // CHANGED: Access with bracket notation
       sameSite: 'strict' as const,
     };
     res.cookie('refreshToken', refreshToken, cookieOptions);

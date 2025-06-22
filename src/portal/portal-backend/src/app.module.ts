@@ -14,13 +14,12 @@
  * "no regrets" modular design.
  */
 
-import { Module, MiddlewareConsumer, NestModule, RequestMethod } from '@nestjs/common';
+import { Module } from '@nestjs/common'; // Removed: MiddlewareConsumer, NestModule, RequestMethod (unused)
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 import * as path from 'path';
-// Removed direct imports for 'express', 'cookieParser', 'helmet', 'hpp', 'cors' from here, as they are now handled in main.ts or NestJS way
 
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
@@ -32,17 +31,12 @@ import { JwtModule } from './jwt/jwt.module';
     ConfigModule.forRoot({
       envFilePath: path.resolve(__dirname, '..', '.env'),
       isGlobal: true, // Makes ConfigService available globally
-      // Add schema validation for environment variables
-      // validationSchema: Joi.object({ ... }) // Future enhancement for robust env validation
     }),
     // MongoDB Module: Connects to MongoDB using Mongoose
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         uri: configService.get<string>('MONGO_URI'),
-        // Other Mongoose options can be added here
-        // useNewUrlParser: true, // Deprecated in Mongoose 6+
-        // useUnifiedTopology: true, // Deprecated in Mongoose 6+
       }),
       inject: [ConfigService],
     }),
@@ -53,12 +47,10 @@ import { JwtModule } from './jwt/jwt.module';
           format: winston.format.combine(
             winston.format.timestamp(),
             winston.format.ms(),
-            winston.format.json() // Use JSON format for structured logs
+            winston.format.json()
           ),
         }),
-        // Add other transports like file, daily rotate file, or external logging services
       ],
-      // options
     }),
     // Feature Modules:
     AuthModule,
@@ -68,19 +60,5 @@ import { JwtModule } from './jwt/jwt.module';
   controllers: [],
   providers: [],
 })
-export class AppModule implements NestModule {
-  constructor(private configService: ConfigService) {}
-
-  configure(consumer: MiddlewareConsumer) {
-    // Middleware that apply to specific routes or globally for specific purposes.
-    // Global Express middleware like body-parser, cookie-parser, helmet, cors, hpp
-    // are now primarily configured in main.ts (bootstrap function)
-    // or through NestJS built-in mechanisms.
-    // If you need more granular Express middleware, you can define them here.
-
-    // Example for future specific middleware, e.g., a custom logger middleware
-    // consumer
-    //   .apply(SomeCustomMiddleware)
-    //   .forRoutes({ path: 'users', method: RequestMethod.GET });
-  }
-}
+// Removed 'implements NestModule' and 'configure' method as they are unused without middleware
+export class AppModule {}

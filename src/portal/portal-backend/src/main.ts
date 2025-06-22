@@ -20,7 +20,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
 import helmet from 'helmet';
-import hpp from 'hpp';
+import * as hpp from 'hpp';
 import { Logger as WinstonLogger } from 'winston';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -36,10 +36,10 @@ async function bootstrap() {
   app.useLogger(winstonLogger);
 
   const configService = app.get(ConfigService);
-  const nodeEnv = configService.get<string>('NODE_ENV');
-  const port = configService.get<number>('PORT');
-  const enableSwaggerDocs = configService.get<boolean>('ENABLE_SWAGGER_DOCS');
-  const frontendUrl = configService.get<string>('FRONTEND_URL');
+  const nodeEnv = configService.get<string>('NODE_ENV') || 'development';
+  const port = configService.get<number>('PORT') || 3000;
+  const enableSwaggerDocs = configService.get<boolean>('ENABLE_SWAGGER_DOCS') || false;
+  const frontendUrl = configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
   const appVersion = configService.get<string>('APP_VERSION') || '0.1.0';
 
   app.useGlobalPipes(new ValidationPipe({
@@ -58,7 +58,7 @@ async function bootstrap() {
   } else if (nodeEnv === 'production') {
     corsOrigins = ['https://frontend.minkalla.com', 'https://app.minkalla.com'];
   } else {
-    corsOrigins = [frontendUrl || 'http://localhost:3000', 'http://localhost:3000'];
+    corsOrigins = [frontendUrl, 'http://localhost:3000'];
   }
 
   app.enableCors({
@@ -91,8 +91,8 @@ async function bootstrap() {
 
   app.use(hpp());
 
-  app.setGlobalPrefix('portal');
-
+  // Setup Swagger BEFORE setting global prefix if you want it at /api-docs
+  // OR define it with the global prefix explicitly if you want it under /portal/api-docs
   if (enableSwaggerDocs || nodeEnv === 'development') {
     const options = new DocumentBuilder()
       .setTitle('Minkalla Quantum-Safe Privacy Portal API')
@@ -110,14 +110,30 @@ async function bootstrap() {
       .build();
 
     const document = SwaggerModule.createDocument(app, options);
+
+    // CHANGED: Use a separate, non-global-prefixed path for Swagger
     SwaggerModule.setup('api-docs', app, document, {
       explorer: true,
       swaggerOptions: {
         persistAuthorization: true,
       },
+      // Note: useGlobalPrefix: false is for NestJS v8+. For newer versions,
+      // setting up Swagger before setGlobalPrefix is the standard approach.
     });
-    winstonLogger.log('info', 'API documentation available at /portal/api-docs');
+    winstonLogger.log('info', 'API documentation available at /api-docs (without global prefix)');
   }
 
-  // CRITICAL: This closing brace was missing, causing the syntax error.
-} // ADD
+  // Set global prefix AFTER Swagger setup if you want Swagger to be at its own root.
+  app.setGlobalPrefix('portal');
+  winstonLogger.log('info', 'Global prefix set to /portal. API routes now accessible at /portal/*');
+
+
+  await app.listen(port);
+  winstonLogger.log('info', `Server running on port ${port}`);
+  winstonLogger.log('info', `Application is running in ${nodeEnv} mode`);
+}
+
+bootstrap().catch((error) => {
+  console.error('❌ Failed to start application:', error);
+  process.exit(1);
+});

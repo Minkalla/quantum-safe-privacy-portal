@@ -15,14 +15,15 @@
  * protection and secure password management.
  */
 
-import { Injectable, ConflictException, UnauthorizedException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, ConflictException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { IUser } from '../models/User';
-import { JwtService } from '../jwt/jwt.service'; // Import the JwtService
+import { JwtService } from '../jwt/jwt.service';
+import { ObjectId } from 'mongodb'; // ADDED: Import ObjectId type
 
 // Brute-force protection settings
 const MAX_FAILED_ATTEMPTS = 5;
@@ -32,7 +33,7 @@ const LOCK_TIME_MINUTES = 60; // 1 hour
 export class AuthService {
   constructor(
     @InjectModel('User') private readonly userModel: Model<IUser>,
-    private readonly jwtService: JwtService, // Inject JwtService
+    private readonly jwtService: JwtService,
   ) {}
 
   /**
@@ -40,30 +41,26 @@ export class AuthService {
    * @param registerDto Data for user registration (email, password).
    * @returns Newly created user's ID and email.
    * @throws ConflictException if email already registered.
-   * @throws BadRequestException for validation errors.
    */
   async register(registerDto: RegisterDto): Promise<{ userId: string; email: string }> {
     const { email, password } = registerDto;
 
-    // Check if a user with the given email already exists
     const existingUser = await this.userModel.findOne({ email });
     if (existingUser) {
       throw new ConflictException('Email already registered');
     }
 
-    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create a new user instance
     const newUser = new this.userModel({
       email,
       password: hashedPassword,
     });
 
-    // Save the new user to the database
     const savedUser = await newUser.save();
 
-    return { userId: savedUser._id.toString(), email: savedUser.email }; // CHANGED: Convert _id to string
+    // CHANGED: Explicitly cast savedUser._id to ObjectId for .toString() method
+    return { userId: (savedUser._id as ObjectId).toString(), email: savedUser.email };
   }
 
   /**
@@ -72,7 +69,6 @@ export class AuthService {
    * @returns Access token, refresh token, and user details.
    * @throws UnauthorizedException for invalid credentials.
    * @throws ForbiddenException if account is locked.
-   * @throws BadRequestException for validation errors.
    */
   async login(loginDto: LoginDto): Promise<{ accessToken: string; refreshToken: string; user: { id: string; email: string } }> {
     const { email, password, rememberMe } = loginDto;
@@ -85,9 +81,8 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Account Lock Check (Brute Force Protection)
     if (user.lockUntil && user.lockUntil > new Date()) {
-      const remainingLockTime = Math.ceil((user.lockUntil.getTime() - new Date().getTime()) / (60 * 1000)); // minutes
+      const remainingLockTime = Math.ceil((user.lockUntil.getTime() - new Date().getTime()) / (60 * 1000));
       throw new ForbiddenException(`Account locked. Please try again in ${remainingLockTime} minutes.`);
     }
 
@@ -97,23 +92,21 @@ export class AuthService {
       user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
 
       if (user.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
-        user.lockUntil = new Date(Date.now() + LOCK_TIME_MINUTES * 60 * 1000); // Lock for N minutes
-        user.failedLoginAttempts = 0; // Reset count after locking
+        user.lockUntil = new Date(Date.now() + LOCK_TIME_MINUTES * 60 * 1000);
+        user.failedLoginAttempts = 0;
       }
       await user.save();
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Successful login: Reset failed login attempts and lock info
     user.failedLoginAttempts = 0;
     user.lockUntil = null;
     user.lastLoginAt = new Date();
 
-    // Generate tokens using JwtService
-    const tokenPayload = { userId: user._id.toString(), email: user.email }; // Convert ObjectId to string
+    // CHANGED: Explicitly cast user._id to ObjectId for .toString() method
+    const tokenPayload = { userId: (user._id as ObjectId).toString(), email: user.email };
     const { accessToken, refreshToken } = this.jwtService.generateTokens(tokenPayload, rememberMe);
 
-    // Hash and save refresh token for server-side revocation
     const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
     user.refreshTokenHash = hashedRefreshToken;
 
@@ -123,11 +116,9 @@ export class AuthService {
       accessToken,
       refreshToken,
       user: {
-        id: user._id.toString(),
+        id: (user._id as ObjectId).toString(), // CHANGED: Explicitly cast user._id to ObjectId for .toString() method
         email: user.email,
       },
     };
   }
-
-  // Future methods for refresh token validation, logout, etc.
 }
