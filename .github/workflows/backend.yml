@@ -61,7 +61,7 @@ jobs:
       with:
         image-ref: 'portal-backend:latest'
         format: 'table'
-        output: 'trivy-results.txt' # Output to the current working directory of the action
+        output: 'src/portal/portal-backend/trivy-results.txt' # **CHANGE HERE: Explicit path**
         exit-code: '1'
         severity: 'HIGH,CRITICAL'
         ignore-unfixed: true
@@ -71,8 +71,7 @@ jobs:
       if: always()
       with:
         name: trivy-scan-results
-        path: src/portal/portal-backend/trivy-results.txt
-
+        path: src/portal/portal-backend/trivy-results.txt # This path was already correct
 
   dast-scan-backend:
     needs: build-and-test-backend
