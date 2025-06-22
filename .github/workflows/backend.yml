@@ -104,7 +104,8 @@ jobs:
         interval: 5
 
     - name: Run OWASP ZAP Scan
-      uses: zaproxy/zaproxy-action@main # **CRITICAL FIX: Changed version to @main**
+      # **CRITICAL FIX: Changed to specific commit SHA to resolve 'action not found'**
+      uses: zaproxy/zaproxy-action@5aade698c71450badf8db028be61e12ec85c6248 
       with:
         target: 'http://localhost:8080/portal/auth/login'
         rules_file: '.zap/rules.tsv'
