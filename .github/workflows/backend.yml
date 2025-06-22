@@ -107,19 +107,20 @@ jobs:
 
     - name: Start Backend Services with Docker Compose
       run: |
-        # Pass environment variables directly to the docker compose command via -e flags
-        docker compose up -d \
-          -e MONGODB_URI='mongodb://mongo:27017/portal_dev' \
-          -e JWT_ACCESS_SECRET='super-secret-access-token-for-testing-only' \
-          -e JWT_REFRESH_SECRET='super-secret-refresh-token-for-testing-only' \
-          -e AWS_REGION='us-east-1' \
-          -e AWS_ACCESS_KEY_ID='dummy' \
-          -e AWS_SECRET_ACCESS_KEY='dummy' \
-          -e NODE_ENV='development'
+        # Create a temporary .env file for Docker Compose
+        echo "MONGODB_URI=mongodb://mongo:27017/portal_dev" > .env_ci
+        echo "JWT_ACCESS_SECRET=super-secret-access-token-for-testing-only" >> .env_ci
+        echo "JWT_REFRESH_SECRET=super-secret-refresh-token-for-testing-only" >> .env_ci
+        echo "AWS_REGION=us-east-1" >> .env_ci
+        echo "AWS_ACCESS_KEY_ID=dummy" >> .env_ci
+        echo "AWS_SECRET_ACCESS_KEY=dummy" >> .env_ci
+        echo "NODE_ENV=development" >> .env_ci
+        # Execute docker compose using the temporary .env file
+        docker compose --env-file .env_ci up -d
       continue-on-error: true
 
     - name: Get Backend Container Logs
-      run: docker compose logs backend || true # Use || true to prevent step failure if logs are empty/unavailable yet
+      run: docker compose logs backend || true
 
     - name: Wait for Backend API to be Ready
       run: |
@@ -156,7 +157,10 @@ jobs:
 
     - name: Stop Backend Services
       if: always()
-      run: docker compose down
+      run: |
+        docker compose down
+        # Clean up the temporary .env file
+        rm -f .env_ci
 
     - name: Upload OWASP ZAP Report
       uses: actions/upload-artifact@v4
