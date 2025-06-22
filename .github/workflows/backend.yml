@@ -85,8 +85,13 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
+    # NEW STEP: Setup Docker environment, including Docker Compose v2 (docker compose)
+    - name: Setup Docker
+      uses: docker/setup-docker@v3 # Recommended way to set up Docker on GitHub Actions runners
+
     - name: Start Backend Services with Docker Compose
-      run: docker-compose up -d
+      # Use the newer 'docker compose' syntax (with a space)
+      run: docker compose up -d
       env:
         MONGODB_URI: 'mongodb://mongo:27017/portal_dev'
         JWT_ACCESS_SECRET: 'super-secret-access-token-for-testing-only'
@@ -103,19 +108,15 @@ jobs:
         timeout: 120
         interval: 5
 
-    # New Steps for direct OWASP ZAP CLI installation and execution
     - name: Download and Install OWASP ZAP
       run: |
-        ZAP_VERSION="2.15.0" # You can update this to the latest stable version
+        ZAP_VERSION="2.15.0"
         wget https://github.com/zaproxy/zaproxy/releases/download/v${ZAP_VERSION}/ZAP_CLI-${ZAP_VERSION}.zip -O zap_cli.zip
         sudo unzip zap_cli.zip -d /opt/zap
         sudo chmod +x /opt/zap/zap.sh
-        echo "/opt/zap" >> $GITHUB_PATH # Add ZAP to PATH
+        echo "/opt/zap" >> $GITHUB_PATH
 
     - name: Run OWASP ZAP Scan (CLI)
-      # Run ZAP in a non-GUI headless mode, using the OpenAPI definition
-      # This command initiates a scan, specifying the target and API definition.
-      # The report will be generated in HTML format.
       run: |
         zap.sh -cmd \
                -port 8090 \
@@ -132,7 +133,7 @@ jobs:
 
     - name: Stop Backend Services
       if: always()
-      run: docker-compose down
+      run: docker compose down # Use the newer 'docker compose' syntax (with a space)
 
     - name: Upload OWASP ZAP Report
       uses: actions/upload-artifact@v4
