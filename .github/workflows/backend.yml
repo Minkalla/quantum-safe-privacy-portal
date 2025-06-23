@@ -37,11 +37,11 @@ jobs:
 
     - name: Build Backend
       run: npm run build
-      working-directory: src/portal/portal-backend # This path was also incorrect before, but fixed. Re-checking.
+      working-directory: src/portal/portal-backend
 
     - name: Build Docker Image
       run: docker build -t portal-backend:latest .
-      working-directory: src/portal/portal-backend # **CRITICAL FIX: Corrected path here**
+      working-directory: src/portal/portal-backend
 
     - name: Run Backend Tests
       run: npm test
@@ -122,6 +122,13 @@ jobs:
       run: docker compose up -d
       continue-on-error: true
 
+    # NEW STEP: Inspect built Docker image contents
+    - name: Inspect Built Docker Image Contents
+      run: |
+        echo "Listing contents of /app in portal-backend:latest image..."
+        docker run --rm portal-backend:latest ls -laR /app || true # Run ls -laR /app inside the image
+        echo "Done inspecting image contents."
+
     - name: Get Backend Container Logs
       run: docker compose logs backend || true
 
@@ -129,11 +136,11 @@ jobs:
       run: |
         echo "Waiting for http://localhost:8080/api-docs/ to be ready..."
         for i in $(seq 1 12); do
-          curl -f http://localhost:8080/api-docs/ && echo "Backend API is ready!" && break
+          curl -f http://localhost:8080/8080/portal/api-docs/ && echo "Backend API is ready!" && break # Updated URL here
           echo "Backend API not ready yet. Retrying in 10 seconds..."
           sleep 10
         done
-        curl -f http://localhost:8080/api-docs/ || { echo "Backend API did not become ready within timeout."; exit 1; }
+        curl -f http://localhost:8080/8080/portal/api-docs/ || { echo "Backend API did not become ready within timeout."; exit 1; } # Updated URL here
 
     - name: Download and Install OWASP ZAP
       run: |
@@ -150,8 +157,8 @@ jobs:
                -host 127.0.0.1 \
                -addoninstall zaproxy-openapi \
                -newsession zap_session \
-               -config api.parameters.url=http://localhost:8080/api-docs \
-               -config api.openapi.url=http://localhost:8080/api-docs \
+               -config api.parameters.url=http://localhost:8080/portal/api-docs \
+               -config api.openapi.url=http://localhost:8080/portal/api-docs \
                -target http://localhost:8080/portal/auth/login \
                -report /home/runner/work/quantum-safe-privacy-portal/quantum-safe-privacy-portal/src/portal/portal-backend/owasp_zap_report.html \
                -format html \

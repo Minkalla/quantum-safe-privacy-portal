@@ -13,10 +13,8 @@
 # This Dockerfile is Pre-PQC ready, allowing easy updates for quantum-safe libraries.
 #
 # Updates for Debugging (June 23, 2025):
-# - Modified CMD to include Node.js verbose flags (--trace-warnings, --unhandled-rejections=strict)
-#   to capture early startup errors.
-# - Added '|| sleep infinity' to CMD to force the container to remain running even after a crash,
-#   facilitating manual inspection and log retrieval in CI.
+# - Modified CMD to include more verbose Node.js debugging flags and keep container alive on crash.
+# - Added NODE_OPTIONS to ensure source map support and more detailed V8 output.
 
 # Stage 1: Build dependencies and compile TypeScript
 FROM node:18-alpine AS builder
@@ -71,12 +69,11 @@ ENV PORT=8080
 EXPOSE 8080
 
 # Define a healthcheck to verify container's responsiveness
-# NOTE: This healthcheck will only pass if the app is fully healthy,
-# and it runs on a regular interval. For immediate startup debugging,
-# we rely on explicit logs from the CMD.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s \
   CMD curl -f http://localhost:$PORT/portal/ || exit 1
 
 # Command to run the NestJS application when the container starts
 # CRITICAL DEBUGGING CMD: Adds verbose Node.js flags and keeps container alive on crash
+# NODE_OPTIONS ensures more verbose V8/Node.js startup logs
+ENV NODE_OPTIONS="--enable-source-maps --inspect-brk=0.0.0.0:9229" # --inspect-brk will pause execution at start
 CMD ["sh", "-c", "node --trace-warnings --unhandled-rejections=strict dist/main.js || sleep infinity"]
