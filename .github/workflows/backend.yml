@@ -37,7 +37,7 @@ jobs:
 
     - name: Build Backend
       run: npm run build
-      working-directory: src/portal/portal/portal-backend
+      working-directory: src/portal/portal-backend # **CRITICAL FIX: Corrected path here**
 
     - name: Build Docker Image
       run: docker build -t portal-backend:latest .
@@ -82,17 +82,16 @@ jobs:
         working-directory: src/portal/portal-backend
     env:
       MONGODB_URI: 'mongodb://mongo:27017/portal_dev'
-      # CRITICAL FIX: Corrected JWT secret variable names to match AppConfigService
       JWT_ACCESS_SECRET_ID: 'super-secret-access-token-id-for-testing-only'
       JWT_REFRESH_SECRET_ID: 'super-secret-refresh-token-id-for-testing-only'
       AWS_REGION: 'us-east-1'
-      AWS_ACCESS_KEY_ID: 'dummy' # These are still dummy, but will resolve if SecretsManager is skipped
-      AWS_SECRET_ACCESS_KEY: 'dummy' # These are still dummy, but will resolve if SecretsManager is skipped
+      AWS_ACCESS_KEY_ID: 'dummy'
+      AWS_SECRET_ACCESS_KEY: 'dummy'
       NODE_ENV: 'development'
-      ENABLE_SWAGGER_DOCS: 'true' # Ensure this is passed as string for boolean conversion
+      ENABLE_SWAGGER_DOCS: 'true'
       FRONTEND_URL: 'http://localhost:3000'
       APP_VERSION: '0.1.0'
-      PORT: '8080' # Ensure port is explicitly passed too
+      PORT: '8080'
 
     steps:
     - name: Checkout Repository
