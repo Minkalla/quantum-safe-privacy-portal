@@ -29,8 +29,7 @@ This repository contains the backend services for the Minkalla Quantum-Safe Priv
 * **Rich Metadata:** Includes detailed request/response schemas, examples, and custom tags for `compliance` mappings, `threat-model` details, and `pii-data` attributes, enabling future automation of security and compliance reporting.
 
 ### 4. Containerization & Local Development Setup
-* **Optimized Dockerfile:** Utilizes a multi-stage Docker build to create a lean, production-ready image (`minkalla-portal-backend:latest`) for efficient deployment.
-* **Local Development with Docker Compose:** `docker-compose.yml` orchestrates the `portal-backend` service with a local MongoDB instance, providing a consistent and isolated development environment.
+* **Optimized Dockerfile:** Utilizes a multi-stage Docker build to create a lean, production-ready image (`minkalla-portal-backend:latest`) for efficient deploymentyo* **Local Development with Docker Compose:** `docker-compose.yml` orchestrates the `portal-backend` service with a local MongoDB instance and an AWS X-Ray daemon sidecar, providing a consistent, observable, and isolated development environment. The X-Ray daemon enables distributed tracing for local development and debugging.
 
 ### 5. Robust Environment Variable Management
 * **`.env.example`:** A highly commented template for all required environment variables, ensuring clear documentation for setup.
@@ -62,6 +61,8 @@ portal-backend/
 ## ⚙️ Local Development Setup
 
 To get the `portal-backend` running locally using Docker Compose:
+
+- The `docker-compose.yml` now includes an `xray-daemon` service for AWS X-Ray distributed tracing. This allows you to test observability features locally. All containers (`backend`, `mongo`, and `xray-daemon`) are orchestrated together for a production-like environment.
 
 1.  **Prerequisites:**
     * [Node.js](https://nodejs.org/) (v18.x recommended, but v20.x also works)
@@ -123,6 +124,20 @@ Once `docker compose up --build` completes and streams logs, open a **new termin
     docker ps
     ```
     Expected output: Both `portal-backend-backend-1` and `portal-backend-mongo-1` containers listed with `Up` status.
+
+## 🔍 Observability & Security Scanning
+
+### Integrated Tools
+
+- **AWS X-Ray:** Distributed tracing is enabled via the AWS X-Ray SDK and the `xray-daemon` service in Docker Compose. This provides end-to-end request tracing for debugging and performance analysis.
+- **AWS CloudTrail:** All AWS API activity is logged and auditable via CloudTrail, with logs stored in a dedicated S3 bucket and monitored for compliance.
+- **AWS GuardDuty:** Real-time threat detection is enabled for the AWS account, with findings delivered to a configured SNS topic for alerting.
+- **Trivy:** Static Application Security Testing (SAST) is performed on the backend Docker image in CI. Trivy scans for vulnerabilities and outputs results as an artifact.
+- **OWASP ZAP:** Dynamic Application Security Testing (DAST) is performed in CI using the ZAP baseline scan against the running backend API. Reports are uploaded as artifacts for review.
+
+### CI/CD Workflow
+
+- The primary CI/CD workflow for the backend is defined in `.github/workflows/backend.yml`. This workflow builds, tests, scans, and validates the backend service, ensuring security and compliance at every stage.
 
 ## 🧪 Testing
 
