@@ -11,6 +11,12 @@
 # Aligns with "no regrets" quality by ensuring consistent, portable, and secure environments.
 # Supports compliance requirements by standardizing the runtime.
 # This Dockerfile is Pre-PQC ready, allowing easy updates for quantum-safe libraries.
+#
+# Updates for Debugging (June 23, 2025):
+# - Modified CMD to include Node.js verbose flags (--trace-warnings, --unhandled-rejections=strict)
+#   to capture early startup errors.
+# - Added '|| sleep infinity' to CMD to force the container to remain running even after a crash,
+#   facilitating manual inspection and log retrieval in CI.
 
 # Stage 1: Build dependencies and compile TypeScript
 FROM node:18-alpine AS builder
@@ -57,6 +63,7 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 
 # Set environment variables for production
+# NOTE: In CI, NODE_ENV will be overridden by the backend.yml job-level env to 'development'
 ENV NODE_ENV=production
 ENV PORT=8080
 
@@ -64,8 +71,12 @@ ENV PORT=8080
 EXPOSE 8080
 
 # Define a healthcheck to verify container's responsiveness
+# NOTE: This healthcheck will only pass if the app is fully healthy,
+# and it runs on a regular interval. For immediate startup debugging,
+# we rely on explicit logs from the CMD.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s \
   CMD curl -f http://localhost:$PORT/portal/ || exit 1
 
 # Command to run the NestJS application when the container starts
-CMD ["node", "dist/main.js"]
+# CRITICAL DEBUGGING CMD: Adds verbose Node.js flags and keeps container alive on crash
+CMD ["sh", "-c", "node --trace-warnings --unhandled-rejections=strict dist/main.js || sleep infinity"]
