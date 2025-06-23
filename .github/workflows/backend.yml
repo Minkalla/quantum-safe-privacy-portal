@@ -179,9 +179,10 @@ jobs:
         # Also, add chmod to ensure the mounted volume is writable by the ZAP container.
         sudo chmod -R 777 $(pwd) # Ensure the mounted volume is writable by all for ZAP process
         network_name=$(docker network ls --format '{{.Name}}' | grep _default | head -n 1) # Dynamically find the Compose network
+        # Write report to the root of the mounted directory to avoid directory not found errors.
         docker run --rm --network $network_name -v $(pwd):/zap/wrk:rw -t ghcr.io/zaproxy/zaproxy:20240604-stable zap-baseline.py \
           -t http://backend:8080/api-docs \
-          -r src/portal/portal-backend/owasp_zap_report.html
+          -r owasp_zap_report.html
 
     - name: Stop Backend Services
       if: always()
@@ -192,4 +193,4 @@ jobs:
       if: always()
       with:
         name: owasp-zap-report
-        path: src/portal/portal-backend/owasp_zap_report.html
+        path: owasp_zap_report.html
