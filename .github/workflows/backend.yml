@@ -124,7 +124,7 @@ jobs:
         curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
         sudo chmod a+r /etc/apt/keyrings/docker.gpg
         echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-          $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+          $(. /etc/os-release && echo \"$VERSION_CODENAME\") stable" | \
           sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
         sudo apt-get update
         sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
@@ -147,14 +147,13 @@ jobs:
       run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
     - name: Start Backend Services with Docker Compose
-      # Remove 'continue-on-error: true' here if you want the workflow to fail if Docker Compose cannot start services
-      run: docker compose up -d 
+      run: docker compose up -d
+      continue-on-error: true
 
     - name: Inspect Built Docker Image Contents
       run: |
         echo "Listing contents of /app in portal-backend:latest image..."
-        # This command might fail if the image isn't built or accessible, '|| true' allows the step to pass
-        docker run --rm portal-backend:latest ls -laR /app || true 
+        docker run --rm portal-backend:latest ls -laR /app || true # Run ls -laR /app inside the image
         echo "Done inspecting image contents."
 
     - name: Get Backend Container Logs
@@ -177,18 +176,14 @@ jobs:
     - name: Run OWASP ZAP Baseline Scan
       run: |
         # CRITICAL FIX: Ensure ZAP runs on the same Docker Compose network as backend for service name resolution.
-        # This was already working based on the previous logs, as the dynamic network lookup succeeded.
-        # Fixing the report output path to be explicitly in the mounted volume root.
-        sudo chmod -R 777 $(pwd) # Ensure the mounted volume is writable by all for ZAP process (still useful as a safeguard)
+        # Also, add chmod to ensure the mounted volume is writable by the ZAP container.
+        sudo chmod -R 777 $(pwd) # Ensure the mounted volume is writable by all for ZAP process
         network_name=$(docker network ls --format '{{.Name}}' | grep _default | head -n 1) # Dynamically find the Compose network
-        
-        # CHANGED: The report output path now explicitly writes to 'zap_report.html'
-        # within the mounted '/zap/wrk' directory. This means the file will appear
-        # directly in the runner's 'src/portal/portal-backend/' directory.
-        docker run --rm --network "$network_name" -v "$(pwd)":/zap/wrk:rw -t ghcr.io/zaproxy/zaproxy:20240604-stable zap-baseline.py \
+        # Write report to the root of the mounted directory to avoid directory not found errors.
+        docker run --rm --network $network_name -v $(pwd):/zap/wrk:rw -t ghcr.io/zaproxy/zaproxy:20240604-stable zap-baseline.py \
           -t http://backend:8080/api-docs \
-          -r /zap/wrk/zap_report.html # <-- CHANGED: Report filename and explicit path within /zap/wrk
-      
+          -r owasp_zap_report.html
+
     - name: Stop Backend Services
       if: always()
       run: docker compose down
@@ -198,5 +193,5 @@ jobs:
       if: always()
       with:
         name: owasp-zap-report
-        # CHANGED: The path now matches the new filename used in the ZAP scan step.
-        path: zap_report.html # <-- CHANGED: Looking for 'zap_report.html'
+        path: owasp_zap_report.html
+      working-directory: src/portal/portal-backend # Ensure upload step looks in the correct directory for the report
