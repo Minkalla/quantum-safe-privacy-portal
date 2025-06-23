@@ -175,10 +175,11 @@ jobs:
 
     - name: Run OWASP ZAP Baseline Scan
       run: |
-        # CRITICAL FIX: Correct ZAP target URL to use Docker Compose service name 'backend'.
+        # CRITICAL FIX: Ensure ZAP runs on the same Docker Compose network as backend for service name resolution.
         # Also, add chmod to ensure the mounted volume is writable by the ZAP container.
         sudo chmod -R 777 $(pwd) # Ensure the mounted volume is writable by all for ZAP process
-        docker run --rm -v $(pwd):/zap/wrk:rw -t ghcr.io/zaproxy/zaproxy:20240604-stable zap-baseline.py \
+        network_name=$(docker network ls --format '{{.Name}}' | grep _default | head -n 1) # Dynamically find the Compose network
+        docker run --rm --network $network_name -v $(pwd):/zap/wrk:rw -t ghcr.io/zaproxy/zaproxy:20240604-stable zap-baseline.py \
           -t http://backend:8080/api-docs \
           -r src/portal/portal-backend/owasp_zap_report.html
 
