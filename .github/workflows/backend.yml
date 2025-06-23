@@ -170,8 +170,9 @@ jobs:
 
     - name: Run OWASP ZAP Baseline Scan
       run: |
-        # Using fully qualified image name and explicit tag to ensure pull from Docker Hub post-login
-        docker run --rm -v $(pwd):/zap/wrk:rw -t docker.io/owasp/zap2docker-weekly:latest zap-baseline.py \
+        # CRITICAL FIX: Updated ZAP image to official GHCR path.
+        # This image is designed for baseline scans and includes zap-baseline.py
+        docker run --rm -v $(pwd):/zap/wrk:rw -t ghcr.io/zaproxy/zap-baseline:latest zap-baseline.py \
           -t http://localhost:8080/api-docs \
           -r src/portal/portal-backend/owasp_zap_report.html
 
