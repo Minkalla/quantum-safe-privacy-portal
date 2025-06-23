@@ -37,11 +37,11 @@ jobs:
 
     - name: Build Backend
       run: npm run build
-      working-directory: src/portal/portal-backend
+      working-directory: src/portal/portal-backend # This path was also incorrect before, but fixed. Re-checking.
 
     - name: Build Docker Image
       run: docker build -t portal-backend:latest .
-      working-directory: src/portal/portal/portal-backend
+      working-directory: src/portal/portal-backend # **CRITICAL FIX: Corrected path here**
 
     - name: Run Backend Tests
       run: npm test
@@ -92,7 +92,6 @@ jobs:
       FRONTEND_URL: 'http://localhost:3000'
       APP_VERSION: '0.1.0'
       PORT: '8080'
-      # CRITICAL FIX: Add SKIP_SECRETS_MANAGER to bypass AWS calls in CI
       SKIP_SECRETS_MANAGER: 'true'
 
     steps:
