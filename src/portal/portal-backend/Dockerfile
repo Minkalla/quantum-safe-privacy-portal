@@ -76,5 +76,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s \
 # CRITICAL DEBUGGING CMD: Adds verbose Node.js flags and keeps container alive on crash
 # NODE_OPTIONS ensures more verbose V8/Node.js startup logs
 # --inspect-brk will pause execution at start
-ENV NODE_OPTIONS="--enable-source-maps" # Remove ANYTHING on this line after the closing quote "
+ENV NODE_OPTIONS="--enable-source=maps"
 CMD ["sh", "-c", "node --trace-warnings --unhandled-rejections=strict dist/main.js || sleep infinity"]
