@@ -157,6 +157,10 @@ jobs:
         done
         curl -f http://localhost:8080/api-docs || { echo "Backend API did not become ready within timeout."; exit 1; }
 
+    # Add anonymous Docker login to avoid rate limit/pull issues
+    - name: Docker Login (Anonymous)
+      run: echo | docker login
+
     # Replaced manual ZAP CLI download with official Docker image scan
     - name: Run OWASP ZAP Baseline Scan
       run: |
