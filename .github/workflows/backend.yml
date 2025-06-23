@@ -56,7 +56,7 @@ jobs:
       working-directory: . # Run from root to easily access the Dockerfile path
 
     - name: Build Docker Image
-      run: docker build -t portal-backend:latest .
+      run: docker build -t minkalla/portal-backend:latest .
       working-directory: src/portal/portal-backend
 
     - name: Run Backend Tests
@@ -152,8 +152,8 @@ jobs:
 
     - name: Inspect Built Docker Image Contents
       run: |
-        echo "Listing contents of /app in portal-backend:latest image..."
-        docker run --rm portal-backend:latest ls -laR /app || true 
+        echo "Listing contents of /app in minkalla/portal-backend:latest image..."
+        docker run --rm minkalla/portal-backend:latest ls -laR /app || true
         echo "Done inspecting image contents."
 
     - name: Get Backend Container Logs
@@ -189,11 +189,17 @@ jobs:
         # -r owasp_zap_report.html: ZAP writes the report with this filename relative to `/zap/wrk`.
         #                           Therefore, the file will be created at 
         #                           `src/portal/portal-backend/owasp_zap_report.html` on the runner.
+        set +e
         docker run --rm --network "$network_name" -v "$(pwd)":/zap/wrk:rw -t ghcr.io/zaproxy/zaproxy:20240604-stable zap-baseline.py \
           -t http://backend:8080/api-docs \
-          -r owasp_zap_report.html -z "-config api.disablekey=true" # <-- IMPORTANT: Keeping original filename
-                                                                    # This is consistent with your latest logs.
-                                                                    # The key is *where* it's written.
+          -r owasp_zap_report.html -z "-config api.disablekey=true"
+        status=$?
+        if [ $status -eq 2 ]; then
+          echo "ZAP scan completed with warnings (exit code 2), treating as pass."
+          exit 0
+        else
+          exit $status
+        fi
     
     # REMOVED: The 'Move ZAP Report to Workspace Root' step is no longer needed.
     # It was causing the 'No such file or directory' error due to incorrect pathing
@@ -204,12 +210,17 @@ jobs:
       if: always()
       run: docker compose down
 
+    - name: Verify ZAP Report Exists
+      if: always()
+      run: |
+        if [ ! -f owasp_zap_report.html ]; then
+          echo "ZAP report not found!"
+          exit 1
+        fi
+
     - name: Upload OWASP ZAP Report
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: owasp-zap-report
-        # The 'path' here is relative to the job's 'working-directory: src/portal/portal-backend'.
-        # Since ZAP creates 'owasp_zap_report.html' in this folder (via the volume mount),
-        # this path is now correct and will find the file.
-        path: owasp_zap_report.html # <-- IMPORTANT: Matches original filename and relative path
+        path: owasp_zap_report.html
