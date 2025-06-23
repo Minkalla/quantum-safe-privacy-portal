@@ -15,9 +15,10 @@
 # Updates for Debugging (June 23, 2025):
 # - Modified CMD to include verbose Node.js flags and keep container alive on crash.
 # - Fixed NODE_OPTIONS syntax to use proper ENV format with = sign.
+# - Upgraded from node:18-alpine to node:20-alpine to resolve npm EBADENGINE warnings.
 
 # Stage 1: Build dependencies and compile TypeScript
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 # Set working directory for the build stage
 WORKDIR /app
@@ -44,7 +45,7 @@ RUN npm ci
 RUN npm run build
 
 # Stage 2: Create the lean production image
-FROM node:18-alpine
+FROM node:20-alpine
 
 # Set working directory for the application
 WORKDIR /app
