@@ -1,0 +1,14 @@
+name: Qodo Bot Task Execution
+on:
+  issue_comment:
+    types: [created]
+jobs:
+  qodo-task:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run Qodo PR-Agent
+        uses: qodo-ai/pr-agent@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          QODO_API_KEY: ${{ secrets.QODO_API_KEY }}
