@@ -19,7 +19,8 @@
  * - Introduced explicit `console.log` statements at key bootstrap stages to trace execution flow and identify silent crashes.
  * - Temporarily enabled `logger: ['error', 'warn', 'log']` for NestFactory to ensure basic logging is active.
  * - Explicitly logging critical environment variables at startup.
- * - **FIXED `ts(4111)` errors by switching to bracket notation for `process.env` access.**
+ * - Fixed `ts(4111)` errors by switching to bracket notation for `process.env` access.
+ * - **FIXED `ts(6133)` error by explicitly ignoring the `promise` parameter in unhandledRejection handler.**
  */
 
 import { NestFactory } from '@nestjs/core';
@@ -45,8 +46,11 @@ process.on('uncaughtException', (err) => {
   process.exit(1);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+// Fixed ts(6133) by explicitly ignoring the 'promise' parameter
+process.on('unhandledRejection', (reason, _promise) => { // CHANGED: Renamed 'promise' to '_promise'
   console.error('🔥 Unhandled Rejection at Startup:', reason);
+  // You can optionally log the promise object if needed for more context, e.g.:
+  // console.error('  Promise object:', _promise);
   process.exit(1);
 });
 
