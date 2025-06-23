@@ -167,7 +167,8 @@ jobs:
 
     - name: Run OWASP ZAP Baseline Scan
       run: |
-        docker run --rm -v $(pwd):/zap/wrk:rw -t owasp/zap2docker-stable zap-baseline.py \
+        # Using fully qualified image name to ensure pull from Docker Hub post-login
+        docker run --rm -v $(pwd):/zap/wrk:rw -t docker.io/owasp/zap2docker-stable zap-baseline.py \
           -t http://localhost:8080/api-docs \
           -r src/portal/portal-backend/owasp_zap_report.html
 
