@@ -75,5 +75,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s \
 # Command to run the NestJS application when the container starts
 # CRITICAL DEBUGGING CMD: Adds verbose Node.js flags and keeps container alive on crash
 # NODE_OPTIONS ensures more verbose V8/Node.js startup logs
-ENV NODE_OPTIONS="--enable-source-maps --inspect-brk=0.0.0.0:9229" # --inspect-brk will pause execution at start
+# --inspect-brk will pause execution at start
+ENV NODE_OPTIONS="--enable-source-maps --inspect-brk=0.0.0.0:9229" # **CRITICAL FIX: Moved comment to its own line or removed it.**
 CMD ["sh", "-c", "node --trace-warnings --unhandled-rejections=strict dist/main.js || sleep infinity"]
