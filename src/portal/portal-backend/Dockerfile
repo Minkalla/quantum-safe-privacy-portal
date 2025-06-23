@@ -13,8 +13,8 @@
 # This Dockerfile is Pre-PQC ready, allowing easy updates for quantum-safe libraries.
 #
 # Updates for Debugging (June 23, 2025):
-# - Modified CMD to include more verbose Node.js debugging flags and keep container alive on crash.
-# - Corrected NODE_OPTIONS flag for source maps.
+# - Modified CMD to include verbose Node.js flags and keep container alive on crash.
+# - Removed --inspect-brk flag from NODE_OPTIONS as the application is now confirmed to start.
 
 # Stage 1: Build dependencies and compile TypeScript
 FROM node:18-alpine AS builder
@@ -76,4 +76,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s \
 # CRITICAL DEBUGGING CMD: Adds verbose Node.js flags and keeps container alive on crash
 # NODE_OPTIONS ensures more verbose V8/Node.js startup logs
 ENV NODE_OPTIONS="--enable-source-maps"
+# CRITICAL FIX: Removed --inspect-brk=0.0.0.0:9229
 CMD ["sh", "-c", "node --trace-warnings --unhandled-rejections=strict dist/main.js || sleep infinity"]
