@@ -23,6 +23,7 @@ services:
       - JWT_REFRESH_SECRET_ID=${JWT_REFRESH_SECRET_ID}
       - FRONTEND_URL=${FRONTEND_URL}
       - APP_VERSION=${APP_VERSION}
+      - SKIP_SECRETS_MANAGER=${SKIP_SECRETS_MANAGER}
 
     depends_on:
       - mongo
