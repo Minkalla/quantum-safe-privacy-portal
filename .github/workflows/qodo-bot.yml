@@ -8,7 +8,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Run Qodo PR-Agent
-        uses: qodo-ai/pr-agent@v1
+        uses: qodo-ai/pr-agent@v0.30
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           QODO_API_KEY: ${{ secrets.QODO_API_KEY }}
