@@ -17,7 +17,7 @@
 # - Corrected NODE_OPTIONS flag for source maps.
 
 # Stage 1: Build dependencies and compile TypeScript
-FROM node:20-alpine AS builder # Updated to node:20-alpine as per Qodo's suggestion for EBADENGINE warnings
+FROM node:20-alpine AS builder
 
 # Set working directory for the build stage
 WORKDIR /app
@@ -44,7 +44,7 @@ RUN npm ci
 RUN npm run build
 
 # Stage 2: Create the lean production image
-FROM node:20-alpine # Updated to node:20-alpine
+FROM node:20-alpine
 
 # Set working directory for the application
 WORKDIR /app
@@ -70,7 +70,7 @@ EXPOSE 8080
 
 # Define a healthcheck to verify container's responsiveness
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s \
-  CMD curl -f http://localhost:$PORT/portal/ || exit 1
+  CMD curl -f http://localhost:$PORT/portal/ || exit 1
 
 # Command to run the NestJS application when the container starts
 # CRITICAL DEBUGGING CMD: Adds verbose Node.js flags and keeps container alive on crash
