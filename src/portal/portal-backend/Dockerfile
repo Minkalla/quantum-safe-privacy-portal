@@ -14,7 +14,7 @@
 #
 # Updates for Debugging (June 23, 2025):
 # - Modified CMD to include verbose Node.js flags and keep container alive on crash.
-# - Removed ENV NODE_OPTIONS entirely as it was causing persistent syntax errors.
+# - Fixed NODE_OPTIONS syntax to use proper ENV format with = sign.
 
 # Stage 1: Build dependencies and compile TypeScript
 FROM node:18-alpine AS builder
@@ -75,5 +75,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s \
 # Command to run the NestJS application when the container starts
 # CRITICAL DEBUGGING CMD: Adds verbose Node.js flags and keeps container alive on crash
 # NODE_OPTIONS ensures more verbose V8/Node.js startup logs
-ENV NODE_OPTIONS --enable-source-maps
+ENV NODE_OPTIONS="--enable-source-maps"
 CMD ["sh", "-c", "node --trace-warnings --unhandled-rejections=strict dist/main.js || sleep infinity"]
