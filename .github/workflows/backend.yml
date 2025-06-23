@@ -188,10 +188,13 @@ jobs:
       if: always()
       run: docker compose down
 
+    - name: Move ZAP Report to Workspace Root
+      if: always()
+      run: mv src/portal/portal-backend/owasp_zap_report.html owasp_zap_report.html # Move report to root for upload step compatibility
+
     - name: Upload OWASP ZAP Report
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: owasp-zap-report
         path: owasp_zap_report.html
-      working-directory: src/portal/portal-backend # Ensure upload step looks in the correct directory for the report
