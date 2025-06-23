@@ -157,28 +157,12 @@ jobs:
         done
         curl -f http://localhost:8080/api-docs || { echo "Backend API did not become ready within timeout."; exit 1; }
 
-    - name: Download and Install OWASP ZAP
+    # Replaced manual ZAP CLI download with official Docker image scan
+    - name: Run OWASP ZAP Baseline Scan
       run: |
-        ZAP_VERSION="2.15.0"
-        wget https://github.com/zaproxy/zaproxy/releases/download/v${ZAP_VERSION}/ZAP_CLI-${ZAP_VERSION}.zip -O zap_cli.zip
-        sudo unzip zap_cli.zip -d /opt/zap
-        sudo chmod +x /opt/zap/zap.sh
-        echo "/opt/zap" >> $GITHUB_PATH
-
-    - name: Run OWASP ZAP Scan (CLI)
-      run: |
-        zap.sh -cmd \
-               -port 8090 \
-               -host 127.0.0.1 \
-               -addoninstall zaproxy-openapi \
-               -newsession zap_session \
-               -config api.parameters.url=http://localhost:8080/portal/api-docs \
-               -config api.openapi.url=http://localhost:8080/portal/api-docs \
-               -target http://localhost:8080/portal/auth/login \
-               -report /home/runner/work/quantum-safe-privacy-portal/quantum-safe-privacy-portal/src/portal/portal-backend/owasp_zap_report.html \
-               -format html \
-               -addonupdate \
-               -cmd
+        docker run --rm -v $(pwd):/zap/wrk:rw -t owasp/zap2docker-stable zap-baseline.py \
+          -t http://localhost:8080/api-docs \
+          -r src/portal/portal-backend/owasp_zap_report.html
 
     - name: Stop Backend Services
       if: always()
