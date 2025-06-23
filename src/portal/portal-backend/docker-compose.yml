@@ -18,7 +18,7 @@ services:
       - AWS_REGION=${AWS_REGION} # Ensure this matches your AWS_REGION in .env and your actual region
       # ADDED: X-Ray Daemon address for the backend service
       - AWS_XRAY_DAEMON_ADDRESS=xray-daemon:2000
-      - MONGO_URI=${MONGO_URI}
+      - MONGO_URI=${MONGODB_URI}
       - JWT_ACCESS_SECRET_ID=${JWT_ACCESS_SECRET_ID}
       - JWT_REFRESH_SECRET_ID=${JWT_REFRESH_SECRET_ID}
       - FRONTEND_URL=${FRONTEND_URL}
