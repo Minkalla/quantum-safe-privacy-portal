@@ -69,8 +69,8 @@ ENV PORT=8080
 EXPOSE 8080
 
 # Define a healthcheck to verify container's responsiveness
-# HEALTHCHECK must be a single logical line; Docker does not allow line continuation with a non-escaped space
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s CMD curl -f http://localhost:$PORT/portal/ || exit 1
+# HEALTHCHECK updated to check Swagger docs at /api-docs for readiness, matching actual app config
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s CMD curl -f http://localhost:$PORT/api-docs || exit 1
 
 # Command to run the NestJS application when the container starts
 # CRITICAL DEBUGGING CMD: Adds verbose Node.js flags and keeps container alive on crash
