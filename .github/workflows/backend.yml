@@ -37,11 +37,11 @@ jobs:
 
     - name: Build Backend
       run: npm run build
-      working-directory: src/portal/portal-backend # **CRITICAL FIX: Corrected path here**
+      working-directory: src/portal/portal-backend
 
     - name: Build Docker Image
       run: docker build -t portal-backend:latest .
-      working-directory: src/portal/portal-backend
+      working-directory: src/portal/portal/portal-backend
 
     - name: Run Backend Tests
       run: npm test
@@ -92,6 +92,8 @@ jobs:
       FRONTEND_URL: 'http://localhost:3000'
       APP_VERSION: '0.1.0'
       PORT: '8080'
+      # CRITICAL FIX: Add SKIP_SECRETS_MANAGER to bypass AWS calls in CI
+      SKIP_SECRETS_MANAGER: 'true'
 
     steps:
     - name: Checkout Repository
@@ -127,7 +129,7 @@ jobs:
     - name: Wait for Backend API to be Ready
       run: |
         echo "Waiting for http://localhost:8080/api-docs/ to be ready..."
-        for i in $(seq 1 12); do # Reverted to 12 retries (120s timeout)
+        for i in $(seq 1 12); do
           curl -f http://localhost:8080/api-docs/ && echo "Backend API is ready!" && break
           echo "Backend API not ready yet. Retrying in 10 seconds..."
           sleep 10
