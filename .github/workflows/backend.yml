@@ -170,9 +170,9 @@ jobs:
 
     - name: Run OWASP ZAP Baseline Scan
       run: |
-        # CRITICAL FIX: Updated ZAP image to official GHCR path.
+        # CRITICAL FIX: Use versioned ZAP image from GHCR (2.15.0)
         # This image is designed for baseline scans and includes zap-baseline.py
-        docker run --rm -v $(pwd):/zap/wrk:rw -t ghcr.io/zaproxy/zap-baseline:latest zap-baseline.py \
+        docker run --rm -v $(pwd):/zap/wrk:rw -t ghcr.io/zaproxy/zap-baseline:2.15.0 zap-baseline.py \
           -t http://localhost:8080/api-docs \
           -r src/portal/portal-backend/owasp_zap_report.html
 
