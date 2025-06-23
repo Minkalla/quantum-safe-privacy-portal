@@ -39,6 +39,22 @@ jobs:
       run: npm run build
       working-directory: src/portal/portal-backend
 
+    # NEW DEBUGGING STEPS FOR DOCKERFILE CONTENT
+    - name: Debug - Print Dockerfile Content
+      run: |
+        echo "=== Full Dockerfile Content ==="
+        cat src/portal/portal-backend/Dockerfile
+        echo "=== End Dockerfile Content ==="
+      working-directory: . # Run from root to easily access the Dockerfile path
+
+    - name: Debug - Hex Dump of Problematic Dockerfile Lines
+      run: |
+        echo "=== Hex Dump of Dockerfile Lines 76-80 ==="
+        # Extract lines 76-80 and show hex dump, looking for hidden characters
+        tail -n +76 src/portal/portal-backend/Dockerfile | head -n 5 | od -xc
+        echo "=== End Hex Dump ==="
+      working-directory: . # Run from root to easily access the Dockerfile path
+
     - name: Build Docker Image
       run: docker build -t portal-backend:latest .
       working-directory: src/portal/portal-backend
@@ -122,77 +138,24 @@ jobs:
       run: docker compose up -d
       continue-on-error: true
 
-    - name: Debug - Check Container Status
+    - name: Inspect Built Docker Image Contents
       run: |
-        echo "=== All containers status ==="
-        docker ps -a
-        echo "=== Docker compose status ==="
-        docker compose ps
-        echo "=== Backend container details ==="
-        docker inspect portal-backend-backend-1 || true
+        echo "Listing contents of /app in portal-backend:latest image..."
+        docker run --rm portal-backend:latest ls -laR /app || true # Run ls -laR /app inside the image
+        echo "Done inspecting image contents."
 
-    - name: Debug - Get Backend Container Logs (Multiple Attempts)
-      run: |
-        echo "=== Attempt 1: Docker compose logs ==="
-        docker compose logs backend || true
-        echo "=== Attempt 2: Direct docker logs ==="
-        docker logs portal-backend-backend-1 || true
-        echo "=== Attempt 3: Docker logs with follow (5 seconds) ==="
-        timeout 5s docker logs -f portal-backend-backend-1 || true
-
-    - name: Debug - Check if Container is Running
-      run: |
-        echo "=== Checking if backend container is running ==="
-        if docker ps | grep portal-backend-backend-1; then
-          echo "Container is running"
-          echo "=== Trying to execute commands inside container ==="
-          docker exec portal-backend-backend-1 ls -la /app || true
-          docker exec portal-backend-backend-1 ls -la /app/dist || true
-          docker exec portal-backend-backend-1 node --version || true
-          docker exec portal-backend-backend-1 cat /app/package.json || true
-        else
-          echo "Container is NOT running"
-          echo "=== Checking container exit code ==="
-          docker ps -a --filter "name=portal-backend-backend-1" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-        fi
-
-    - name: Debug - Test Direct Node Execution in Container
-      run: |
-        echo "=== Attempting to run Node.js directly in container ==="
-        docker run --rm \
-          -e MONGODB_URI="$MONGODB_URI" \
-          -e JWT_ACCESS_SECRET_ID="$JWT_ACCESS_SECRET_ID" \
-          -e JWT_REFRESH_SECRET_ID="$JWT_REFRESH_SECRET_ID" \
-          -e AWS_REGION="$AWS_REGION" \
-          -e AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" \
-          -e AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" \
-          -e NODE_ENV="$NODE_ENV" \
-          -e ENABLE_SWAGGER_DOCS="$ENABLE_SWAGGER_DOCS" \
-          -e FRONTEND_URL="$FRONTEND_URL" \
-          -e APP_VERSION="$APP_VERSION" \
-          -e PORT="$PORT" \
-          -e SKIP_SECRETS_MANAGER="$SKIP_SECRETS_MANAGER" \
-          portal-backend-backend:latest \
-          sh -c "node --version && ls -la /app && node dist/main.js" || true
-
-    - name: Debug - Check Network Connectivity
-      run: |
-        echo "=== Docker network list ==="
-        docker network ls
-        echo "=== Inspect backend network ==="
-        docker network inspect portal-backend_default || true
-        echo "=== Test MongoDB connectivity ==="
-        docker exec portal-backend-mongo-1 mongosh --eval "db.version()" || true
+    - name: Get Backend Container Logs
+      run: docker compose logs backend || true
 
     - name: Wait for Backend API to be Ready
       run: |
-        echo "Waiting for http://localhost:8080/portal/api-docs/ to be ready..."
+        echo "Waiting for http://localhost:8080/portal/api-docs to be ready..."
         for i in $(seq 1 12); do
-          curl -f http://localhost:8080/portal/api-docs/ && echo "Backend API is ready!" && break
+          curl -f http://localhost:8080/portal/api-docs && echo "Backend API is ready!" && break
           echo "Backend API not ready yet. Retrying in 10 seconds..."
           sleep 10
         done
-        curl -f http://localhost:8080/portal/api-docs/ || { echo "Backend API did not become ready within timeout."; exit 1; }
+        curl -f http://localhost:8080/portal/api-docs || { echo "Backend API did not become ready within timeout."; exit 1; }
 
     - name: Download and Install OWASP ZAP
       run: |
