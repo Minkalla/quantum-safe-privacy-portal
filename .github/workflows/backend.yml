@@ -175,10 +175,11 @@ jobs:
 
     - name: Run OWASP ZAP Baseline Scan
       run: |
-        # CRITICAL FIX: Using correct ZAP image from GHCR (ghcr.io/zaproxy/zaproxy) with specific stable tag.
-        # This image is designed for baseline scans and includes zap-baseline.py
+        # CRITICAL FIX: Correct ZAP target URL to use Docker Compose service name 'backend'.
+        # Also, add chmod to ensure the mounted volume is writable by the ZAP container.
+        sudo chmod -R 777 $(pwd) # Ensure the mounted volume is writable by all for ZAP process
         docker run --rm -v $(pwd):/zap/wrk:rw -t ghcr.io/zaproxy/zaproxy:20240604-stable zap-baseline.py \
-          -t http://localhost:8080/api-docs \
+          -t http://backend:8080/api-docs \
           -r src/portal/portal-backend/owasp_zap_report.html
 
     - name: Stop Backend Services
