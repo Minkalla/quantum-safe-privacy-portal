@@ -95,7 +95,8 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: src/portal/portal-backend
+        working-directory: src/portal/portal-backend # This is important: all 'run' commands in this job are relative to this path
+
     env:
       MONGODB_URI: 'mongodb://mongo:27017/portal_dev'
       JWT_ACCESS_SECRET_ID: 'super-secret-access-token-id-for-testing-only'
@@ -124,7 +125,7 @@ jobs:
         curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
         sudo chmod a+r /etc/apt/keyrings/docker.gpg
         echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-          $(. /etc/os-release && echo \"$VERSION_CODENAME\") stable" | \
+          $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
           sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
         sudo apt-get update
         sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
@@ -147,13 +148,12 @@ jobs:
       run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
     - name: Start Backend Services with Docker Compose
-      run: docker compose up -d
-      continue-on-error: true
+      run: docker compose up -d 
 
     - name: Inspect Built Docker Image Contents
       run: |
         echo "Listing contents of /app in portal-backend:latest image..."
-        docker run --rm portal-backend:latest ls -laR /app || true # Run ls -laR /app inside the image
+        docker run --rm portal-backend:latest ls -laR /app || true 
         echo "Done inspecting image contents."
 
     - name: Get Backend Container Logs
@@ -175,26 +175,41 @@ jobs:
 
     - name: Run OWASP ZAP Baseline Scan
       run: |
-        # CRITICAL FIX: Ensure ZAP runs on the same Docker Compose network as backend for service name resolution.
-        # Also, add chmod to ensure the mounted volume is writable by the ZAP container.
-        sudo chmod -R 777 $(pwd) # Ensure the mounted volume is writable by all for ZAP process
-        network_name=$(docker network ls --format '{{.Name}}' | grep _default | head -n 1) # Dynamically find the Compose network
-        # Write report to the root of the mounted directory to avoid directory not found errors.
-        docker run --rm --network $network_name -v $(pwd):/zap/wrk:rw -t ghcr.io/zaproxy/zaproxy:20240604-stable zap-baseline.py \
+        # Ensure the mounted volume is writable by all for ZAP process.
+        # This is run from the job's 'working-directory: src/portal/portal-backend',
+        # so `$(pwd)` here resolves to `src/portal/portal-backend`.
+        sudo chmod -R 777 $(pwd) 
+        
+        # Dynamically find the Docker Compose network name.
+        network_name=$(docker network ls --format '{{.Name}}' | grep _default | head -n 1)
+        
+        # Run ZAP Baseline Scan.
+        # -v "$(pwd)":/zap/wrk:rw: Mounts the job's working directory (`src/portal/portal-backend`) 
+        #                           to `/zap/wrk` inside the ZAP container.
+        # -r owasp_zap_report.html: ZAP writes the report with this filename relative to `/zap/wrk`.
+        #                           Therefore, the file will be created at 
+        #                           `src/portal/portal-backend/owasp_zap_report.html` on the runner.
+        docker run --rm --network "$network_name" -v "$(pwd)":/zap/wrk:rw -t ghcr.io/zaproxy/zaproxy:20240604-stable zap-baseline.py \
           -t http://backend:8080/api-docs \
-          -r owasp_zap_report.html
+          -r owasp_zap_report.html -z "-config api.disablekey=true" # <-- IMPORTANT: Keeping original filename
+                                                                    # This is consistent with your latest logs.
+                                                                    # The key is *where* it's written.
+    
+    # REMOVED: The 'Move ZAP Report to Workspace Root' step is no longer needed.
+    # It was causing the 'No such file or directory' error due to incorrect pathing
+    # relative to the job's working directory. The file is already where it needs to be
+    # for the next step.
 
     - name: Stop Backend Services
       if: always()
       run: docker compose down
-
-    - name: Move ZAP Report to Workspace Root
-      if: always()
-      run: mv src/portal/portal-backend/owasp_zap_report.html owasp_zap_report.html # Move report to root for upload step compatibility
 
     - name: Upload OWASP ZAP Report
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: owasp-zap-report
-        path: owasp_zap_report.html
+        # The 'path' here is relative to the job's 'working-directory: src/portal/portal-backend'.
+        # Since ZAP creates 'owasp_zap_report.html' in this folder (via the volume mount),
+        # this path is now correct and will find the file.
+        path: owasp_zap_report.html # <-- IMPORTANT: Matches original filename and relative path
