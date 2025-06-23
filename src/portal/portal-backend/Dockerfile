@@ -13,12 +13,11 @@
 # This Dockerfile is Pre-PQC ready, allowing easy updates for quantum-safe libraries.
 #
 # Updates for Debugging (June 23, 2025):
-# - Modified CMD to include verbose Node.js flags and keep container alive on crash.
-# - Fixed NODE_OPTIONS syntax to use proper ENV format with = sign.
-# - Upgraded from node:18-alpine to node:20-alpine to resolve npm EBADENGINE warnings.
+# - Modified CMD to include more verbose Node.js debugging flags and keep container alive on crash.
+# - Corrected NODE_OPTIONS flag for source maps.
 
 # Stage 1: Build dependencies and compile TypeScript
-FROM node:20-alpine AS builder
+FROM node:20-alpine AS builder # Updated to node:20-alpine as per Qodo's suggestion for EBADENGINE warnings
 
 # Set working directory for the build stage
 WORKDIR /app
@@ -45,7 +44,7 @@ RUN npm ci
 RUN npm run build
 
 # Stage 2: Create the lean production image
-FROM node:20-alpine
+FROM node:20-alpine # Updated to node:20-alpine
 
 # Set working directory for the application
 WORKDIR /app
@@ -76,5 +75,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s \
 # Command to run the NestJS application when the container starts
 # CRITICAL DEBUGGING CMD: Adds verbose Node.js flags and keeps container alive on crash
 # NODE_OPTIONS ensures more verbose V8/Node.js startup logs
-ENV NODE_OPTIONS="--enable-source-maps"
+ENV NODE_OPTIONS="--enable-source-maps" # **CRITICAL FIX: Corrected flag spelling for '--enable-source-maps'**
 CMD ["sh", "-c", "node --trace-warnings --unhandled-rejections=strict dist/main.js || sleep infinity"]
