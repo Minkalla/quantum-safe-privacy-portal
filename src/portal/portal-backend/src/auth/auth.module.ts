@@ -23,10 +23,7 @@ import { UserSchema } from '../models/User';
 import { JwtModule } from '../jwt/jwt.module';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]),
-    JwtModule,
-  ],
+  imports: [MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]), JwtModule],
   controllers: [AuthController],
   providers: [AuthService],
   exports: [AuthService],

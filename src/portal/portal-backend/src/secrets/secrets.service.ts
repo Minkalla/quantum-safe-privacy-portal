@@ -35,12 +35,16 @@ export class SecretsService {
     this.skipSecretsManager = this.configService.get<string>('SKIP_SECRETS_MANAGER') === 'true';
 
     if (this.skipSecretsManager) {
-      this.logger.warn('SKIP_SECRETS_MANAGER is true. Bypassing actual AWS Secrets Manager client initialization.');
+      this.logger.warn(
+        'SKIP_SECRETS_MANAGER is true. Bypassing actual AWS Secrets Manager client initialization.',
+      );
     } else {
       const awsRegion = this.configService.get<string>('AWS_REGION');
 
       if (!awsRegion) {
-        this.logger.error('AWS_REGION environment variable is not set. Secrets Manager client cannot be initialized.');
+        this.logger.error(
+          'AWS_REGION environment variable is not set. Secrets Manager client cannot be initialized.',
+        );
         throw new InternalServerErrorException('AWS region configuration missing.');
       }
 
@@ -59,14 +63,18 @@ export class SecretsService {
    */
   async getSecret(secretId: string): Promise<string> {
     if (this.skipSecretsManager) {
-      this.logger.warn(`SKIP_SECRETS_MANAGER is true. Returning dummy value for secretId: "${secretId}"`);
+      this.logger.warn(
+        `SKIP_SECRETS_MANAGER is true. Returning dummy value for secretId: "${secretId}"`,
+      );
       // Return a predictable dummy value based on the secretId for testing
       return `DUMMY_SECRET_FOR_${secretId.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`;
     }
 
     if (!this.secretsManagerClient) {
       this.logger.error('SecretsManagerClient is not initialized. Cannot fetch real secret.');
-      throw new InternalServerErrorException('Secrets Manager client not initialized due to missing AWS_REGION or unexpected error.');
+      throw new InternalServerErrorException(
+        'Secrets Manager client not initialized due to missing AWS_REGION or unexpected error.',
+      );
     }
 
     const cachedSecret = this.secretCache.get(secretId);
@@ -92,7 +100,9 @@ export class SecretsService {
 
       return secretValue;
     } catch (error: any) {
-      this.logger.error(`Failed to retrieve secret "${secretId}" from Secrets Manager: ${error.message}`);
+      this.logger.error(
+        `Failed to retrieve secret "${secretId}" from Secrets Manager: ${error.message}`,
+      );
       throw new InternalServerErrorException(`Failed to retrieve secret: ${error.message}`);
     }
   }

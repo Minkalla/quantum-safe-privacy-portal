@@ -15,7 +15,12 @@
  * protection and secure password management.
  */
 
-import { Injectable, ConflictException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  UnauthorizedException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
@@ -70,7 +75,9 @@ export class AuthService {
    * @throws UnauthorizedException for invalid credentials.
    * @throws ForbiddenException if account is locked.
    */
-  async login(loginDto: LoginDto): Promise<{ accessToken: string; refreshToken: string; user: { id: string; email: string } }> {
+  async login(
+    loginDto: LoginDto,
+  ): Promise<{ accessToken: string; refreshToken: string; user: { id: string; email: string } }> {
     const { email, password, rememberMe } = loginDto;
 
     const user = await this.userModel
@@ -82,8 +89,12 @@ export class AuthService {
     }
 
     if (user.lockUntil && user.lockUntil > new Date()) {
-      const remainingLockTime = Math.ceil((user.lockUntil.getTime() - new Date().getTime()) / (60 * 1000));
-      throw new ForbiddenException(`Account locked. Please try again in ${remainingLockTime} minutes.`);
+      const remainingLockTime = Math.ceil(
+        (user.lockUntil.getTime() - new Date().getTime()) / (60 * 1000),
+      );
+      throw new ForbiddenException(
+        `Account locked. Please try again in ${remainingLockTime} minutes.`,
+      );
     }
 
     const isPasswordCorrect = await bcrypt.compare(password, user.password);

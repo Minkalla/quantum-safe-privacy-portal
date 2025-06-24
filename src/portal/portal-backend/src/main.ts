@@ -47,7 +47,8 @@ process.on('uncaughtException', (err) => {
 });
 
 // Fixed ts(6133) by explicitly ignoring the 'promise' parameter
-process.on('unhandledRejection', (reason, _promise) => { // CHANGED: Renamed 'promise' to '_promise'
+process.on('unhandledRejection', (reason, _promise) => {
+  // CHANGED: Renamed 'promise' to '_promise'
   console.error('🔥 Unhandled Rejection at Startup:', reason);
   // You can optionally log the promise object if needed for more context, e.g.:
   // console.error('  Promise object:', _promise);
@@ -60,11 +61,23 @@ console.log('📍 NODE_ENV:', process.env['NODE_ENV']);
 console.log('📍 SKIP_SECRETS_MANAGER:', process.env['SKIP_SECRETS_MANAGER']);
 console.log('📍 PORT (from process.env):', process.env['PORT']);
 console.log('📍 MONGO_URI (from process.env):', process.env['MONGODB_URI']);
-console.log('📍 JWT_ACCESS_SECRET_ID (from process.env):', process.env['JWT_ACCESS_SECRET_ID'] ? 'SET' : 'NOT SET');
-console.log('📍 JWT_REFRESH_SECRET_ID (from process.env):', process.env['JWT_REFRESH_SECRET_ID'] ? 'SET' : 'NOT SET');
+console.log(
+  '📍 JWT_ACCESS_SECRET_ID (from process.env):',
+  process.env['JWT_ACCESS_SECRET_ID'] ? 'SET' : 'NOT SET',
+);
+console.log(
+  '📍 JWT_REFRESH_SECRET_ID (from process.env):',
+  process.env['JWT_REFRESH_SECRET_ID'] ? 'SET' : 'NOT SET',
+);
 console.log('📍 AWS_REGION (from process.env):', process.env['AWS_REGION']);
-console.log('📍 AWS_ACCESS_KEY_ID (from process.env):', process.env['AWS_ACCESS_KEY_ID'] ? 'SET' : 'NOT SET');
-console.log('📍 AWS_SECRET_ACCESS_KEY (from process.env):', process.env['AWS_SECRET_ACCESS_KEY'] ? 'SET' : 'NOT SET');
+console.log(
+  '📍 AWS_ACCESS_KEY_ID (from process.env):',
+  process.env['AWS_ACCESS_KEY_ID'] ? 'SET' : 'NOT SET',
+);
+console.log(
+  '📍 AWS_SECRET_ACCESS_KEY (from process.env):',
+  process.env['AWS_SECRET_ACCESS_KEY'] ? 'SET' : 'NOT SET',
+);
 // --- END DEBUGGING ADDITIONS ---
 
 AWSXRay.captureHTTPsGlobal(http);
@@ -81,7 +94,6 @@ async function bootstrap() {
   app.useLogger(winstonLogger);
   console.log('✅ Winston logger applied to NestJS app');
 
-
   const configService = app.get(AppConfigService);
   const nodeEnv = configService.get<string>('NODE_ENV') || 'development';
   const port = configService.get<number>('PORT') || 3000;
@@ -91,15 +103,15 @@ async function bootstrap() {
 
   console.log('✅ ConfigService values fetched. Node_ENV:', nodeEnv, 'Port:', port);
 
-
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
-    disableErrorMessages: nodeEnv === 'production',
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      disableErrorMessages: nodeEnv === 'production',
+    }),
+  );
   console.log('✅ Global ValidationPipe applied');
-
 
   app.use(express.json({ limit: '10kb' }));
   app.use(cookieParser());
@@ -122,54 +134,63 @@ async function bootstrap() {
   });
   console.log('✅ CORS configured');
 
-
-  app.use(helmet({
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false,
-    crossOriginOpenerPolicy: false,
-    crossOriginResourcePolicy: false,
-    dnsPrefetchControl: { allow: true },
-    frameguard: { action: 'deny' },
-    hidePoweredBy: true,
-    hsts: {
-      maxAge: 63072000,
-      includeSubDomains: true,
-      preload: true,
-    },
-    ieNoOpen: true,
-    noSniff: true,
-    originAgentCluster: false,
-    permittedCrossDomainPolicies: { permittedPolicies: 'none' },
-    referrerPolicy: { policy: 'no-referrer' },
-    xssFilter: true,
-  }));
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false,
+      crossOriginOpenerPolicy: false,
+      crossOriginResourcePolicy: false,
+      dnsPrefetchControl: { allow: true },
+      frameguard: { action: 'deny' },
+      hidePoweredBy: true,
+      hsts: {
+        maxAge: 63072000,
+        includeSubDomains: true,
+        preload: true,
+      },
+      ieNoOpen: true,
+      noSniff: true,
+      originAgentCluster: false,
+      permittedCrossDomainPolicies: { permittedPolicies: 'none' },
+      referrerPolicy: { policy: 'no-referrer' },
+      xssFilter: true,
+    }),
+  );
   console.log('✅ Helmet middleware applied');
-
 
   app.use(hpp());
   console.log('✅ HPP middleware applied');
 
-
   app.use(AWSXRay.express.openSegment('MinkallaBackend'));
   console.log('✅ X-Ray Express middleware applied (openSegment)');
-
 
   app.setGlobalPrefix('portal');
   console.log('✅ Global prefix set to /portal');
 
-
   if (enableSwaggerDocs || nodeEnv === 'development') {
     const options = new DocumentBuilder()
       .setTitle('Minkalla Quantum-Safe Privacy Portal API')
-      .setDescription('Secure, quantum-resistant backend services enabling compliant user consent and data rights management for the digital economy.')
+      .setDescription(
+        'Secure, quantum-resistant backend services enabling compliant user consent and data rights management for the digital economy.',
+      )
       .setVersion(appVersion)
       .addBearerAuth(
-        { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', description: 'Authentication via short-lived Access Token' },
-        'bearerAuth'
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'Authentication via short-lived Access Token',
+        },
+        'bearerAuth',
       )
       .addApiKey(
-        { type: 'apiKey', in: 'cookie', name: 'refreshToken', description: 'Authentication via long-lived Refresh Token (HTTP-only cookie)' },
-        'cookieAuth'
+        {
+          type: 'apiKey',
+          in: 'cookie',
+          name: 'refreshToken',
+          description: 'Authentication via long-lived Refresh Token (HTTP-only cookie)',
+        },
+        'cookieAuth',
       )
       .addTag('Authentication', 'APIs for user registration, login, and session management.')
       .build();
@@ -190,7 +211,6 @@ async function bootstrap() {
 
   app.use(AWSXRay.express.closeSegment());
   console.log('✅ X-Ray Express middleware applied (closeSegment)');
-
 
   await app.listen(port);
   console.log('✅ NestJS app listening on port', port);

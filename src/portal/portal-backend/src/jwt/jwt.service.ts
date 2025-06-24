@@ -45,7 +45,9 @@ export class JwtService {
     const jwtRefreshSecretId = this.configService.get<string>('JWT_REFRESH_SECRET_ID');
 
     if (!jwtAccessSecretId || !jwtRefreshSecretId) {
-      this.logger.error('JWT_ACCESS_SECRET_ID or JWT_REFRESH_SECRET_ID environment variables are not set.');
+      this.logger.error(
+        'JWT_ACCESS_SECRET_ID or JWT_REFRESH_SECRET_ID environment variables are not set.',
+      );
       throw new InternalServerErrorException('JWT Secret IDs are not configured.');
     }
 
@@ -53,7 +55,8 @@ export class JwtService {
       this.jwtAccessSecret = await this.secretsService.getSecret(jwtAccessSecretId);
       this.jwtRefreshSecret = await this.secretsService.getSecret(jwtRefreshSecretId);
       this.logger.log('JWT secrets successfully fetched and initialized from Secrets Manager.');
-    } catch (error: any) { // CHANGED: Explicitly type 'error' as 'any'
+    } catch (error: any) {
+      // CHANGED: Explicitly type 'error' as 'any'
       this.logger.error(`Failed to fetch JWT secrets from Secrets Manager: ${error.message}`);
       throw new InternalServerErrorException(`Failed to initialize JWT service: ${error.message}`);
     }
@@ -69,7 +72,7 @@ export class JwtService {
    */
   generateTokens(
     payload: TokenPayload,
-    rememberMe: boolean = false
+    rememberMe: boolean = false,
   ): { accessToken: string; refreshToken: string } {
     if (!this.jwtAccessSecret || !this.jwtRefreshSecret) {
       this.logger.error('JWT secrets are not initialized. Cannot generate tokens.');
@@ -78,9 +81,13 @@ export class JwtService {
 
     const accessToken = jwt.sign(payload, this.jwtAccessSecret, { expiresIn: '15m' });
     const refreshTokenExpiry = rememberMe ? '30d' : '7d';
-    const refreshToken = jwt.sign(payload, this.jwtRefreshSecret, { expiresIn: refreshTokenExpiry });
+    const refreshToken = jwt.sign(payload, this.jwtRefreshSecret, {
+      expiresIn: refreshTokenExpiry,
+    });
 
-    this.logger.log(`Tokens generated for user ${payload.email}. Access Token expires in 15m, Refresh Token in ${refreshTokenExpiry}.`);
+    this.logger.log(
+      `Tokens generated for user ${payload.email}. Access Token expires in 15m, Refresh Token in ${refreshTokenExpiry}.`,
+    );
 
     return { accessToken, refreshToken };
   }
@@ -109,14 +116,19 @@ export class JwtService {
 
     if (!secret) {
       this.logger.error(`JWT secret for type '${secretType}' is undefined after initialization.`);
-      throw new InternalServerErrorException(`Server configuration error: JWT secret for ${secretType} not defined.`);
+      throw new InternalServerErrorException(
+        `Server configuration error: JWT secret for ${secretType} not defined.`,
+      );
     }
 
     try {
       const decoded = jwt.verify(token, secret) as TokenPayload;
-      this.logger.debug(`Token of type '${secretType}' verified successfully for user: ${decoded.email}`);
+      this.logger.debug(
+        `Token of type '${secretType}' verified successfully for user: ${decoded.email}`,
+      );
       return decoded;
-    } catch (err: any) { // CHANGED: Explicitly type 'err' as 'any'
+    } catch (err: any) {
+      // CHANGED: Explicitly type 'err' as 'any'
       this.logger.warn(`Token verification failed for type '${secretType}': ${err.message}`);
       return null;
     }

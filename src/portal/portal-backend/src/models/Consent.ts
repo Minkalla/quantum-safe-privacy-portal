@@ -57,7 +57,8 @@ export const ConsentSchema = new Schema<IConsent>(
       trim: true,
       enum: {
         values: ['marketing', 'analytics', 'data_processing', 'cookies', 'third_party_sharing'],
-        message: 'Consent type must be one of: marketing, analytics, data_processing, cookies, third_party_sharing',
+        message:
+          'Consent type must be one of: marketing, analytics, data_processing, cookies, third_party_sharing',
       },
       index: true,
     },
@@ -69,13 +70,18 @@ export const ConsentSchema = new Schema<IConsent>(
       type: String,
       trim: true,
       validate: {
-        validator: function(v: string) {
+        validator: function (v: string) {
           if (!v || v === '' || v === undefined || v === null) return true;
           const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
           const ipv6Regex = /^([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}$/;
           const ipv4MappedV6Regex = /^::ffff:(\d{1,3}\.){3}\d{1,3}$/i;
           const localhostRegex = /^(127\.0\.0\.1|::1|localhost)$/i;
-          return ipv4Regex.test(v) || ipv6Regex.test(v) || ipv4MappedV6Regex.test(v) || localhostRegex.test(v);
+          return (
+            ipv4Regex.test(v) ||
+            ipv6Regex.test(v) ||
+            ipv4MappedV6Regex.test(v) ||
+            localhostRegex.test(v)
+          );
         },
         message: 'Please provide a valid IP address',
       },

@@ -12,7 +12,19 @@
  * authentication, and comprehensive API documentation via Swagger.
  */
 
-import { Controller, Post, Get, Body, Param, UseGuards, ValidationPipe, HttpCode, HttpStatus, Req, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  UseGuards,
+  ValidationPipe,
+  HttpCode,
+  HttpStatus,
+  Req,
+  BadRequestException,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { ConsentService } from './consent.service';
 import { CreateConsentDto } from './dto/create-consent.dto';
@@ -30,7 +42,8 @@ export class ConsentController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Create or update user consent',
-    description: 'Captures or updates user consent for various data processing activities. Supports GDPR Article 7 compliance.',
+    description:
+      'Captures or updates user consent for various data processing activities. Supports GDPR Article 7 compliance.',
   })
   @ApiResponse({
     status: 200,
@@ -52,7 +65,11 @@ export class ConsentController {
       type: 'object',
       properties: {
         statusCode: { type: 'number', example: 400 },
-        message: { type: 'array', items: { type: 'string' }, example: ['User ID must be a string.'] },
+        message: {
+          type: 'array',
+          items: { type: 'string' },
+          example: ['User ID must be a string.'],
+        },
         error: { type: 'string', example: 'Bad Request' },
       },
     },
@@ -76,7 +93,10 @@ export class ConsentController {
       type: 'object',
       properties: {
         statusCode: { type: 'number', example: 409 },
-        message: { type: 'string', example: 'Consent record already exists with the same granted status' },
+        message: {
+          type: 'string',
+          example: 'Consent record already exists with the same granted status',
+        },
         error: { type: 'string', example: 'Conflict' },
       },
     },

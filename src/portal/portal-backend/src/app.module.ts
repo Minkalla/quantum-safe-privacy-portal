@@ -38,7 +38,9 @@ import { ConfigModule } from './config/config.module';
       useFactory: async (appConfigService: AppConfigService) => {
         const mongoUri = appConfigService.get<string>('MONGO_URI');
         if (!mongoUri) {
-          throw new Error('MONGO_URI environment variable is not defined or invalid. Check .env and AppConfigService validation.');
+          throw new Error(
+            'MONGO_URI environment variable is not defined or invalid. Check .env and AppConfigService validation.',
+          );
         }
 
         // REMOVED: X-Ray MongoDB capture logic from here to defer as per plan.
@@ -55,7 +57,7 @@ import { ConfigModule } from './config/config.module';
           format: winston.format.combine(
             winston.format.timestamp(),
             winston.format.ms(),
-            winston.format.json()
+            winston.format.json(),
           ),
         }),
       ],

@@ -52,7 +52,8 @@ class EnvironmentVariables {
 }
 
 @Injectable()
-export class AppConfigService { // CHANGED: Renamed class to AppConfigService
+export class AppConfigService {
+  // CHANGED: Renamed class to AppConfigService
   constructor(private nestConfigService: NestConfigService) {
     this.validateEnvironmentVariables();
   }
@@ -74,16 +75,16 @@ export class AppConfigService { // CHANGED: Renamed class to AppConfigService
       APP_VERSION: this.nestConfigService.get<string>('APP_VERSION'),
     };
 
-    const validatedConfig = plainToClass(
-      EnvironmentVariables,
-      configValues,
-      { enableImplicitConversion: true }
-    );
+    const validatedConfig = plainToClass(EnvironmentVariables, configValues, {
+      enableImplicitConversion: true,
+    });
 
     const errors = validateSync(validatedConfig, { skipMissingProperties: false });
 
     if (errors.length > 0) {
-      const errorMessage = errors.flatMap(error => Object.values(error.constraints || {})).join('; ');
+      const errorMessage = errors
+        .flatMap((error) => Object.values(error.constraints || {}))
+        .join('; ');
       throw new Error(`Environment validation error: ${errorMessage}`);
     }
   }

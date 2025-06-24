@@ -41,8 +41,9 @@ export class CreateConsentDto {
     example: 'marketing',
     enum: ConsentType,
   })
-  @IsEnum(ConsentType, { 
-    message: 'Consent type must be one of: marketing, analytics, data_processing, cookies, third_party_sharing' 
+  @IsEnum(ConsentType, {
+    message:
+      'Consent type must be one of: marketing, analytics, data_processing, cookies, third_party_sharing',
   })
   consentType!: ConsentType;
 

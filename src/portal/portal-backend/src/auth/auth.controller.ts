@@ -192,7 +192,11 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Authenticate user and issue access/refresh tokens' })
   @ApiBody({ type: LoginDto })
-  @ApiResponse({ status: 200, description: 'Successful authentication, returns access token. Refresh token set as HTTP-only cookie.' })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Successful authentication, returns access token. Refresh token set as HTTP-only cookie.',
+  })
   @ApiResponse({ status: 400, description: 'Validation failed.' })
   @ApiResponse({ status: 401, description: 'Invalid credentials.' })
   @ApiResponse({ status: 403, description: 'Account locked.' })
@@ -201,7 +205,9 @@ export class AuthController {
     const { accessToken, refreshToken, user } = await this.authService.login(loginDto);
 
     const cookieOptions = {
-      expires: new Date(Date.now() + (loginDto.rememberMe ? 30 * 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000)),
+      expires: new Date(
+        Date.now() + (loginDto.rememberMe ? 30 * 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000),
+      ),
       httpOnly: true,
       secure: process.env['NODE_ENV'] === 'production', // CHANGED: Access with bracket notation
       sameSite: 'strict' as const,

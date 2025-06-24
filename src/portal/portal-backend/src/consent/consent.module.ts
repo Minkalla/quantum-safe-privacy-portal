@@ -22,10 +22,7 @@ import { ConsentSchema } from '../models/Consent';
 import { JwtModule } from '../jwt/jwt.module';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([{ name: 'Consent', schema: ConsentSchema }]),
-    JwtModule,
-  ],
+  imports: [MongooseModule.forFeature([{ name: 'Consent', schema: ConsentSchema }]), JwtModule],
   controllers: [ConsentController],
   providers: [ConsentService],
   exports: [ConsentService],
