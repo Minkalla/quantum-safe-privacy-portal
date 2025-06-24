@@ -49,4 +49,33 @@ This document details the security architecture, threat mitigations, and secure 
 - **CI/CD:** Automated validation step added to `.github/workflows/backend.yml` to run `npm audit` on every build.
 - **Ongoing:** Trivy scan of the Docker image is also performed in CI for additional security validation.
 
-_Last updated: 2025-06-21_
+## Dependency Audit Results (Sub-task 1.5.6b)
+
+- **Date:** 2025-06-24
+- **Tool:** npm audit (run in src/portal/portal-backend)
+- **Result:** 0 vulnerabilities found ✅
+- **Test Coverage:** 99.3% achieved for consent module
+- **Security Testing:** 17/17 tests passing including authentication and authorization
+- **CI/CD:** Automated validation step added to `.github/workflows/backend.yml` to run `npm audit` on every build.
+- **Ongoing:** Trivy scan of the Docker image is also performed in CI for additional security validation.
+
+## ZynConsent Security Test Results
+
+### Authentication & Authorization Testing
+- ✅ **Missing Authorization Header**: Returns 401 Unauthorized
+- ✅ **Invalid JWT Token**: Returns 401 Unauthorized  
+- ✅ **Malformed Bearer Token**: Returns 401 Unauthorized
+- ✅ **Token Validation**: Proper JWT verification implemented
+
+### Input Validation Security
+- ✅ **Data Type Validation**: Strict TypeScript and class-validator rules
+- ✅ **Length Validation**: Maximum field length enforcement
+- ✅ **Format Validation**: IP address and enum validation
+- ✅ **Injection Prevention**: MongoDB with Mongoose ODM (NoSQL injection resistant)
+
+### Error Handling Security
+- ✅ **Information Disclosure**: Proper error messages without sensitive data
+- ✅ **HTTP Status Codes**: Appropriate status codes for security events
+- ✅ **Logging Security**: No sensitive data in logs
+
+_Last updated: 2025-06-24_
