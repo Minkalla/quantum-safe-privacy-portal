@@ -73,11 +73,23 @@ export class AuthService {
   async login(loginDto: LoginDto): Promise<{ accessToken: string; refreshToken?: string; user: { id: string; email: string } }> {
     const { email, password, rememberMe } = loginDto;
 
+    console.log('🔐 AuthService.login - Starting authentication for:', email);
+    console.log('🔐 AuthService.login - RememberMe flag:', rememberMe);
+
     const user = await this.userModel
       .findOne({ email })
       .select('+password +failedLoginAttempts +lockUntil +refreshTokenHash');
 
+    console.log('🔍 AuthService.login - User found:', user ? 'YES' : 'NO');
+    if (user) {
+      console.log('🔍 AuthService.login - User fields present:', Object.keys(user.toObject()));
+      console.log('🔍 AuthService.login - Password field exists:', !!user.password);
+      console.log('🔍 AuthService.login - FailedLoginAttempts:', user.failedLoginAttempts);
+      console.log('🔍 AuthService.login - LockUntil:', user.lockUntil);
+    }
+
     if (!user) {
+      console.log('❌ AuthService.login - User not found, throwing UnauthorizedException');
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -86,31 +98,41 @@ export class AuthService {
       throw new ForbiddenException(`Account locked. Please try again in ${remainingLockTime} minutes.`);
     }
 
+    console.log('🔐 AuthService.login - Starting password comparison');
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
+    console.log('🔐 AuthService.login - Password correct:', isPasswordCorrect);
 
     if (!isPasswordCorrect) {
+      console.log('❌ AuthService.login - Password incorrect, updating failed attempts');
       user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
 
       if (user.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
         user.lockUntil = new Date(Date.now() + LOCK_TIME_MINUTES * 60 * 1000);
         user.failedLoginAttempts = 0;
+        console.log('🔒 AuthService.login - Account locked due to failed attempts');
       }
       await user.save();
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    console.log('✅ AuthService.login - Password correct, proceeding with login');
     user.failedLoginAttempts = 0;
     user.lockUntil = null;
     user.lastLoginAt = new Date();
 
     // CHANGED: Explicitly cast user._id to ObjectId for .toString() method
     const tokenPayload = { userId: (user._id as ObjectId).toString(), email: user.email };
+    console.log('🎫 AuthService.login - Generating tokens for user:', tokenPayload.userId);
+    
     const { accessToken, refreshToken } = this.jwtService.generateTokens(tokenPayload, rememberMe);
+    console.log('🎫 AuthService.login - Tokens generated successfully');
 
     const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
     user.refreshTokenHash = hashedRefreshToken;
 
+    console.log('💾 AuthService.login - Saving user with updated login info');
     await user.save();
+    console.log('💾 AuthService.login - User saved successfully');
 
     const response: any = {
       accessToken,
@@ -122,8 +144,12 @@ export class AuthService {
 
     if (rememberMe) {
       response.refreshToken = refreshToken;
+      console.log('🎫 AuthService.login - Including refreshToken in response (rememberMe=true)');
+    } else {
+      console.log('🎫 AuthService.login - Not including refreshToken in response (rememberMe=false)');
     }
 
+    console.log('✅ AuthService.login - Login successful, returning response');
     return response;
   }
 }
