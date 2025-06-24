@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - 'feat/**'
+      - 'devin/**'
   pull_request:
     branches:
       - main
