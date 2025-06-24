@@ -4,8 +4,13 @@ on:
   push:
     branches:
       - main
+<<<<<<< HEAD
       - 'feat/**'
       - 'devin/**'
+||||||| ac237b3
+=======
+      - 'feat/**'
+>>>>>>> temp-mongodb-fix
   pull_request:
     branches:
       - main
@@ -95,6 +100,7 @@ jobs:
         name: trivy-scan-results
         path: src/portal/portal-backend/trivy-results.txt
 
+<<<<<<< HEAD
   cypress-e2e-tests:
     needs: build-and-test-backend
     runs-on: ubuntu-latest
@@ -227,7 +233,6 @@ jobs:
       with:
         name: cypress-test-results
         path: src/portal/portal-backend/test/e2e/results
-
   dast-scan-backend:
     needs: build-and-test-backend
     runs-on: ubuntu-latest

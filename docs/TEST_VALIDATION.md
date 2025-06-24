@@ -131,11 +131,146 @@ src/models/             |   100   |    80    |   100   |   100
 - **Authentication**: Mocked JWT service
 - **Environment**: Isolated test environment with .env.test configuration
 
-## 8. Artifacts
+## 8. E2E Test Suite Documentation
+
+### Purpose
+The E2E test suite validates the complete consent management workflow from user authentication through consent creation and retrieval, ensuring end-to-end functionality works correctly in a production-like environment.
+
+### Scope
+- **Login Flow**: JWT authentication with valid/invalid credentials
+- **Consent Creation**: POST `/portal/consent` with comprehensive validation
+- **Consent Retrieval**: GET `/portal/consent/{user_id}` with error handling
+
+### Test Case List
+
+#### Login Flow Tests (`test/e2e/login-flow.cy.js`)
+- ✅ Successful login with valid credentials (200 OK)
+- ✅ Login with remember me option (refresh token handling)
+- ✅ Authentication state persistence
+- ✅ Failed login with invalid email (401 Unauthorized)
+- ✅ Failed login with invalid password (401 Unauthorized)
+- ✅ Empty credentials validation (HTML5 validation)
+- ✅ Malformed email format validation
+- ✅ Logout functionality and token clearing
+- ✅ Network error handling
+- ✅ Server error (500) handling
+- ✅ JWT token format validation
+- ✅ Security and compliance tests
+- ✅ Rate limiting handling
+
+#### Consent Creation Tests (`test/e2e/consent-creation.cy.js`)
+- ✅ Create marketing consent successfully (200 OK)
+- ✅ Create consent for all consent types
+- ✅ Create consent with minimal required fields
+- ✅ Update existing consent (granted status change)
+- ✅ Handle IPv6 addresses correctly
+- ✅ Missing userId validation (400 Bad Request)
+- ✅ Missing consentType validation (HTML5 validation)
+- ✅ Missing granted validation (HTML5 validation)
+- ✅ Invalid userId format validation (400 Bad Request)
+- ✅ Invalid IP address format validation (400 Bad Request)
+- ✅ User agent length validation (400 Bad Request)
+- ✅ Duplicate consent prevention (409 Conflict)
+- ✅ Consent update when granted status changes
+- ✅ Authentication failure handling (401 Unauthorized)
+- ✅ Invalid JWT token handling (401 Unauthorized)
+- ✅ Network error handling
+- ✅ Server error (500) handling
+- ✅ Response format validation
+- ✅ Data cleanup and integrity tests
+
+#### Consent Retrieval Tests (`test/e2e/consent-retrieval.cy.js`)
+- ✅ Retrieve consent records after creation (200 OK)
+- ✅ Retrieve multiple consent records for same user
+- ✅ Retrieve consent records with all metadata fields
+- ✅ Retrieve updated consent records correctly
+- ✅ Return 404 when no consent records exist
+- ✅ Return 404 for valid but non-existent user ID
+- ✅ Return 400 for malformed user ID (too short)
+- ✅ Return 400 for malformed user ID (too long)
+- ✅ Return 400 for user ID with invalid characters
+- ✅ Test invalid user ID using mock frontend button
+- ✅ Return 401 when not authenticated
+- ✅ Return 401 with invalid JWT token
+- ✅ Return 401 when Authorization header missing
+- ✅ Network error handling
+- ✅ Server error (500) handling
+- ✅ Malformed JSON response handling
+- ✅ Response format validation for successful retrieval
+- ✅ Performance testing with many consent records
+- ✅ Concurrent retrieval requests handling
+- ✅ Data consistency across create-retrieve cycle
+- ✅ Real-time updates reflection in retrieval
+- ✅ Integration with cleanup process verification
+
+### Expected Outcomes
+- **All tests pass**: 100% success rate for E2E test execution
+- **Authentication flow**: Proper JWT token handling and validation
+- **Data integrity**: Consistent data flow from creation to retrieval
+- **Error handling**: Graceful handling of all error scenarios
+- **Security validation**: Proper authorization and input validation
+- **Performance**: Acceptable response times for all operations
+
+### Setup Instructions for Local E2E Runs
+
+#### Prerequisites
+```bash
+cd src/portal/portal-backend
+npm install cypress --save-dev
+```
+
+#### Configuration Files
+- **cypress.json**: Base configuration with localhost:3000 base URL
+- **test/e2e/mock-frontend.html**: Interactive frontend for manual testing
+- **test/e2e/e2e-setup.ts**: Database seeding and cleanup utilities
+
+#### Running E2E Tests Locally
+```bash
+# Start MongoDB (if not using Docker)
+docker compose up -d mongo
+
+# Start backend server
+SKIP_SECRETS_MANAGER=true npm run start:dev
+
+# Run Cypress tests (headless)
+npx cypress run
+
+# Run Cypress tests (interactive)
+npx cypress open
+```
+
+#### Environment Variables Required
+```bash
+MONGODB_URI=mongodb://localhost:27017/e2e_test_db
+JWT_ACCESS_SECRET_ID=test-access-secret-e2e
+JWT_REFRESH_SECRET_ID=test-refresh-secret-e2e
+SKIP_SECRETS_MANAGER=true
+NODE_ENV=test
+```
+
+#### Mock Frontend Usage
+1. Open `test/e2e/mock-frontend.html` in browser
+2. Use the interactive forms to test API endpoints manually
+3. Verify authentication, consent creation, and retrieval workflows
+4. Test error scenarios using dedicated test buttons
+
+### CI/CD Integration
+- **GitHub Actions**: Integrated into `backend.yml` workflow
+- **Execution Order**: Runs after unit/integration tests pass
+- **Database Setup**: Automated MongoDB seeding with test data
+- **Cleanup**: Automatic database cleanup after test completion
+- **Artifacts**: Screenshots, videos, and test results uploaded on failure
+- **Failure Handling**: Pipeline fails on E2E test failures with detailed logs
+
+## 9. Artifacts
 
 - Test file: `src/portal/portal-backend/test/consent.spec.ts`
+- E2E test files: `src/portal/portal-backend/test/e2e/*.cy.js`
+- Mock frontend: `src/portal/portal-backend/test/e2e/mock-frontend.html`
+- E2E setup utilities: `src/portal/portal-backend/test/e2e/e2e-setup.ts`
+- Cypress configuration: `src/portal/portal-backend/cypress.json`
 - Coverage report: Generated via `npm test --coverage`
 - Security scan: `npm audit` (0 vulnerabilities)
-- CI/CD: GitHub Actions backend.yml workflow
+- CI/CD: GitHub Actions backend.yml workflow with E2E integration
 
 _Last updated: 2025-06-24_

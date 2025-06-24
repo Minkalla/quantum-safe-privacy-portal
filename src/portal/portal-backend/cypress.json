@@ -1,0 +1,17 @@
+{
+  "baseUrl": "http://localhost:8080",
+  "video": true,
+  "screenshotOnRunFailure": true,
+  "viewportWidth": 1280,
+  "viewportHeight": 720,
+  "defaultCommandTimeout": 10000,
+  "requestTimeout": 10000,
+  "responseTimeout": 10000,
+  "integrationFolder": "test/e2e",
+  "fixturesFolder": "test/e2e/fixtures",
+  "pluginsFile": "test/e2e/plugins/index.js",
+  "supportFile": "test/e2e/support/index.js",
+  "videosFolder": "test/e2e/videos",
+  "screenshotsFolder": "test/e2e/screenshots",
+  "testFiles": "**/*.cy.js"
+}
