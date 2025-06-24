@@ -81,7 +81,7 @@ describe('AuthService', () => {
 
   describe('login', () => {
     it('should login user with correct credentials', async () => {
-      const loginDto = { email: 'test@example.com', password: 'password123', rememberMe: false };
+      const loginDto = { email: 'test@example.com', password: 'password123', rememberMe: true };
       
       userModel.findOne.mockReturnValue({
         select: jest.fn().mockResolvedValue(mockUser),
@@ -95,6 +95,24 @@ describe('AuthService', () => {
       expect(result).toHaveProperty('refreshToken');
       expect(result).toHaveProperty('user');
       expect(result.user).toHaveProperty('email', 'test@example.com');
+    it('should login user without refreshToken when rememberMe is false', async () => {
+      const loginDto = { email: 'test@example.com', password: 'password123', rememberMe: false };
+      
+      userModel.findOne.mockReturnValue({
+        select: jest.fn().mockResolvedValue(mockUser),
+      });
+      jest.spyOn(bcrypt, 'compare').mockResolvedValue(true as never);
+      jest.spyOn(bcrypt, 'hash').mockResolvedValue('hashedRefreshToken' as never);
+
+      const result = await service.login(loginDto);
+      
+      expect(result).toHaveProperty('accessToken');
+      expect(result).not.toHaveProperty('refreshToken');
+      expect(result).toHaveProperty('user');
+      expect(result.user).toHaveProperty('email', 'test@example.com');
+    });
+
+
     });
 
     it('should throw UnauthorizedException for invalid credentials', async () => {
