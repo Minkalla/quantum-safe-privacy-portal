@@ -198,7 +198,10 @@ export class AuthController {
   @ApiResponse({ status: 403, description: 'Account locked.' })
   @ApiResponse({ status: 429, description: 'Too many login attempts.' })
   async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
-    if (loginDto.email.includes("'") || loginDto.email.includes(';') || loginDto.email.includes('--') ||
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
+    if (!emailRegex.test(loginDto.email) || 
+        loginDto.email.includes("'") || loginDto.email.includes(';') || loginDto.email.includes('--') ||
         loginDto.password.includes("'") || loginDto.password.includes(';') || loginDto.password.includes('--')) {
       throw new UnauthorizedException('Invalid credentials');
     }
