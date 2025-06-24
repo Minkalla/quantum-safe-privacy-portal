@@ -94,10 +94,33 @@ class E2ETestSetup {
     const usersCollection = this.db.collection('users');
     const consentsCollection = this.db.collection('consents');
     
-    await usersCollection.deleteMany({ email: this.testUserEmail });
-    await consentsCollection.deleteMany({ userId: this.testUserId });
+    console.log('🧹 Starting comprehensive test data cleanup...');
     
-    console.log('Test data cleanup completed');
+    const userDeleteResult = await usersCollection.deleteMany({ email: this.testUserEmail });
+    console.log(`🗑️ Deleted ${userDeleteResult.deletedCount} test users`);
+    
+    const consentDeleteResult = await consentsCollection.deleteMany({ 
+      $or: [
+        { userId: this.testUserId },
+        { userId: this.testUserId.toString() }
+      ]
+    });
+    console.log(`🗑️ Deleted ${consentDeleteResult.deletedCount} test consents`);
+    
+    const remainingConsents = await consentsCollection.countDocuments({});
+    console.log(`📊 Remaining consents in database: ${remainingConsents}`);
+    
+    if (remainingConsents > 0) {
+      console.log('⚠️ Warning: Non-test consents remain in database');
+      const allConsents = await consentsCollection.find({}).toArray();
+      console.log('📋 All remaining consents:', allConsents.map(c => ({ 
+        id: c._id, 
+        userId: c.userId, 
+        type: c.consentType 
+      })));
+    }
+    
+    console.log('✅ Test data cleanup completed');
   }
 
   getTestCredentials() {

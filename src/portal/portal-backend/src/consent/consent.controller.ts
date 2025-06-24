@@ -94,7 +94,18 @@ export class ConsentController {
     }
 
     try {
-      return await this.consentService.createConsent(createConsentDto);
+      const result = await this.consentService.createConsent(createConsentDto);
+      
+      return {
+        consentId: result._id,
+        userId: result.userId,
+        consentType: result.consentType,
+        granted: result.granted,
+        ipAddress: result.ipAddress,
+        userAgent: result.userAgent,
+        createdAt: result.createdAt,
+        updatedAt: result.updatedAt
+      };
     } catch (error: any) {
       if (error.name === 'ValidationError') {
         throw new BadRequestException(error.message);
@@ -150,6 +161,17 @@ export class ConsentController {
     },
   })
   async getConsentByUserId(@Param(ValidationPipe) params: GetConsentParamsDto) {
-    return this.consentService.getConsentByUserId(params.userId);
+    const consents = await this.consentService.getConsentByUserId(params.userId);
+    
+    return consents.map(consent => ({
+      consentId: consent._id,
+      userId: consent.userId,
+      consentType: consent.consentType,
+      granted: consent.granted,
+      ipAddress: consent.ipAddress,
+      userAgent: consent.userAgent,
+      createdAt: consent.createdAt,
+      updatedAt: consent.updatedAt
+    }));
   }
 }
