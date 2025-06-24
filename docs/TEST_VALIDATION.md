@@ -36,4 +36,9 @@ This document describes the current state of automated tests, validation steps, 
 
 ---
 
+## 6. Dependency Setup & Validation
+- **supertest** and **@types/supertest** have been added as dev dependencies in `src/portal/portal-backend` for API integration and E2E testing (see Sub-task 1.5.6).
+- Dependency validation is now automated in CI via an `npm audit` step in `.github/workflows/backend.yml`.
+- All new and updated dependencies are checked for vulnerabilities on every build, and results are documented in `docs/SECURITY.md`.
+
 _Last updated: 2025-06-21_
