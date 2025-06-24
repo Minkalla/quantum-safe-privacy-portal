@@ -31,6 +31,10 @@ jobs:
       run: npm ci
       working-directory: src/portal/portal-backend
 
+    - name: Validate Backend Dependencies (npm audit)
+      run: npm audit --audit-level=high || true
+      working-directory: src/portal/portal-backend
+
     - name: Run Backend Lint
       run: npm run lint
       working-directory: src/portal/portal-backend

@@ -12,3 +12,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           QODO_API_KEY: ${{ secrets.QODO_API_KEY }}
+          # Updated on feat/qodo-integration
