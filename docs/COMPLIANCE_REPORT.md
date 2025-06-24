@@ -27,6 +27,8 @@ This document summarizes how the backend’s technical features and integrations
 - **OWASP ZAP:** API security testing (OWASP API Top 10, CMMC)
 - **Security Middleware:** CORS, Helmet, HPP, rate limiting (OWASP, PCI DSS)
 - **Automated Docs:** Swagger/OpenAPI with compliance tags (OWASP, ISO 27001)
+- **Cypress E2E Testing:** End-to-end workflow validation (NIST SP 800-53 SA-11)
+- **Consent Management Testing:** GDPR Article 7 compliance validation through automated E2E tests
 
 ---
 
@@ -41,4 +43,4 @@ This document summarizes how the backend’s technical features and integrations
 
 ---
 
-_Last updated: 2025-06-21_
+_Last updated: 2025-06-24_

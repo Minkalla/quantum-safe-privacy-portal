@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E2E Mock Frontend - Consent Management Portal</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+            backdrop-filter: blur(10px);
+        }
+        .header {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-right: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .response {
+            background-color: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-logged-out { background-color: #dc3545; }
+        .status-logged-in { background-color: #28a745; }
+        .auth-status {
+            background: #e9ecef;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .step-title {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔐 E2E Mock Frontend - Consent Management Portal</h1>
+        <p>Comprehensive testing interface for JWT authentication and consent management workflows</p>
+    </div>
+    
+    <!-- Authentication Status -->
+    <div class="container">
+        <div class="auth-status" id="authStatus">
+            <span class="status-indicator status-logged-out" id="statusIndicator"></span>
+            <span id="statusText">Not authenticated</span>
+        </div>
+    </div>
+
+    <!-- Step 1: User Login -->
+    <div class="container">
+        <div class="step-title">
+            <span class="step-number">1</span>
+            <h2>User Login with JWT Authentication</h2>
+        </div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">Email Address:</label>
+                <input type="email" id="email" value="e2e-test@example.com" required 
+                       data-cy="login-email" placeholder="Enter your email">
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" value="TestPassword123!" required 
+                       data-cy="login-password" placeholder="Enter your password">
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="rememberMe" data-cy="login-remember"> 
+                    Remember me (extended session)
+                </label>
+            </div>
+            <button type="submit" data-cy="login-submit">Login</button>
+            <button type="button" onclick="logout()" data-cy="logout-button">Logout</button>
+        </form>
+        <div id="loginResponse" class="response" style="display: none;" data-cy="login-response"></div>
+    </div>
+
+    <!-- Step 2: Consent Creation -->
+    <div class="container">
+        <div class="step-title">
+            <span class="step-number">2</span>
+            <h2>Create/Update Consent Record</h2>
+        </div>
+        <form id="createConsentForm">
+            <div class="form-group">
+                <label for="userId">User ID:</label>
+                <input type="text" id="userId" value="60d5ec49f1a23c001c8a4d7d" required 
+                       data-cy="consent-user-id" placeholder="24-character MongoDB ObjectId">
+            </div>
+            <div class="form-group">
+                <label for="consentType">Consent Type:</label>
+                <select id="consentType" required data-cy="consent-type">
+                    <option value="marketing">Marketing Communications</option>
+                    <option value="analytics">Analytics & Performance</option>
+                    <option value="data_processing">Data Processing</option>
+                    <option value="cookies">Cookies & Tracking</option>
+                    <option value="third_party_sharing">Third Party Sharing</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="granted">Consent Decision:</label>
+                <select id="granted" required data-cy="consent-granted">
+                    <option value="true">✅ Grant Consent</option>
+                    <option value="false">❌ Revoke Consent</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="ipAddress">IP Address (Optional):</label>
+                <input type="text" id="ipAddress" placeholder="192.168.1.1 or ::ffff:127.0.0.1" 
+                       data-cy="consent-ip-address">
+            </div>
+            <div class="form-group">
+                <label for="userAgent">User Agent (Optional):</label>
+                <input type="text" id="userAgent" placeholder="Mozilla/5.0..." 
+                       data-cy="consent-user-agent">
+            </div>
+            <button type="submit" data-cy="consent-create-submit">Create/Update Consent</button>
+        </form>
+        <div id="createResponse" class="response" style="display: none;" data-cy="consent-create-response"></div>
+    </div>
+
+    <!-- Step 3: Consent Retrieval -->
+    <div class="container">
+        <div class="step-title">
+            <span class="step-number">3</span>
+            <h2>Retrieve Consent Records</h2>
+        </div>
+        <div class="form-group">
+            <label for="retrieveUserId">User ID:</label>
+            <input type="text" id="retrieveUserId" value="60d5ec49f1a23c001c8a4d7d" 
+                   data-cy="retrieve-user-id" placeholder="24-character MongoDB ObjectId">
+        </div>
+        <button onclick="retrieveConsent()" data-cy="consent-retrieve-submit">Retrieve Consent Records</button>
+        <button onclick="retrieveInvalidUser()" data-cy="consent-retrieve-invalid">Test Invalid User ID</button>
+        <div id="retrieveResponse" class="response" style="display: none;" data-cy="consent-retrieve-response"></div>
+    </div>
+
+    <!-- Test Scenarios -->
+    <div class="container">
+        <div class="step-title">
+            <span class="step-number">4</span>
+            <h2>Test Scenarios & Edge Cases</h2>
+        </div>
+        <button onclick="testInvalidCredentials()" data-cy="test-invalid-login">Test Invalid Login</button>
+        <button onclick="testMissingFields()" data-cy="test-missing-fields">Test Missing Fields</button>
+        <button onclick="testUnauthorizedAccess()" data-cy="test-unauthorized">Test Unauthorized Access</button>
+        <button onclick="clearAllResponses()" data-cy="clear-responses">Clear All Responses</button>
+        <div id="testResponse" class="response" style="display: none;" data-cy="test-response"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/portal';
+        const AUTH_BASE = 'http://localhost:8080/auth';
+        let authToken = null;
+        let currentUser = null;
+
+        // Update authentication status display
+        function updateAuthStatus(isAuthenticated, userInfo = null) {
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            
+            if (isAuthenticated) {
+                statusIndicator.className = 'status-indicator status-logged-in';
+                statusText.textContent = `Authenticated as ${userInfo?.email || 'User'}`;
+            } else {
+                statusIndicator.className = 'status-indicator status-logged-out';
+                statusText.textContent = 'Not authenticated';
+            }
+        }
+
+        // Login form handler
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const loginData = {
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value,
+                rememberMe: document.getElementById('rememberMe').checked
+            };
+
+            try {
+                const response = await fetch(`${AUTH_BASE}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(loginData)
+                });
+
+                const result = await response.json();
+                const responseDiv = document.getElementById('loginResponse');
+                responseDiv.style.display = 'block';
+                
+                if (response.ok) {
+                    authToken = result.accessToken;
+                    currentUser = { email: loginData.email };
+                    updateAuthStatus(true, currentUser);
+                    
+                    responseDiv.className = 'response success';
+                    responseDiv.textContent = `✅ Login Successful (${response.status})\n${JSON.stringify(result, null, 2)}`;
+                } else {
+                    responseDiv.className = 'response error';
+                    responseDiv.textContent = `❌ Login Failed (${response.status})\n${JSON.stringify(result, null, 2)}`;
+                }
+            } catch (error) {
+                const responseDiv = document.getElementById('loginResponse');
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response error';
+                responseDiv.textContent = `🔥 Network Error:\n${error.message}`;
+            }
+        });
+
+        // Logout function
+        function logout() {
+            authToken = null;
+            currentUser = null;
+            updateAuthStatus(false);
+            
+            const responseDiv = document.getElementById('loginResponse');
+            responseDiv.style.display = 'block';
+            responseDiv.className = 'response success';
+            responseDiv.textContent = '✅ Logged out successfully';
+        }
+
+        // Consent creation form handler
+        document.getElementById('createConsentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!authToken) {
+                alert('Please login first!');
+                return;
+            }
+            
+            const formData = {
+                userId: document.getElementById('userId').value,
+                consentType: document.getElementById('consentType').value,
+                granted: document.getElementById('granted').value === 'true',
+                ipAddress: document.getElementById('ipAddress').value || undefined,
+                userAgent: document.getElementById('userAgent').value || undefined
+            };
+
+            // Remove undefined values
+            Object.keys(formData).forEach(key => 
+                formData[key] === undefined && delete formData[key]
+            );
+
+            try {
+                const response = await fetch(`${API_BASE}/consent`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+                const responseDiv = document.getElementById('createResponse');
+                responseDiv.style.display = 'block';
+                
+                if (response.ok) {
+                    responseDiv.className = 'response success';
+                    responseDiv.textContent = `✅ Consent Created/Updated (${response.status})\n${JSON.stringify(result, null, 2)}`;
+                } else {
+                    responseDiv.className = 'response error';
+                    responseDiv.textContent = `❌ Consent Creation Failed (${response.status})\n${JSON.stringify(result, null, 2)}`;
+                }
+            } catch (error) {
+                const responseDiv = document.getElementById('createResponse');
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response error';
+                responseDiv.textContent = `🔥 Network Error:\n${error.message}`;
+            }
+        });
+
+        // Consent retrieval function
+        async function retrieveConsent() {
+            if (!authToken) {
+                alert('Please login first!');
+                return;
+            }
+
+            const userId = document.getElementById('retrieveUserId').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/consent/${userId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const result = await response.json();
+                const responseDiv = document.getElementById('retrieveResponse');
+                responseDiv.style.display = 'block';
+                
+                if (response.ok) {
+                    responseDiv.className = 'response success';
+                    responseDiv.textContent = `✅ Consent Records Retrieved (${response.status})\nFound ${result.length} record(s)\n${JSON.stringify(result, null, 2)}`;
+                } else {
+                    responseDiv.className = 'response error';
+                    responseDiv.textContent = `❌ Consent Retrieval Failed (${response.status})\n${JSON.stringify(result, null, 2)}`;
+                }
+            } catch (error) {
+                const responseDiv = document.getElementById('retrieveResponse');
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response error';
+                responseDiv.textContent = `🔥 Network Error:\n${error.message}`;
+            }
+        }
+
+        // Test invalid user ID
+        async function retrieveInvalidUser() {
+            if (!authToken) {
+                alert('Please login first!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/consent/invalid-user-id`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const result = await response.json();
+                const responseDiv = document.getElementById('retrieveResponse');
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response error';
+                responseDiv.textContent = `❌ Invalid User ID Test (${response.status})\n${JSON.stringify(result, null, 2)}`;
+            } catch (error) {
+                const responseDiv = document.getElementById('retrieveResponse');
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response error';
+                responseDiv.textContent = `🔥 Network Error:\n${error.message}`;
+            }
+        }
+
+        // Test scenarios
+        async function testInvalidCredentials() {
+            try {
+                const response = await fetch(`${AUTH_BASE}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'invalid@example.com',
+                        password: 'wrongpassword'
+                    })
+                });
+
+                const result = await response.json();
+                const responseDiv = document.getElementById('testResponse');
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response error';
+                responseDiv.textContent = `❌ Invalid Credentials Test (${response.status})\n${JSON.stringify(result, null, 2)}`;
+            } catch (error) {
+                const responseDiv = document.getElementById('testResponse');
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response error';
+                responseDiv.textContent = `🔥 Network Error:\n${error.message}`;
+            }
+        }
+
+        async function testMissingFields() {
+            if (!authToken) {
+                alert('Please login first!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/consent`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        // Missing required fields
+                        consentType: 'marketing'
+                    })
+                });
+
+                const result = await response.json();
+                const responseDiv = document.getElementById('testResponse');
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response error';
+                responseDiv.textContent = `❌ Missing Fields Test (${response.status})\n${JSON.stringify(result, null, 2)}`;
+            } catch (error) {
+                const responseDiv = document.getElementById('testResponse');
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response error';
+                responseDiv.textContent = `🔥 Network Error:\n${error.message}`;
+            }
+        }
+
+        async function testUnauthorizedAccess() {
+            try {
+                const response = await fetch(`${API_BASE}/consent`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                        // No Authorization header
+                    },
+                    body: JSON.stringify({
+                        userId: '60d5ec49f1a23c001c8a4d7d',
+                        consentType: 'marketing',
+                        granted: true
+                    })
+                });
+
+                const result = await response.json();
+                const responseDiv = document.getElementById('testResponse');
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response error';
+                responseDiv.textContent = `❌ Unauthorized Access Test (${response.status})\n${JSON.stringify(result, null, 2)}`;
+            } catch (error) {
+                const responseDiv = document.getElementById('testResponse');
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response error';
+                responseDiv.textContent = `🔥 Network Error:\n${error.message}`;
+            }
+        }
+
+        function clearAllResponses() {
+            const responses = document.querySelectorAll('.response');
+            responses.forEach(response => {
+                response.style.display = 'none';
+                response.textContent = '';
+            });
+        }
+
+        // Initialize page
+        updateAuthStatus(false);
+    </script>
+</body>
+</html>
