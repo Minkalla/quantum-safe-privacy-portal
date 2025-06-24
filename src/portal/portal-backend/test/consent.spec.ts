@@ -23,7 +23,6 @@ import { JwtService } from '../src/jwt/jwt.service';
 import { ConsentType } from '../src/consent/dto/create-consent.dto';
 import { ConfigModule } from '@nestjs/config';
 
-
 describe('POST /portal/consent (Integration Tests)', () => {
   let app: INestApplication;
   let validJwtToken: string;
@@ -47,25 +46,25 @@ describe('POST /portal/consent (Integration Tests)', () => {
         ConsentModule,
       ],
     })
-    .overrideProvider(JwtService)
-    .useValue({
-      verifyToken: jest.fn().mockImplementation((token: string) => {
-        if (token === 'valid-jwt-token') {
-          return { userId: testUserId, email: 'test@example.com' };
-        }
-        return null;
-      }),
-      generateTokens: jest.fn().mockReturnValue({
-        accessToken: 'valid-jwt-token',
-        refreshToken: 'valid-refresh-token',
-      }),
-    })
-    .compile();
+      .overrideProvider(JwtService)
+      .useValue({
+        verifyToken: jest.fn().mockImplementation((token: string) => {
+          if (token === 'valid-jwt-token') {
+            return { userId: testUserId, email: 'test@example.com' };
+          }
+          return null;
+        }),
+        generateTokens: jest.fn().mockReturnValue({
+          accessToken: 'valid-jwt-token',
+          refreshToken: 'valid-refresh-token',
+        }),
+      })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('portal');
     app.useGlobalPipes(new ValidationPipe());
-    
+
     testUserId = '60d5ec49f1a23c001c8a4d7d';
     validJwtToken = 'valid-jwt-token';
 

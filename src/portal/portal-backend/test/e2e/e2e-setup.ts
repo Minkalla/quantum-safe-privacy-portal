@@ -51,9 +51,9 @@ export class E2ETestSetup {
 
   async seedTestUser(): Promise<TestUser> {
     const usersCollection: Collection<TestUser> = this.db.collection('users');
-    
+
     const hashedPassword = await bcrypt.hash(this.testUserPassword, 10);
-    
+
     const testUser: TestUser = {
       email: this.testUserEmail,
       password: hashedPassword,
@@ -63,7 +63,7 @@ export class E2ETestSetup {
     };
 
     await usersCollection.deleteMany({ email: this.testUserEmail });
-    
+
     const result = await usersCollection.insertOne({
       ...testUser,
       _id: this.testUserId as any,
@@ -75,7 +75,7 @@ export class E2ETestSetup {
 
   async seedTestConsent(consentType: string = 'marketing', granted: boolean = true): Promise<TestConsent> {
     const consentsCollection: Collection<TestConsent> = this.db.collection('consents');
-    
+
     const testConsent: TestConsent = {
       userId: this.testUserId,
       consentType,
@@ -86,13 +86,13 @@ export class E2ETestSetup {
       updatedAt: new Date(),
     };
 
-    await consentsCollection.deleteMany({ 
-      userId: this.testUserId, 
-      consentType 
+    await consentsCollection.deleteMany({
+      userId: this.testUserId,
+      consentType,
     });
-    
+
     const result = await consentsCollection.insertOne(testConsent);
-    
+
     console.log(`Test consent created with ID: ${result.insertedId}`);
     return { ...testConsent, _id: result.insertedId.toString() };
   }
@@ -100,10 +100,10 @@ export class E2ETestSetup {
   async cleanupTestData(): Promise<void> {
     const usersCollection: Collection<TestUser> = this.db.collection('users');
     const consentsCollection: Collection<TestConsent> = this.db.collection('consents');
-    
+
     await usersCollection.deleteMany({ email: this.testUserEmail });
     await consentsCollection.deleteMany({ userId: this.testUserId });
-    
+
     console.log('Test data cleanup completed');
   }
 
@@ -121,14 +121,14 @@ export class E2ETestSetup {
     credentials: { email: string; password: string; userId: string };
   }> {
     await this.connect();
-    
+
     try {
       await this.cleanupTestData();
-      
+
       const user = await this.seedTestUser();
       const consent = await this.seedTestConsent();
       const credentials = this.getTestCredentials();
-      
+
       return { user, consent, credentials };
     } catch (error) {
       console.error('Error setting up test environment:', error);
@@ -140,14 +140,14 @@ export class E2ETestSetup {
 export const setupE2EEnvironment = async (mongoUri?: string) => {
   const uri = mongoUri || process.env.MONGODB_URI || 'mongodb://localhost:27017';
   const setup = new E2ETestSetup(uri);
-  
+
   return await setup.setupCompleteTestEnvironment();
 };
 
 export const cleanupE2EEnvironment = async (mongoUri?: string) => {
   const uri = mongoUri || process.env.MONGODB_URI || 'mongodb://localhost:27017';
   const setup = new E2ETestSetup(uri);
-  
+
   await setup.connect();
   await setup.cleanupTestData();
   await setup.disconnect();

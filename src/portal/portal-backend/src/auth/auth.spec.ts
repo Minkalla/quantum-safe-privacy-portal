@@ -43,7 +43,7 @@ describe('AuthService', () => {
             })),
             {
               findOne: jest.fn(),
-            }
+            },
           ),
         },
       ],
@@ -60,21 +60,21 @@ describe('AuthService', () => {
   describe('register', () => {
     it('should register a new user successfully', async () => {
       const registerDto = { email: 'new@example.com', password: 'password123' };
-      
+
       userModel.findOne.mockResolvedValue(null);
       jest.spyOn(bcrypt, 'hash').mockResolvedValue('hashedPassword' as never);
-      
+
       const result = await service.register(registerDto);
-      
+
       expect(result).toHaveProperty('userId');
       expect(result).toHaveProperty('email', registerDto.email);
     });
 
     it('should throw ConflictException if email already exists', async () => {
       const registerDto = { email: 'existing@example.com', password: 'password123' };
-      
+
       userModel.findOne.mockResolvedValue(mockUser);
-      
+
       await expect(service.register(registerDto)).rejects.toThrow(ConflictException);
     });
   });
@@ -82,7 +82,7 @@ describe('AuthService', () => {
   describe('login', () => {
     it('should login user with correct credentials', async () => {
       const loginDto = { email: 'test@example.com', password: 'password123', rememberMe: true };
-      
+
       userModel.findOne.mockReturnValue({
         select: jest.fn().mockResolvedValue(mockUser),
       });
@@ -90,7 +90,7 @@ describe('AuthService', () => {
       jest.spyOn(bcrypt, 'hash').mockResolvedValue('hashedRefreshToken' as never);
 
       const result = await service.login(loginDto);
-      
+
       expect(result).toHaveProperty('accessToken');
       expect(result).toHaveProperty('refreshToken');
       expect(result).toHaveProperty('user');
@@ -99,7 +99,7 @@ describe('AuthService', () => {
 
     it('should login user without refreshToken when rememberMe is false', async () => {
       const loginDto = { email: 'test@example.com', password: 'password123', rememberMe: false };
-      
+
       userModel.findOne.mockReturnValue({
         select: jest.fn().mockResolvedValue(mockUser),
       });
@@ -107,7 +107,7 @@ describe('AuthService', () => {
       jest.spyOn(bcrypt, 'hash').mockResolvedValue('hashedRefreshToken' as never);
 
       const result = await service.login(loginDto);
-      
+
       expect(result).toHaveProperty('accessToken');
       expect(result).not.toHaveProperty('refreshToken');
       expect(result).toHaveProperty('user');
@@ -116,7 +116,7 @@ describe('AuthService', () => {
 
     it('should throw UnauthorizedException for invalid credentials', async () => {
       const loginDto = { email: 'test@example.com', password: 'wrongpassword', rememberMe: false };
-      
+
       userModel.findOne.mockReturnValue({
         select: jest.fn().mockResolvedValue(null),
       });
@@ -127,7 +127,7 @@ describe('AuthService', () => {
     it('should throw ForbiddenException for locked account', async () => {
       const loginDto = { email: 'test@example.com', password: 'password123', rememberMe: false };
       const lockedUser = { ...mockUser, lockUntil: new Date(Date.now() + 60000) };
-      
+
       userModel.findOne.mockReturnValue({
         select: jest.fn().mockResolvedValue(lockedUser),
       });

@@ -35,25 +35,25 @@ describe('E2E Consent Flow Tests', () => {
         JwtModule,
       ],
     })
-    .overrideProvider(JwtService)
-    .useValue({
-      verifyToken: jest.fn().mockImplementation((token: string) => {
-        if (token === validAccessToken) {
-          return { userId: testUserId, email: 'e2e-test@example.com' };
-        }
-        return null;
-      }),
-      generateTokens: jest.fn().mockReturnValue({
-        accessToken: 'e2e-access-token',
-        refreshToken: 'e2e-refresh-token',
-      }),
-    })
-    .compile();
+      .overrideProvider(JwtService)
+      .useValue({
+        verifyToken: jest.fn().mockImplementation((token: string) => {
+          if (token === validAccessToken) {
+            return { userId: testUserId, email: 'e2e-test@example.com' };
+          }
+          return null;
+        }),
+        generateTokens: jest.fn().mockReturnValue({
+          accessToken: 'e2e-access-token',
+          refreshToken: 'e2e-refresh-token',
+        }),
+      })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('portal');
     app.useGlobalPipes(new ValidationPipe());
-    
+
     testUserId = '60d5ec49f1a23c001c8a4d7d';
     validAccessToken = 'e2e-access-token';
 
@@ -142,7 +142,7 @@ describe('E2E Consent Flow Tests', () => {
         .expect(200);
 
       expect(retrieveResponse.body.length).toBe(3);
-      
+
       const retrievedTypes = retrieveResponse.body.map(c => c.consentType);
       expect(retrievedTypes).toContain(ConsentType.MARKETING);
       expect(retrievedTypes).toContain(ConsentType.ANALYTICS);

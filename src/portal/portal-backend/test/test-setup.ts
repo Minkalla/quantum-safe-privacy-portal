@@ -9,7 +9,7 @@ beforeAll(async () => {
   const mongoUri = mongoServer.getUri();
   mongoConnection = new MongoClient(mongoUri);
   await mongoConnection.connect();
-  
+
   (global as any).__MONGO_URI__ = mongoUri;
   (global as any).__MONGO_CONNECTION__ = mongoConnection;
 });
