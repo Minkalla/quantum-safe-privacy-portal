@@ -34,6 +34,8 @@ export interface IConsent extends Document {
   granted: boolean;
   ipAddress?: string;
   userAgent?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 /**
@@ -68,12 +70,12 @@ export const ConsentSchema = new Schema<IConsent>(
       trim: true,
       validate: {
         validator: function(v: string) {
-          if (!v || v === '') return true;
-          const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-          const ipv6Regex = /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
-          const ipv4MappedIpv6Regex = /^::ffff:(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/i;
-          const localhostRegex = /^127\.0\.0\.1$|^::1$|^localhost$/i;
-          return ipv4Regex.test(v) || ipv6Regex.test(v) || ipv4MappedIpv6Regex.test(v) || localhostRegex.test(v);
+          if (!v || v === '' || v === undefined || v === null) return true;
+          const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+          const ipv6Regex = /^([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}$/;
+          const ipv4MappedV6Regex = /^::ffff:(\d{1,3}\.){3}\d{1,3}$/i;
+          const localhostRegex = /^(127\.0\.0\.1|::1|localhost)$/i;
+          return ipv4Regex.test(v) || ipv6Regex.test(v) || ipv4MappedV6Regex.test(v) || localhostRegex.test(v);
         },
         message: 'Please provide a valid IP address',
       },

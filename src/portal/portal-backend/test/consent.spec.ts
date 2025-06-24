@@ -288,7 +288,7 @@ describe('POST /portal/consent (Integration Tests)', () => {
         .expect(401);
 
       expect(response.body).toHaveProperty('statusCode', 401);
-      expect(response.body).toHaveProperty('message', 'Invalid or expired JWT token');
+      expect(response.body).toHaveProperty('message', 'Invalid authorization header format');
     });
   });
 
