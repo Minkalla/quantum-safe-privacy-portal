@@ -1,0 +1,101 @@
+/**
+ * @file Consent.ts
+ * @description Mongoose schema and model definition for the Consent entity in the Quantum-Safe Privacy Portal Backend.
+ * This schema defines the structure for storing user consent records, supporting GDPR Article 7 compliance.
+ *
+ * @module ConsentModel
+ * @author Minkalla
+ * @license MIT
+ *
+ * @remarks
+ * Adheres to "no regrets" quality by enforcing strict schema validation and typing.
+ * Supports consent management for GDPR compliance and data rights management.
+ *
+ * @property {string} userId - Reference to the user who provided consent. Required.
+ * @property {string} consentType - Type of consent (e.g., 'marketing', 'analytics', 'data_processing'). Required.
+ * @property {boolean} granted - Whether consent was granted (true) or revoked (false). Required.
+ * @property {Date} createdAt - Timestamp of consent creation.
+ * @property {Date} updatedAt - Timestamp of last consent update.
+ * @property {string} [ipAddress] - IP address from which consent was provided (for audit trail).
+ * @property {string} [userAgent] - User agent string from which consent was provided (for audit trail).
+ */
+
+import { Schema, model, Document, Model } from 'mongoose';
+
+/**
+ * @interface IConsent
+ * @description Defines the TypeScript interface for a Consent document,
+ * ensuring type safety when interacting with the Consent model.
+ * Extends Mongoose's Document interface to include Mongoose-specific properties like _id.
+ */
+export interface IConsent extends Document {
+  userId: string;
+  consentType: string;
+  granted: boolean;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+/**
+ * @constant {Schema<IConsent>} ConsentSchema
+ * @description Defines the Mongoose schema for the Consent model.
+ * Sets up field types, validation, and schema options.
+ */
+export const ConsentSchema = new Schema<IConsent>(
+  {
+    userId: {
+      type: String,
+      required: [true, 'User ID is required'],
+      trim: true,
+      index: true,
+    },
+    consentType: {
+      type: String,
+      required: [true, 'Consent type is required'],
+      trim: true,
+      enum: {
+        values: ['marketing', 'analytics', 'data_processing', 'cookies', 'third_party_sharing'],
+        message: 'Consent type must be one of: marketing, analytics, data_processing, cookies, third_party_sharing',
+      },
+      index: true,
+    },
+    granted: {
+      type: Boolean,
+      required: [true, 'Granted status is required'],
+    },
+    ipAddress: {
+      type: String,
+      trim: true,
+      validate: {
+        validator: function(v: string) {
+          if (!v || v === '') return true;
+          const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+          const ipv6Regex = /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
+          const ipv4MappedIpv6Regex = /^::ffff:(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/i;
+          const localhostRegex = /^127\.0\.0\.1$|^::1$|^localhost$/i;
+          return ipv4Regex.test(v) || ipv6Regex.test(v) || ipv4MappedIpv6Regex.test(v) || localhostRegex.test(v);
+        },
+        message: 'Please provide a valid IP address',
+      },
+    },
+    userAgent: {
+      type: String,
+      trim: true,
+      maxlength: [500, 'User agent must not exceed 500 characters'],
+    },
+  },
+  {
+    timestamps: true,
+    collection: 'consents',
+  },
+);
+
+ConsentSchema.index({ userId: 1, consentType: 1 }, { unique: true });
+
+/**
+ * @constant {Model<IConsent>} Consent
+ * @description Exports the Mongoose Consent model, making it available for database operations.
+ */
+const Consent: Model<IConsent> = model<IConsent>('Consent', ConsentSchema);
+
+export default Consent;
