@@ -28,7 +28,10 @@ class E2ETestSetup {
     const testUser = {
       email: this.testUserEmail,
       password: hashedPassword,
-      isActive: true,
+      lastLoginAt: null,
+      failedLoginAttempts: 0,
+      lockUntil: null,
+      refreshTokenHash: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -105,14 +108,14 @@ class E2ETestSetup {
 }
 
 const setupE2EEnvironment = async (mongoUri) => {
-  const uri = mongoUri || process.env.MONGODB_URI || 'mongodb://localhost:27017';
+  const uri = mongoUri || process.env.MONGO_URI || 'mongodb://localhost:27017';
   const setup = new E2ETestSetup(uri);
   
   return await setup.setupCompleteTestEnvironment();
 };
 
 const cleanupE2EEnvironment = async (mongoUri) => {
-  const uri = mongoUri || process.env.MONGODB_URI || 'mongodb://localhost:27017';
+  const uri = mongoUri || process.env.MONGO_URI || 'mongodb://localhost:27017';
   const setup = new E2ETestSetup(uri);
   
   await setup.connect();
