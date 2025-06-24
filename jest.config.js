@@ -32,80 +32,45 @@
 const path = require('path');
 
 module.exports = {
-  // The test environment that will be used for testing. 'node' environment is suitable for backend tests.
+  preset: 'ts-jest',
   testEnvironment: 'node',
-
-  // IMPORTANT: Remove 'roots' array when using explicit testMatch paths from rootDir.
-  // roots: [
-  //   '<rootDir>/src/portal/portal-backend/src',
-  // ],
-
-  // Patterns to match test files. These patterns are now explicit paths relative to rootDir.
+  
+  // Patterns to match test files
   testMatch: [
-    '<rootDir>/src/portal/portal-backend/src/**/__tests__/**/*.ts', // Tests in __tests__ folders within backend's src
-    '<rootDir>/src/portal/portal-backend/src/**/*.spec.ts',       // .spec.ts files within backend's src
-    '<rootDir>/src/portal/portal-backend/src/**/*.test.ts',        // .test.ts files within backend's src
+    '<rootDir>/src/portal/portal-backend/src/**/*.spec.ts',
+    '<rootDir>/src/portal/portal-backend/src/**/*.test.ts',
   ],
 
-  // File extensions that Jest should look for.
+  // File extensions that Jest should look for
   moduleFileExtensions: ['ts', 'js', 'json', 'node'],
 
-  // Configuration for code coverage reporting.
+  // Configuration for code coverage reporting
   collectCoverage: true,
   coverageDirectory: 'coverage',
-  coverageProvider: 'v8', // Using v8 for performance and accuracy
-  // An array of glob patterns indicating a set of files for which coverage information should be collected.
   collectCoverageFrom: [
     'src/portal/portal-backend/src/**/*.ts',
-    // Exclude specific files/patterns from coverage reporting that are not core logic or are tested implicitly.
-    '!src/portal/portal-backend/src/server.ts', // Contains server start logic, not unit testable directly
-    '!src/portal/portal-backend/src/index.ts', // Typically exports the app instance, not logic for coverage
-    '!src/portal/portal-backend/src/utils/logger.ts', // Logging utility, often excluded
-    '!src/portal/portal-backend/src/config/*.ts', // Configuration files
-    '!src/portal/portal-backend/src/middleware/errorHandler.ts', // Error handling middleware, test separately if complex
+    '!src/portal/portal-backend/src/server.ts',
+    '!src/portal/portal-backend/src/index.ts',
+    '!src/portal/portal-backend/src/utils/logger.ts',
+    '!src/portal/portal-backend/src/config/*.ts',
+    '!src/portal/portal-backend/src/middleware/errorHandler.ts',
   ],
 
-  // CRITICAL FIX: Configure ts-jest directly via 'transform' and FORCE esModuleInterop.
-  // This ensures TypeScript files are correctly transpiled before tests run.
   transform: {
-    // Apply ts-jest transformer to .ts and .tsx files.
-    '^.+\\.(ts|tsx)$': [
-      path.resolve(__dirname, 'node_modules/ts-jest'), // Explicit path ensures Jest finds ts-jest
-      {
-        // Explicitly tell ts-jest which tsconfig.json to use for this project.
-        tsconfig: path.resolve(__dirname, 'src/portal/portal-backend/tsconfig.json'),
-        // CRITICAL NEW ADDITION: Force ts-jest into transpile-only mode for tests.
-        // This bypasses strict type checking during compilation, often resolving stubborn TS errors.
-        diagnostics: {
-          ignoreCodes: [2304, 2593, 2769] // Ignore 'Cannot find name' (2304), 'Cannot find name describe/it' (2593), and 'No overload matches' (2769)
-        },
-        isolatedModules: true, // Treat each file as a separate module, less strict type checking across files
-        transpileOnly: true, // Only transpile, do not type-check
-        // Keep compilerOptions here as they are also passed to ts-jest's internal TypeScript compiler instance.
-        compilerOptions: {
-          esModuleInterop: true,
-          allowSyntheticDefaultImports: true,
-        },
-      },
-    ],
+    '^.+\\.ts$': ['ts-jest', {
+      tsconfig: path.resolve(__dirname, 'src/portal/portal-backend/tsconfig.json'),
+      isolatedModules: true,
+    }],
   },
 
-  // Map 'bcryptjs' module to its correct nested location for Jest's resolution.
-  // This is necessary to resolve native module issues for bcryptjs in testing.
+  transformIgnorePatterns: [
+    'node_modules/(?!(.*\\.mjs$))'
+  ],
+
   moduleNameMapper: {
     '^bcryptjs$': '<rootDir>/src/portal/portal-backend/node_modules/bcryptjs',
   },
 
-  // Maximum time an individual test can run (in milliseconds).
-  // Increased to 60 seconds to accommodate potential database interaction delays.
   testTimeout: 60000,
-
-  // Global setup and teardown scripts run once before and after all test suites respectively.
-  // Essential for managing shared resources like in-memory databases.
-  globalSetup: path.resolve(__dirname, './jest-global-setup.ts'),
-  globalTeardown: path.resolve(__dirname, './jest-global-teardown.ts'),
-
-  // Defines the root directory for Jest. This is crucial for monorepos,
-  // as it allows Jest to resolve paths correctly from the project root.
   rootDir: './',
 };

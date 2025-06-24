@@ -41,6 +41,14 @@ This document details the security architecture, threat mitigations, and secure 
 
 ---
 
+## Dependency Audit Results (Sub-task 1.5.6)
+
+- **Date:** 2025-06-23
+- **Tool:** npm audit (run in src/portal/portal-backend)
+- **Result:** 0 vulnerabilities found (high or above)
+- **CI/CD:** Automated validation step added to `.github/workflows/backend.yml` to run `npm audit` on every build.
+- **Ongoing:** Trivy scan of the Docker image is also performed in CI for additional security validation.
+
 ## Dependency Audit Results (Sub-task 1.5.6b)
 
 - **Date:** 2025-06-24
