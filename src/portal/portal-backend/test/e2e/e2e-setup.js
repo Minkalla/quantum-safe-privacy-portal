@@ -2,7 +2,7 @@ const { MongoClient } = require('mongodb');
 const bcrypt = require('bcrypt');
 
 class E2ETestSetup {
-  constructor(mongoUri, dbName = 'quantum-safe-privacy-portal-test') {
+  constructor(mongoUri, dbName = 'e2e_test_db') {
     this.client = new MongoClient(mongoUri);
     this.db = this.client.db(dbName);
     this.testUserId = '60d5ec49f1a23c001c8a4d7d';

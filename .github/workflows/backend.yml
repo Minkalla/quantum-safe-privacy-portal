@@ -73,7 +73,6 @@ jobs:
     - name: Run Backend Tests
       run: npm test
       working-directory: .
-      continue-on-error: true
       env:
         JWT_ACCESS_SECRET_NAME: 'test/access/secret'
         JWT_REFRESH_SECRET_NAME: 'test/refresh/secret'
