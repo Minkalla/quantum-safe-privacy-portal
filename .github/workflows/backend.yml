@@ -129,9 +129,17 @@ jobs:
 
     - name: Start MongoDB Service
       run: |
-        # Add MongoDB 5.0 repository (compatible with Ubuntu 24.04)
-        wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | sudo apt-key add -
-        echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/5.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-5.0.list
+        # Install gnupg and curl if not available
+        sudo apt-get update
+        sudo apt-get install -y gnupg curl
+        
+        # Import MongoDB 8.0 public GPG key for Ubuntu 24.04
+        curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | \
+        sudo gpg -o /usr/share/keyrings/mongodb-server-8.0.gpg \
+        --dearmor
+        
+        # Create MongoDB 8.0 repository list for Ubuntu 24.04 (Noble)
+        echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg ] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-8.0.list
         
         # Update package lists and install MongoDB
         sudo apt-get update
