@@ -129,16 +129,19 @@ jobs:
 
     - name: Start MongoDB Service
       run: |
-        # Install MongoDB 5.0 (compatible with Ubuntu 24.04)
+        # Add MongoDB 5.0 repository (compatible with Ubuntu 24.04)
         wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | sudo apt-key add -
         echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/5.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-5.0.list
+        
+        # Update package lists and install MongoDB
         sudo apt-get update
         sudo apt-get install -y mongodb-org
         
-        # Start MongoDB
+        # Start and enable MongoDB
         sudo systemctl start mongod
         sudo systemctl enable mongod
-        # Wait for MongoDB to be ready
+        
+        # Wait for MongoDB readiness
         timeout 30 bash -c 'until nc -z localhost 27017; do sleep 1; done'
         
         # Verify installation
@@ -147,7 +150,6 @@ jobs:
     - name: Setup E2E Test Database
       run: |
         # Install MongoDB tools if needed
-        sudo apt-get update
         sudo apt-get install -y mongodb-clients
         
         # Create test database and seed data
