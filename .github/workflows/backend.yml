@@ -183,10 +183,17 @@ jobs:
 
     - name: Start Backend Server in Background
       run: |
-        npm run start:dev &
+        SKIP_SECRETS_MANAGER=true npm run start:dev &
         echo $! > backend.pid
         # Wait for backend to be ready
         timeout 60 bash -c 'until curl -f http://localhost:8080/api-docs; do sleep 2; done'
+      env:
+        SKIP_SECRETS_MANAGER: 'true'
+        MONGODB_URI: 'mongodb://localhost:27017/e2e_test_db'
+        JWT_ACCESS_SECRET_ID: 'test-access-secret'
+        JWT_REFRESH_SECRET_ID: 'test-refresh-secret'
+        AWS_REGION: 'us-east-1'
+        NODE_ENV: 'development'
 
     - name: Run Cypress E2E Tests
       run: npx cypress run
