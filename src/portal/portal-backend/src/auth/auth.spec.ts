@@ -95,6 +95,8 @@ describe('AuthService', () => {
       expect(result).toHaveProperty('refreshToken');
       expect(result).toHaveProperty('user');
       expect(result.user).toHaveProperty('email', 'test@example.com');
+    });
+
     it('should login user without refreshToken when rememberMe is false', async () => {
       const loginDto = { email: 'test@example.com', password: 'password123', rememberMe: false };
       
@@ -110,9 +112,6 @@ describe('AuthService', () => {
       expect(result).not.toHaveProperty('refreshToken');
       expect(result).toHaveProperty('user');
       expect(result.user).toHaveProperty('email', 'test@example.com');
-    });
-
-
     });
 
     it('should throw UnauthorizedException for invalid credentials', async () => {
