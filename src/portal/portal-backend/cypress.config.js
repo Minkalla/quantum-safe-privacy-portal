@@ -1,6 +1,4 @@
-const { defineConfig } = require('cypress')
-
-module.exports = defineConfig({
+module.exports = {
   e2e: {
     baseUrl: 'http://localhost:8080',
     specPattern: 'test/e2e/**/*.cy.{js,jsx,ts,tsx}',
@@ -53,4 +51,4 @@ module.exports = defineConfig({
       return config
     }
   }
-})
+}
