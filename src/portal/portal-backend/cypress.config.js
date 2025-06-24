@@ -1,6 +1,5 @@
 module.exports = {
   e2e: {
-    baseUrl: 'http://localhost:8080',
     specPattern: 'test/e2e/**/*.cy.{js,jsx,ts,tsx}',
     supportFile: 'test/e2e/support/index.js',
     videosFolder: 'test/e2e/videos',
