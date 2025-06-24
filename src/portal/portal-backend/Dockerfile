@@ -46,6 +46,9 @@ RUN npm run build
 # Stage 2: Create the lean production image
 FROM node:20-alpine
 
+# Update npm to latest version to get cross-spawn 7.0.6+ and fix CVE-2024-21538
+RUN npm install -g npm@latest
+
 # Set working directory for the application
 WORKDIR /app
 
