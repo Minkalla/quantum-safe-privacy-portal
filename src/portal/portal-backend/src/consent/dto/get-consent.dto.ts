@@ -18,5 +18,5 @@ export class GetConsentParamsDto {
   @MinLength(24, { message: 'User ID must be exactly 24 characters long.' })
   @MaxLength(24, { message: 'User ID must be exactly 24 characters long.' })
   @Matches(/^[a-fA-F0-9]{24}$/, { message: 'User ID must be a valid MongoDB ObjectId.' })
-  userId!: string;
+    userId!: string;
 }

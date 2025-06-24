@@ -55,7 +55,7 @@ import { ConfigModule } from './config/config.module';
           format: winston.format.combine(
             winston.format.timestamp(),
             winston.format.ms(),
-            winston.format.json()
+            winston.format.json(),
           ),
         }),
       ],

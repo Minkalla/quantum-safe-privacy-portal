@@ -24,31 +24,31 @@ import { plainToClass } from 'class-transformer';
 class EnvironmentVariables {
   @IsString()
   @IsIn(['development', 'production', 'test'])
-  NODE_ENV!: string;
+    NODE_ENV!: string;
 
   @IsNumber()
-  PORT!: number;
+    PORT!: number;
 
   @IsString()
-  MONGO_URI!: string;
+    MONGO_URI!: string;
 
   @IsString()
-  JWT_ACCESS_SECRET_ID!: string;
+    JWT_ACCESS_SECRET_ID!: string;
 
   @IsString()
-  JWT_REFRESH_SECRET_ID!: string;
+    JWT_REFRESH_SECRET_ID!: string;
 
   @IsString()
-  AWS_REGION!: string;
+    AWS_REGION!: string;
 
   @IsBoolean()
-  ENABLE_SWAGGER_DOCS!: boolean;
+    ENABLE_SWAGGER_DOCS!: boolean;
 
   @IsUrl({ require_tld: false })
-  FRONTEND_URL!: string;
+    FRONTEND_URL!: string;
 
   @IsString()
-  APP_VERSION!: string;
+    APP_VERSION!: string;
 }
 
 @Injectable()
@@ -77,7 +77,7 @@ export class AppConfigService { // CHANGED: Renamed class to AppConfigService
     const validatedConfig = plainToClass(
       EnvironmentVariables,
       configValues,
-      { enableImplicitConversion: true }
+      { enableImplicitConversion: true },
     );
 
     const errors = validateSync(validatedConfig, { skipMissingProperties: false });
