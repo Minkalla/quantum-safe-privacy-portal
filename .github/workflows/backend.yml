@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+      - 'feat/**'
+      - 'devin/**'
   pull_request:
     branches:
       - main
@@ -85,7 +87,6 @@ jobs:
         exit-code: '1'
         severity: 'HIGH,CRITICAL'
         ignore-unfixed: true
-      continue-on-error: true
 
     - name: Upload Trivy Scan Results
       uses: actions/upload-artifact@v4
@@ -93,6 +94,126 @@ jobs:
       with:
         name: trivy-scan-results
         path: src/portal/portal-backend/trivy-results.txt
+
+  cypress-e2e-tests:
+    needs: build-and-test-backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/portal/portal-backend
+
+    env:
+      MONGODB_URI: 'mongodb://localhost:27017/e2e_test_db'
+      JWT_ACCESS_SECRET_ID: 'test-access-secret-e2e'
+      JWT_REFRESH_SECRET_ID: 'test-refresh-secret-e2e'
+      AWS_REGION: 'us-east-1'
+      AWS_ACCESS_KEY_ID: 'dummy'
+      AWS_SECRET_ACCESS_KEY: 'dummy'
+      NODE_ENV: 'test'
+      SKIP_SECRETS_MANAGER: 'true'
+      PORT: '8080'
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: 'src/portal/portal-backend/package-lock.json'
+
+    - name: Install Backend Dependencies
+      run: npm ci
+
+    - name: Start MongoDB Service
+      run: |
+        # Install MongoDB
+        wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
+        echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+        sudo apt-get update
+        sudo apt-get install -y mongodb-org
+        
+        # Start MongoDB
+        sudo systemctl start mongod
+        sudo systemctl enable mongod
+        # Wait for MongoDB to be ready
+        timeout 30 bash -c 'until nc -z localhost 27017; do sleep 1; done'
+
+    - name: Setup E2E Test Database
+      run: |
+        # Install MongoDB tools if needed
+        sudo apt-get update
+        sudo apt-get install -y mongodb-clients
+        
+        # Create test database and seed data
+        node -e "
+        const { setupE2EEnvironment } = require('./test/e2e/e2e-setup.js');
+        setupE2EEnvironment().then(() => {
+          console.log('E2E database setup completed');
+          process.exit(0);
+        }).catch(err => {
+          console.error('E2E database setup failed:', err);
+          process.exit(1);
+        });
+        "
+
+    - name: Build Backend Application
+      run: npm run build
+
+    - name: Start Backend Server in Background
+      run: |
+        npm run start:dev &
+        echo $! > backend.pid
+        # Wait for backend to be ready
+        timeout 60 bash -c 'until curl -f http://localhost:8080/api-docs; do sleep 2; done'
+
+    - name: Run Cypress E2E Tests
+      run: npx cypress run
+      env:
+        CYPRESS_baseUrl: 'http://localhost:8080'
+
+    - name: Stop Backend Server
+      if: always()
+      run: |
+        if [ -f backend.pid ]; then
+          kill $(cat backend.pid) || true
+          rm backend.pid
+        fi
+
+    - name: Cleanup E2E Test Database
+      if: always()
+      run: |
+        node -e "
+        const { cleanupE2EEnvironment } = require('./test/e2e/e2e-setup.js');
+        cleanupE2EEnvironment().then(() => {
+          console.log('E2E database cleanup completed');
+        }).catch(err => {
+          console.error('E2E database cleanup failed:', err);
+        });
+        "
+
+    - name: Upload Cypress Screenshots
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: cypress-screenshots
+        path: src/portal/portal-backend/test/e2e/screenshots
+
+    - name: Upload Cypress Videos
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: cypress-videos
+        path: src/portal/portal-backend/test/e2e/videos
+
+    - name: Upload Cypress Test Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: cypress-test-results
+        path: src/portal/portal-backend/test/e2e/results
 
   dast-scan-backend:
     needs: build-and-test-backend
