@@ -25,7 +25,7 @@
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import * as hpp from 'hpp';
@@ -98,6 +98,21 @@ async function bootstrap() {
     forbidNonWhitelisted: true,
     transform: true,
     disableErrorMessages: nodeEnv === 'production',
+    exceptionFactory: (errors) => {
+      const errorMessages: string[] = [];
+      errors.forEach((error) => {
+        if (error.constraints) {
+          Object.values(error.constraints).forEach((message) => {
+            errorMessages.push(message as string);
+          });
+        }
+      });
+      return new BadRequestException({
+        statusCode: 400,
+        message: errorMessages,
+        error: 'Bad Request',
+      });
+    },
   }));
   console.log('✅ Global ValidationPipe applied');
 
