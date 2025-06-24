@@ -124,8 +124,13 @@ jobs:
         cache: 'npm'
         cache-dependency-path: 'src/portal/portal-backend/package-lock.json'
 
-    - name: Install Backend Dependencies
-      run: npm ci
+    - name: Fix npm dependencies and install
+      run: |
+        # Remove lock file and node_modules to start fresh
+        rm -f package-lock.json
+        rm -rf node_modules
+        # Generate new lock file
+        npm install
 
     - name: Start MongoDB Service
       run: |
