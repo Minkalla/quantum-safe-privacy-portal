@@ -13,7 +13,7 @@
  * contributing to the "no regrets" approach for data integrity and security.
  */
 
-import { IsEmail, IsString, MinLength, MaxLength, IsBoolean, IsOptional } from 'class-validator';
+import { IsString, MinLength, MaxLength, IsBoolean, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class LoginDto {
@@ -24,7 +24,6 @@ export class LoginDto {
     minLength: 5,
     maxLength: 255,
   })
-  @IsEmail({}, { message: 'Please enter a valid email address.' })
   @IsString({ message: 'Email must be a string.' })
   @MinLength(5, { message: 'Email must be at least 5 characters long.' })
   @MaxLength(255, { message: 'Email must not exceed 255 characters.' })
