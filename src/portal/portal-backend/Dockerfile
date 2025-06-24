@@ -37,8 +37,8 @@ COPY src/main.ts ./src/main.ts
 # Copy the rest of the 'src' directory
 COPY src/ ./src/
 
-# Install production and necessary development dependencies for the build
-RUN npm ci
+# Fix npm dependencies - remove corrupted lock file and regenerate
+RUN rm -f package-lock.json && npm install
 
 # Compile NestJS modules
 RUN npm run build
