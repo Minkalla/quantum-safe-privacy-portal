@@ -108,7 +108,7 @@ async function bootstrap() {
       });
       return new BadRequestException({
         statusCode: 400,
-        message: errorMessages,
+        message: errorMessages.length === 1 ? errorMessages[0] : errorMessages,
         error: 'Bad Request',
       });
     },
