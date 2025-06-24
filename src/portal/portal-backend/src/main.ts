@@ -100,9 +100,10 @@ async function bootstrap() {
       const errorMessages: string[] = [];
       errors.forEach((error) => {
         if (error.constraints) {
-          Object.values(error.constraints).forEach((message) => {
-            errorMessages.push(message as string);
-          });
+          const constraintMessages = Object.values(error.constraints);
+          if (constraintMessages.length > 0) {
+            errorMessages.push(constraintMessages[0] as string);
+          }
         }
       });
       return new BadRequestException({
