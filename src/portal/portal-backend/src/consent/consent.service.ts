@@ -35,17 +35,17 @@ export class ConsentService {
     const { userId, consentType, granted, ipAddress, userAgent } = createConsentDto;
 
     const existingConsent = await this.consentModel.findOne({ userId, consentType });
-    
+
     if (existingConsent) {
       if (existingConsent.granted === granted) {
         const timeDifference = Date.now() - existingConsent.updatedAt.getTime();
         const fiveMinutesInMs = 5 * 60 * 1000;
-        
+
         if (timeDifference < fiveMinutesInMs && process.env['NODE_ENV'] !== 'test') {
           throw new ConflictException('Consent record already exists with the same granted status');
         }
       }
-      
+
       existingConsent.granted = granted;
       if (ipAddress !== undefined) {
         existingConsent.ipAddress = ipAddress;
@@ -53,9 +53,9 @@ export class ConsentService {
       if (userAgent !== undefined) {
         existingConsent.userAgent = userAgent;
       }
-      
+
       const updatedConsent = await existingConsent.save();
-      
+
       return updatedConsent;
     }
 
@@ -64,7 +64,7 @@ export class ConsentService {
       consentType,
       granted,
     };
-    
+
     if (ipAddress !== undefined) {
       consentData.ipAddress = ipAddress;
     }
@@ -86,7 +86,7 @@ export class ConsentService {
    */
   async getConsentByUserId(userId: string): Promise<IConsent[]> {
     const consents = await this.consentModel.find({ userId });
-    
+
     if (!consents || consents.length === 0) {
       throw new NotFoundException('No consent records found for this user');
     }

@@ -198,8 +198,8 @@ export class AuthController {
   @ApiResponse({ status: 403, description: 'Account locked.' })
   @ApiResponse({ status: 429, description: 'Too many login attempts.' })
   async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
-    if (loginDto.email.includes("'") || loginDto.email.includes(";") || loginDto.email.includes("--") ||
-        loginDto.password.includes("'") || loginDto.password.includes(";") || loginDto.password.includes("--")) {
+    if (loginDto.email.includes("'") || loginDto.email.includes(';') || loginDto.email.includes('--') ||
+        loginDto.password.includes("'") || loginDto.password.includes(';') || loginDto.password.includes('--')) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -214,11 +214,11 @@ export class AuthController {
     res.cookie('refreshToken', refreshToken, cookieOptions);
 
     const response: any = { status: 'success', message: 'Logged in successfully', accessToken, user };
-    
+
     if (loginDto.rememberMe && refreshToken) {
       response.refreshToken = refreshToken;
     }
-    
+
     return response;
   }
 }

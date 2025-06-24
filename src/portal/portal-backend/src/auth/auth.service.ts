@@ -124,7 +124,7 @@ export class AuthService {
     // CHANGED: Explicitly cast user._id to ObjectId for .toString() method
     const tokenPayload = { userId: (user._id as ObjectId).toString(), email: user.email };
     console.log('🎫 AuthService.login - Generating tokens for user:', tokenPayload.userId);
-    
+
     const { accessToken, refreshToken } = this.jwtService.generateTokens(tokenPayload, rememberMe);
     console.log('🎫 AuthService.login - Tokens generated successfully');
 
