@@ -34,6 +34,7 @@ import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as express from 'express';
 import { AppConfigService } from './config/config.service';
+import * as path from 'path';
 
 import * as AWSXRay from 'aws-xray-sdk';
 import * as http from 'http';
@@ -156,6 +157,13 @@ async function bootstrap() {
 
   app.setGlobalPrefix('portal');
   console.log('✅ Global prefix set to /portal');
+
+  if (nodeEnv === 'test') {
+    const testStaticPath = path.join(__dirname, '..', 'test', 'e2e');
+    app.use('/test/e2e', express.static(testStaticPath));
+    console.log('✅ Static file serving configured for E2E tests at /test/e2e');
+    console.log('📁 Serving files from:', testStaticPath);
+  }
 
 
   if (enableSwaggerDocs || nodeEnv === 'development') {
