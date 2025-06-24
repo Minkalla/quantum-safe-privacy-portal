@@ -133,13 +133,13 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y gnupg curl
         
-        # Import MongoDB 7.0 public GPG key for Ubuntu 24.04
-        curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | \
-        sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg \
+        # Import MongoDB 8.0 public GPG key for Ubuntu 24.04
+        curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | \
+        sudo gpg -o /usr/share/keyrings/mongodb-server-8.0.gpg \
         --dearmor
         
-        # Create MongoDB 7.0 repository list for Ubuntu 24.04 (Noble)
-        echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+        # Create MongoDB 8.0 repository list for Ubuntu 24.04 (Noble)
+        echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg ] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-8.0.list
         
         # Update package lists and install MongoDB
         sudo apt-get update
