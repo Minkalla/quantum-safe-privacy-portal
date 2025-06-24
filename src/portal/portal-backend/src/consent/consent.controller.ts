@@ -16,6 +16,7 @@ import { Controller, Post, Get, Body, Param, UseGuards, ValidationPipe, HttpCode
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { ConsentService } from './consent.service';
 import { CreateConsentDto } from './dto/create-consent.dto';
+import { GetConsentParamsDto } from './dto/get-consent.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Request } from 'express';
 
@@ -148,7 +149,7 @@ export class ConsentController {
       },
     },
   })
-  async getConsentByUserId(@Param('userId') userId: string) {
-    return this.consentService.getConsentByUserId(userId);
+  async getConsentByUserId(@Param(ValidationPipe) params: GetConsentParamsDto) {
+    return this.consentService.getConsentByUserId(params.userId);
   }
 }

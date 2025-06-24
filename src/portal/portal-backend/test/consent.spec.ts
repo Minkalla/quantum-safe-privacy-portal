@@ -407,5 +407,47 @@ describe('POST /portal/consent (Integration Tests)', () => {
       expect(response.body).toHaveProperty('statusCode', 404);
       expect(response.body).toHaveProperty('message', 'No consent records found for this user');
     });
+
+    it('should return 401 Unauthorized when Authorization header is missing', async () => {
+      const response = await request(app.getHttpServer())
+        .get(`/portal/consent/${testUserId}`)
+        .expect(401);
+
+      expect(response.body).toHaveProperty('statusCode', 401);
+      expect(response.body).toHaveProperty('message', 'Authorization header is missing');
+    });
+
+    it('should return 401 Unauthorized when JWT token is invalid', async () => {
+      const response = await request(app.getHttpServer())
+        .get(`/portal/consent/${testUserId}`)
+        .set('Authorization', 'Bearer invalid-token')
+        .expect(401);
+
+      expect(response.body).toHaveProperty('statusCode', 401);
+      expect(response.body).toHaveProperty('message', 'Invalid or expired JWT token');
+    });
+
+    it('should return 400 Bad Request when user_id is malformed', async () => {
+      const malformedUserId = 'invalid-user-id';
+
+      const response = await request(app.getHttpServer())
+        .get(`/portal/consent/${malformedUserId}`)
+        .set('Authorization', `Bearer ${validJwtToken}`)
+        .expect(400);
+
+      expect(response.body).toHaveProperty('statusCode', 400);
+      expect(response.body.message).toContain('User ID must be exactly 24 characters long.');
+    });
+
+    it('should return 400 Bad Request when user_id contains invalid characters', async () => {
+      const invalidUserId = '60d5ec49f1a23c001c8a4d7!';
+
+      const response = await request(app.getHttpServer())
+        .get(`/portal/consent/${invalidUserId}`)
+        .set('Authorization', `Bearer ${validJwtToken}`)
+        .expect(400);
+
+      expect(response.body).toHaveProperty('statusCode', 400);
+    });
   });
 });
