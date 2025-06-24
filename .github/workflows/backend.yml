@@ -79,7 +79,7 @@ jobs:
     - name: Run Trivy Docker Image Scan
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: 'portal-backend:latest'
+        image-ref: 'minkalla/portal-backend:latest'
         format: 'table'
         output: 'src/portal/portal-backend/trivy-results.txt'
         exit-code: '1'

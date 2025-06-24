@@ -25,6 +25,7 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { JwtModule } from './jwt/jwt.module';
 import { SecretsModule } from './secrets/secrets.module';
+import { ConsentModule } from './consent/consent.module';
 import { ConfigModule } from './config/config.module';
 
 // Removed: import * as AWSXRay from 'aws-xray-sdk'; // REMOVED as per plan
@@ -63,6 +64,7 @@ import { ConfigModule } from './config/config.module';
     UserModule,
     JwtModule,
     SecretsModule,
+    ConsentModule,
   ],
   controllers: [],
   providers: [],
