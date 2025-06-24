@@ -29,8 +29,13 @@ jobs:
       run: npm ci
       working-directory: .
 
-    - name: Install Backend Dependencies
-      run: npm ci
+    - name: Fix npm dependencies and install
+      run: |
+        # Remove lock file and node_modules to start fresh
+        rm -f package-lock.json
+        rm -rf node_modules
+        # Generate new lock file
+        npm install
       working-directory: src/portal/portal-backend
 
     - name: Validate Backend Dependencies (npm audit)
