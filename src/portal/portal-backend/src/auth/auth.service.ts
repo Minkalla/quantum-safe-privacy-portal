@@ -82,7 +82,8 @@ export class AuthService {
 
     console.log('🔍 AuthService.login - User found:', user ? 'YES' : 'NO');
     if (user) {
-      console.log('🔍 AuthService.login - User fields present:', Object.keys(user.toObject()));
+      const userObj = user.toObject ? user.toObject() : user;
+      console.log('🔍 AuthService.login - User fields present:', Object.keys(userObj));
       console.log('🔍 AuthService.login - Password field exists:', !!user.password);
       console.log('🔍 AuthService.login - FailedLoginAttempts:', user.failedLoginAttempts);
       console.log('🔍 AuthService.login - LockUntil:', user.lockUntil);
