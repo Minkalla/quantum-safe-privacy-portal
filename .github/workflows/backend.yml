@@ -130,6 +130,7 @@ jobs:
 
     env:
       MONGODB_URI: 'mongodb://localhost:27017/e2e_test_db'
+      MONGO_URI: 'mongodb://localhost:27017/e2e_test_db'
       JWT_ACCESS_SECRET_ID: 'test-access-secret-e2e'
       JWT_REFRESH_SECRET_ID: 'test-refresh-secret-e2e'
       AWS_REGION: 'us-east-1'
@@ -138,6 +139,9 @@ jobs:
       NODE_ENV: 'test'
       SKIP_SECRETS_MANAGER: 'true'
       PORT: '8080'
+      ENABLE_SWAGGER_DOCS: 'true'
+      FRONTEND_URL: 'http://localhost:3000'
+      APP_VERSION: '0.2.0'
 
     steps:
     - name: Checkout Repository
@@ -209,33 +213,17 @@ jobs:
 
     - name: Start Backend Server in Background
       run: |
-        echo "Starting backend server with environment:"
-        echo "SKIP_SECRETS_MANAGER=$SKIP_SECRETS_MANAGER"
-        echo "MONGODB_URI=$MONGODB_URI"
-        echo "NODE_ENV=$NODE_ENV"
-        echo "PORT=$PORT"
-        
-        # Use production start command instead of dev
-        npm run start:prod &
+        SKIP_SECRETS_MANAGER=true npm run start:dev &
         echo $! > backend.pid
-        
-        # Give server more time to start and add debugging
-        echo "Waiting for backend server to start..."
-        sleep 5
-        
-        # Check if process is still running
-        if kill -0 $(cat backend.pid) 2>/dev/null; then
-          echo "Backend process is running (PID: $(cat backend.pid))"
-        else
-          echo "Backend process died, checking logs..."
-          exit 1
-        fi
-        
-        # Wait for backend to be ready with more verbose output
-        timeout 90 bash -c 'until curl -f http://localhost:8080/api-docs; do 
-          echo "Waiting for backend at http://localhost:8080/api-docs..."
-          sleep 3
-        done'
+        # Wait for backend to be ready
+        timeout 60 bash -c 'until curl -f http://localhost:8080/api-docs; do sleep 2; done'
+      env:
+        SKIP_SECRETS_MANAGER: 'true'
+        MONGODB_URI: 'mongodb://localhost:27017/e2e_test_db'
+        JWT_ACCESS_SECRET_ID: 'test-access-secret'
+        JWT_REFRESH_SECRET_ID: 'test-refresh-secret'
+        AWS_REGION: 'us-east-1'
+        NODE_ENV: 'development'
 
     - name: Run Cypress E2E Tests
       run: npx cypress run
