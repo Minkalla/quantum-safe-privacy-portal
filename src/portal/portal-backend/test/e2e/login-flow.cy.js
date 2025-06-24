@@ -53,7 +53,7 @@ describe('E2E Login Flow Tests', () => {
     it('should maintain authentication state after successful login', () => {
       cy.login('e2e-test@example.com', 'TestPassword123!')
       
-      cy.get('#statusText').should('contain', 'Authenticated')
+      cy.get('#statusText').should('contain', 'Authenticated as e2e-test@example.com')
       
       cy.get('[data-cy="consent-create-submit"]').should('not.be.disabled')
       cy.get('[data-cy="consent-retrieve-submit"]').should('not.be.disabled')
@@ -109,7 +109,7 @@ describe('E2E Login Flow Tests', () => {
     it('should logout successfully after login', () => {
       cy.login('e2e-test@example.com', 'TestPassword123!')
       
-      cy.get('#statusText').should('contain', 'Authenticated')
+      cy.get('#statusText').should('contain', 'Authenticated as e2e-test@example.com')
       
       cy.logout()
       
