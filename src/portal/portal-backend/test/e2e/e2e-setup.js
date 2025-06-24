@@ -1,11 +1,11 @@
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 const bcrypt = require('bcryptjs');
 
 class E2ETestSetup {
   constructor(mongoUri, dbName = 'e2e_test_db') {
     this.client = new MongoClient(mongoUri);
     this.db = this.client.db(dbName);
-    this.testUserId = '60d5ec49f1a23c001c8a4d7d';
+    this.testUserId = new ObjectId('60d5ec49f1a23c001c8a4d7d');
     this.testUserEmail = 'e2e-test@example.com';
     this.testUserPassword = 'TestPassword123!';
   }
@@ -21,9 +21,13 @@ class E2ETestSetup {
   }
 
   async seedTestUser() {
+    console.log('🌱 Seeding test user...');
     const usersCollection = this.db.collection('users');
     
+    console.log('🔐 Hashing password with bcryptjs...');
     const hashedPassword = await bcrypt.hash(this.testUserPassword, 10);
+    console.log('✅ Password hashed successfully, length:', hashedPassword.length);
+    console.log('🔑 Password hash starts with:', hashedPassword.substring(0, 10) + '...');
     
     const testUser = {
       email: this.testUserEmail,
@@ -36,14 +40,29 @@ class E2ETestSetup {
       updatedAt: new Date(),
     };
 
+    console.log('👤 Creating test user with structure:', JSON.stringify({
+      ...testUser,
+      password: '[REDACTED]'
+    }, null, 2));
+
     await usersCollection.deleteMany({ email: this.testUserEmail });
+    console.log('🗑️ Cleaned up existing test users');
     
     const result = await usersCollection.insertOne({
       ...testUser,
       _id: this.testUserId,
     });
 
-    console.log(`Test user created with ID: ${result.insertedId}`);
+    console.log(`✅ Test user created with ID: ${result.insertedId}`);
+    
+    const createdUser = await usersCollection.findOne({ email: this.testUserEmail });
+    console.log('🔍 Verification - User found in database:', createdUser ? 'YES' : 'NO');
+    if (createdUser) {
+      console.log('📋 User fields present:', Object.keys(createdUser));
+      console.log('🔑 Password hash in DB starts with:', createdUser.password ? createdUser.password.substring(0, 10) + '...' : 'MISSING');
+      console.log('🆔 User ID type:', typeof createdUser._id, 'Value:', createdUser._id);
+    }
+    
     return { ...testUser, _id: result.insertedId.toString() };
   }
 
