@@ -128,6 +128,13 @@ jobs:
 
     - name: Start MongoDB Service
       run: |
+        # Install MongoDB
+        wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
+        echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+        sudo apt-get update
+        sudo apt-get install -y mongodb-org
+        
+        # Start MongoDB
         sudo systemctl start mongod
         sudo systemctl enable mongod
         # Wait for MongoDB to be ready
@@ -141,7 +148,7 @@ jobs:
         
         # Create test database and seed data
         node -e "
-        const { setupE2EEnvironment } = require('./test/e2e/e2e-setup.ts');
+        const { setupE2EEnvironment } = require('./test/e2e/e2e-setup.js');
         setupE2EEnvironment().then(() => {
           console.log('E2E database setup completed');
           process.exit(0);
@@ -178,7 +185,7 @@ jobs:
       if: always()
       run: |
         node -e "
-        const { cleanupE2EEnvironment } = require('./test/e2e/e2e-setup.ts');
+        const { cleanupE2EEnvironment } = require('./test/e2e/e2e-setup.js');
         cleanupE2EEnvironment().then(() => {
           console.log('E2E database cleanup completed');
         }).catch(err => {
