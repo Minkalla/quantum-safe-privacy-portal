@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E2E Mock Frontend - Consent Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .response {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <h1>E2E Mock Frontend - Consent Management Portal</h1>
+    
+    <div class="container">
+        <h2>1. Authentication Simulation</h2>
+        <div class="form-group">
+            <label for="jwtToken">JWT Access Token:</label>
+            <input type="text" id="jwtToken" value="e2e-access-token" placeholder="Enter JWT token">
+        </div>
+        <button onclick="setAuthToken()">Set Authentication Token</button>
+        <div id="authResponse" class="response" style="display: none;"></div>
+    </div>
+
+    <div class="container">
+        <h2>2. Create Consent</h2>
+        <form id="createConsentForm">
+            <div class="form-group">
+                <label for="userId">User ID:</label>
+                <input type="text" id="userId" value="60d5ec49f1a23c001c8a4d7d" required>
+            </div>
+            <div class="form-group">
+                <label for="consentType">Consent Type:</label>
+                <select id="consentType" required>
+                    <option value="marketing">Marketing</option>
+                    <option value="analytics">Analytics</option>
+                    <option value="data_processing">Data Processing</option>
+                    <option value="cookies">Cookies</option>
+                    <option value="third_party_sharing">Third Party Sharing</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="granted">Granted:</label>
+                <select id="granted" required>
+                    <option value="true">Yes (Grant Consent)</option>
+                    <option value="false">No (Revoke Consent)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="ipAddress">IP Address (Optional):</label>
+                <input type="text" id="ipAddress" placeholder="192.168.1.1">
+            </div>
+            <div class="form-group">
+                <label for="userAgent">User Agent (Optional):</label>
+                <input type="text" id="userAgent" placeholder="Mozilla/5.0...">
+            </div>
+            <button type="submit">Create/Update Consent</button>
+        </form>
+        <div id="createResponse" class="response" style="display: none;"></div>
+    </div>
+
+    <div class="container">
+        <h2>3. Retrieve Consent Records</h2>
+        <div class="form-group">
+            <label for="retrieveUserId">User ID:</label>
+            <input type="text" id="retrieveUserId" value="60d5ec49f1a23c001c8a4d7d">
+        </div>
+        <button onclick="retrieveConsent()">Retrieve Consent Records</button>
+        <div id="retrieveResponse" class="response" style="display: none;"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/portal';
+        let authToken = 'e2e-access-token';
+
+        function setAuthToken() {
+            authToken = document.getElementById('jwtToken').value;
+            const responseDiv = document.getElementById('authResponse');
+            responseDiv.style.display = 'block';
+            responseDiv.className = 'response success';
+            responseDiv.textContent = `Authentication token set: ${authToken}`;
+        }
+
+        document.getElementById('createConsentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                userId: document.getElementById('userId').value,
+                consentType: document.getElementById('consentType').value,
+                granted: document.getElementById('granted').value === 'true',
+                ipAddress: document.getElementById('ipAddress').value || undefined,
+                userAgent: document.getElementById('userAgent').value || undefined
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/consent`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+                const responseDiv = document.getElementById('createResponse');
+                responseDiv.style.display = 'block';
+                
+                if (response.ok) {
+                    responseDiv.className = 'response success';
+                    responseDiv.textContent = `Success (${response.status}):\n${JSON.stringify(result, null, 2)}`;
+                } else {
+                    responseDiv.className = 'response error';
+                    responseDiv.textContent = `Error (${response.status}):\n${JSON.stringify(result, null, 2)}`;
+                }
+            } catch (error) {
+                const responseDiv = document.getElementById('createResponse');
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response error';
+                responseDiv.textContent = `Network Error:\n${error.message}`;
+            }
+        });
+
+        async function retrieveConsent() {
+            const userId = document.getElementById('retrieveUserId').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/consent/${userId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const result = await response.json();
+                const responseDiv = document.getElementById('retrieveResponse');
+                responseDiv.style.display = 'block';
+                
+                if (response.ok) {
+                    responseDiv.className = 'response success';
+                    responseDiv.textContent = `Success (${response.status}):\n${JSON.stringify(result, null, 2)}`;
+                } else {
+                    responseDiv.className = 'response error';
+                    responseDiv.textContent = `Error (${response.status}):\n${JSON.stringify(result, null, 2)}`;
+                }
+            } catch (error) {
+                const responseDiv = document.getElementById('retrieveResponse');
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response error';
+                responseDiv.textContent = `Network Error:\n${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

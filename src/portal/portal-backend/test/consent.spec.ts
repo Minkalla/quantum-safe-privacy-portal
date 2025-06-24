@@ -26,18 +26,16 @@ import { ConfigModule } from '@nestjs/config';
 
 describe('POST /portal/consent (Integration Tests)', () => {
   let app: INestApplication;
-  let consentService: ConsentService;
-  let jwtService: JwtService;
   let validJwtToken: string;
   let testUserId: string;
 
   beforeAll(async () => {
     const mongoUri = (global as any).__MONGO_URI__;
 
-    process.env.AWS_REGION = 'us-east-1';
-    process.env.SKIP_SECRETS_MANAGER = 'true';
-    process.env.JWT_ACCESS_SECRET_ID = 'test-access-secret';
-    process.env.JWT_REFRESH_SECRET_ID = 'test-refresh-secret';
+    process.env['AWS_REGION'] = 'us-east-1';
+    process.env['SKIP_SECRETS_MANAGER'] = 'true';
+    process.env['JWT_ACCESS_SECRET_ID'] = 'test-access-secret';
+    process.env['JWT_REFRESH_SECRET_ID'] = 'test-refresh-secret';
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
@@ -51,7 +49,7 @@ describe('POST /portal/consent (Integration Tests)', () => {
     })
     .overrideProvider(JwtService)
     .useValue({
-      verifyToken: jest.fn().mockImplementation((token: string, type: string) => {
+      verifyToken: jest.fn().mockImplementation((token: string) => {
         if (token === 'valid-jwt-token') {
           return { userId: testUserId, email: 'test@example.com' };
         }
@@ -67,9 +65,6 @@ describe('POST /portal/consent (Integration Tests)', () => {
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('portal');
     app.useGlobalPipes(new ValidationPipe());
-    
-    consentService = moduleFixture.get<ConsentService>(ConsentService);
-    jwtService = moduleFixture.get<JwtService>(JwtService);
     
     testUserId = '60d5ec49f1a23c001c8a4d7d';
     validJwtToken = 'valid-jwt-token';
