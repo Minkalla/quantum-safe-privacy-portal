@@ -38,12 +38,7 @@ export class ConsentService {
 
     if (existingConsent) {
       if (existingConsent.granted === granted) {
-        const timeDifference = Date.now() - existingConsent.updatedAt.getTime();
-        const fiveMinutesInMs = 5 * 60 * 1000;
-
-        if (timeDifference < fiveMinutesInMs && process.env['NODE_ENV'] !== 'test') {
-          throw new ConflictException('Consent record already exists with the same granted status');
-        }
+        throw new ConflictException('Consent record already exists with the same granted status');
       }
 
       existingConsent.granted = granted;
