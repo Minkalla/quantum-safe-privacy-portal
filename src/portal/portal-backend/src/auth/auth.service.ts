@@ -70,7 +70,7 @@ export class AuthService {
    * @throws UnauthorizedException for invalid credentials.
    * @throws ForbiddenException if account is locked.
    */
-  async login(loginDto: LoginDto): Promise<{ accessToken: string; refreshToken: string; user: { id: string; email: string } }> {
+  async login(loginDto: LoginDto): Promise<{ accessToken: string; refreshToken?: string; user: { id: string; email: string } }> {
     const { email, password, rememberMe } = loginDto;
 
     const user = await this.userModel
@@ -112,13 +112,18 @@ export class AuthService {
 
     await user.save();
 
-    return {
+    const response: any = {
       accessToken,
-      refreshToken,
       user: {
         id: (user._id as ObjectId).toString(), // CHANGED: Explicitly cast user._id to ObjectId for .toString() method
         email: user.email,
       },
     };
+
+    if (rememberMe) {
+      response.refreshToken = refreshToken;
+    }
+
+    return response;
   }
 }
