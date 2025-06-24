@@ -1,5 +1,5 @@
 const { MongoClient } = require('mongodb');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 class E2ETestSetup {
   constructor(mongoUri, dbName = 'e2e_test_db') {
