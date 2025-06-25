@@ -259,7 +259,9 @@ jobs:
       if: always()
       with:
         name: cypress-test-results
-        path: src/portal/portal-backend/test/e2e/results
+        path: |
+          src/portal/portal-backend/test/e2e/videos
+          src/portal/portal-backend/test/e2e/screenshots
 
   dast-scan-backend:
     needs: build-and-test-backend
@@ -394,4 +396,4 @@ jobs:
       if: always()
       with:
         name: owasp-zap-report
-        path: owasp_zap_report.html
+        path: src/portal/portal-backend/owasp_zap_report.html
