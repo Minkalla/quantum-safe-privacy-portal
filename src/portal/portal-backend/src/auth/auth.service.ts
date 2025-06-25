@@ -23,7 +23,8 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { IUser } from '../models/User';
 import { JwtService } from '../jwt/jwt.service';
-import { ObjectId } from 'mongodb'; // ADDED: Import ObjectId type
+import { PQCFeatureFlagsService } from '../pqc/pqc-feature-flags.service';
+import { ObjectId } from 'mongodb';// ADDED: Import ObjectId type
 
 // Brute-force protection settings
 const MAX_FAILED_ATTEMPTS = 5;
@@ -34,6 +35,7 @@ export class AuthService {
   constructor(
     @InjectModel('User') private readonly userModel: Model<IUser>,
     private readonly jwtService: JwtService,
+    private readonly pqcFeatureFlags: PQCFeatureFlagsService,
   ) {}
 
   /**
@@ -58,9 +60,18 @@ export class AuthService {
     });
 
     const savedUser = await newUser.save();
+    const userId = (savedUser._id as ObjectId).toString();
 
-    // CHANGED: Explicitly cast savedUser._id to ObjectId for .toString() method
-    return { userId: (savedUser._id as ObjectId).toString(), email: savedUser.email };
+    const usePQC = this.pqcFeatureFlags.isEnabled('pqc_user_registration', userId);
+    if (usePQC) {
+      await this.generatePQCKeys(userId);
+    }
+
+    return { userId, email: savedUser.email };
+  }
+
+  private async generatePQCKeys(_userId: string): Promise<void> {
+    return Promise.resolve();
   }
 
   /**

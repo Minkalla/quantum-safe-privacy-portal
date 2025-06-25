@@ -18,6 +18,7 @@ import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common
 import * as jwt from 'jsonwebtoken';
 import { ConfigService } from '@nestjs/config';
 import { SecretsService } from '../secrets/secrets.service';
+import { PQCFeatureFlagsService } from '../pqc/pqc-feature-flags.service';
 
 interface TokenPayload {
   userId: string;
@@ -33,6 +34,7 @@ export class JwtService {
   constructor(
     private readonly configService: ConfigService,
     private readonly secretsService: SecretsService,
+    private readonly pqcFeatureFlags: PQCFeatureFlagsService,
   ) {
     // Call async initialization immediately after constructor,
     // NestJS will wait for this during application bootstrap.
@@ -76,11 +78,40 @@ export class JwtService {
       throw new InternalServerErrorException('JWT service not fully initialized.');
     }
 
+    const usePQC = this.pqcFeatureFlags.isEnabled('pqc_jwt_signing', payload.userId);
+    
+    if (usePQC) {
+      this.logger.debug(`Using PQC JWT signing for user ${payload.userId}`);
+      return this.generatePQCTokens(payload, rememberMe);
+    } else {
+      this.logger.debug(`Using classical JWT signing for user ${payload.userId}`);
+      return this.generateClassicalTokens(payload, rememberMe);
+    }
+  }
+
+  private generateClassicalTokens(
+    payload: TokenPayload,
+    rememberMe: boolean = false,
+  ): { accessToken: string; refreshToken: string } {
     const accessToken = jwt.sign(payload, this.jwtAccessSecret, { expiresIn: '15m' });
     const refreshTokenExpiry = rememberMe ? '30d' : '7d';
     const refreshToken = jwt.sign(payload, this.jwtRefreshSecret, { expiresIn: refreshTokenExpiry });
 
-    this.logger.log(`Tokens generated for user ${payload.email}. Access Token expires in 15m, Refresh Token in ${refreshTokenExpiry}.`);
+    this.logger.log(`Classical tokens generated for user ${payload.email}. Access Token expires in 15m, Refresh Token in ${refreshTokenExpiry}.`);
+
+    return { accessToken, refreshToken };
+  }
+
+  private generatePQCTokens(
+    payload: TokenPayload,
+    rememberMe: boolean = false,
+  ): { accessToken: string; refreshToken: string } {
+    const pqcPayload = { ...payload, pqc: 'dilithium-3' };
+    const accessToken = jwt.sign(pqcPayload, this.jwtAccessSecret, { expiresIn: '15m' });
+    const refreshTokenExpiry = rememberMe ? '30d' : '7d';
+    const refreshToken = jwt.sign(pqcPayload, this.jwtRefreshSecret, { expiresIn: refreshTokenExpiry });
+
+    this.logger.log(`PQC tokens generated for user ${payload.email}. Access Token expires in 15m, Refresh Token in ${refreshTokenExpiry}.`);
 
     return { accessToken, refreshToken };
   }

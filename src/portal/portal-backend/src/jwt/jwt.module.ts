@@ -17,13 +17,15 @@
 
 import { Module } from '@nestjs/common';
 import { JwtService } from './jwt.service';
-import { SecretsModule } from '../secrets/secrets.module'; // ADDED: Import SecretsModule
-import { ConfigModule } from '../config/config.module'; // ADDED: Import ConfigModule if ConfigService is used directly here
+import { SecretsModule } from '../secrets/secrets.module';
+import { ConfigModule } from '../config/config.module';
+import { PQCFeatureFlagsModule } from '../pqc/pqc-feature-flags.module';
 
 @Module({
   imports: [
-    ConfigModule, // JwtService uses ConfigService, so ConfigModule must be imported
-    SecretsModule, // CHANGED: Import SecretsModule to resolve SecretsService dependency
+    ConfigModule,
+    SecretsModule,
+    PQCFeatureFlagsModule,
   ],
   providers: [JwtService],
   exports: [JwtService],

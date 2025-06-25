@@ -49,6 +49,30 @@ class EnvironmentVariables {
 
   @IsString()
     APP_VERSION!: string;
+
+  @IsBoolean()
+  PQC_KEY_GENERATION_ENABLED?: boolean;
+
+  @IsNumber()
+  PQC_KEY_GENERATION_PERCENTAGE?: number;
+
+  @IsBoolean()
+  PQC_USER_REGISTRATION_ENABLED?: boolean;
+
+  @IsNumber()
+  PQC_USER_REGISTRATION_PERCENTAGE?: number;
+
+  @IsBoolean()
+  PQC_AUTHENTICATION_ENABLED?: boolean;
+
+  @IsNumber()
+  PQC_AUTHENTICATION_PERCENTAGE?: number;
+
+  @IsBoolean()
+  PQC_JWT_SIGNING_ENABLED?: boolean;
+
+  @IsNumber()
+  PQC_JWT_SIGNING_PERCENTAGE?: number;
 }
 
 @Injectable()
