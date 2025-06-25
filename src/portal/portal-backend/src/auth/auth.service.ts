@@ -24,6 +24,7 @@ import { LoginDto } from './dto/login.dto';
 import { IUser } from '../models/User';
 import { JwtService } from '../jwt/jwt.service';
 import { PQCFeatureFlagsService } from '../pqc/pqc-feature-flags.service';
+import { PQCMonitoringService } from '../pqc/pqc-monitoring.service';
 import { ObjectId } from 'mongodb';
 
 // Brute-force protection settings
@@ -38,6 +39,7 @@ export class AuthService {
     @InjectModel('User') private readonly userModel: Model<IUser>,
     private readonly jwtService: JwtService,
     private readonly pqcFeatureFlags: PQCFeatureFlagsService,
+    private readonly pqcMonitoring: PQCMonitoringService,
   ) {}
 
   /**
@@ -73,6 +75,9 @@ export class AuthService {
   }
 
   private async generatePQCKeys(userId: string): Promise<void> {
+    const startTime = Date.now();
+    let success = false;
+    
     try {
       const pqcPublicKey = this.generatePlaceholderKey('kyber768_public', userId);
       const pqcSigningKey = this.generatePlaceholderKey('dilithium3_private', userId);
@@ -84,10 +89,13 @@ export class AuthService {
         usePQC: true,
       });
 
+      success = true;
       this.logger.log(`PQC keys generated and stored for user ${userId}`);
     } catch (error) {
       this.logger.error(`Failed to generate PQC keys for user ${userId}:`, error);
       throw error;
+    } finally {
+      await this.pqcMonitoring.recordPQCKeyGeneration(userId, startTime, success);
     }
   }
 

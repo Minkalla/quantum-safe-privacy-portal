@@ -19,6 +19,7 @@ import * as jwt from 'jsonwebtoken';
 import { ConfigService } from '@nestjs/config';
 import { SecretsService } from '../secrets/secrets.service';
 import { PQCFeatureFlagsService } from '../pqc/pqc-feature-flags.service';
+import { PQCMonitoringService } from '../pqc/pqc-monitoring.service';
 
 interface TokenPayload {
   userId: string;
@@ -35,6 +36,7 @@ export class JwtService {
     private readonly configService: ConfigService,
     private readonly secretsService: SecretsService,
     private readonly pqcFeatureFlags: PQCFeatureFlagsService,
+    private readonly pqcMonitoring: PQCMonitoringService,
   ) {
     // Call async initialization immediately after constructor,
     // NestJS will wait for this during application bootstrap.
@@ -106,14 +108,32 @@ export class JwtService {
     payload: TokenPayload,
     rememberMe: boolean = false,
   ): { accessToken: string; refreshToken: string } {
-    const pqcPayload = { ...payload, pqc: 'dilithium-3' };
-    const accessToken = jwt.sign(pqcPayload, this.jwtAccessSecret, { expiresIn: '15m' });
-    const refreshTokenExpiry = rememberMe ? '30d' : '7d';
-    const refreshToken = jwt.sign(pqcPayload, this.jwtRefreshSecret, { expiresIn: refreshTokenExpiry });
+    const startTime = Date.now();
+    let success = false;
+    
+    try {
+      const pqcPayload = { ...payload, pqc: 'dilithium-3' };
+      const accessToken = jwt.sign(pqcPayload, this.jwtAccessSecret, { expiresIn: '15m' });
+      const refreshTokenExpiry = rememberMe ? '30d' : '7d';
+      const refreshToken = jwt.sign(pqcPayload, this.jwtRefreshSecret, { expiresIn: refreshTokenExpiry });
 
-    this.logger.log(`PQC tokens generated for user ${payload.email}. Access Token expires in 15m, Refresh Token in ${refreshTokenExpiry}.`);
+      success = true;
+      this.logger.log(`PQC tokens generated for user ${payload.email}. Access Token expires in 15m, Refresh Token in ${refreshTokenExpiry}.`);
 
-    return { accessToken, refreshToken };
+      this.pqcMonitoring.recordPQCJWTSigning(payload.userId, startTime, success).catch(error => {
+        this.logger.warn(`Failed to record PQC JWT metrics: ${error.message}`);
+      });
+
+      return { accessToken, refreshToken };
+    } catch (error) {
+      this.logger.error(`Failed to generate PQC tokens for user ${payload.email}:`, error);
+      
+      this.pqcMonitoring.recordPQCJWTSigning(payload.userId, startTime, success).catch(metricError => {
+        this.logger.warn(`Failed to record PQC JWT failure metrics: ${metricError.message}`);
+      });
+      
+      throw error;
+    }
   }
 
   /**
