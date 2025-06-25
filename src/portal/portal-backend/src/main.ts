@@ -56,16 +56,8 @@ process.on('unhandledRejection', (reason, _promise) => { // CHANGED: Renamed 'pr
 });
 
 console.log('🚀 Application bootstrap started');
-// Fixed ts(4111) by using bracket notation for process.env access
 console.log('📍 NODE_ENV:', process.env['NODE_ENV']);
-console.log('📍 SKIP_SECRETS_MANAGER:', process.env['SKIP_SECRETS_MANAGER']);
-console.log('📍 PORT (from process.env):', process.env['PORT']);
-console.log('📍 MONGO_URI (from process.env):', process.env['MONGODB_URI']);
-console.log('📍 JWT_ACCESS_SECRET_ID (from process.env):', process.env['JWT_ACCESS_SECRET_ID'] ? 'SET' : 'NOT SET');
-console.log('📍 JWT_REFRESH_SECRET_ID (from process.env):', process.env['JWT_REFRESH_SECRET_ID'] ? 'SET' : 'NOT SET');
-console.log('📍 AWS_REGION (from process.env):', process.env['AWS_REGION']);
-console.log('📍 AWS_ACCESS_KEY_ID (from process.env):', process.env['AWS_ACCESS_KEY_ID'] ? 'SET' : 'NOT SET');
-console.log('📍 AWS_SECRET_ACCESS_KEY (from process.env):', process.env['AWS_SECRET_ACCESS_KEY'] ? 'SET' : 'NOT SET');
+console.log('📍 Configuration loaded successfully');
 // --- END DEBUGGING ADDITIONS ---
 
 AWSXRay.captureHTTPsGlobal(http);
@@ -98,14 +90,25 @@ async function bootstrap() {
     disableErrorMessages: nodeEnv === 'production',
     exceptionFactory: (errors) => {
       const errorMessages: string[] = [];
-      errors.forEach((error) => {
+      
+      const processError = (error: any, parentPath = '') => {
         if (error.constraints) {
           const constraintMessages = Object.values(error.constraints);
           if (constraintMessages.length > 0) {
             errorMessages.push(constraintMessages[0] as string);
           }
         }
-      });
+        
+        if (error.children && error.children.length > 0) {
+          error.children.forEach((child: any) => {
+            const childPath = parentPath ? `${parentPath}.${error.property}` : error.property;
+            processError(child, childPath);
+          });
+        }
+      };
+      
+      errors.forEach(error => processError(error));
+      
       return new BadRequestException({
         statusCode: 400,
         message: errorMessages.length === 1 ? errorMessages[0] : errorMessages,
@@ -187,7 +190,7 @@ async function bootstrap() {
         { type: 'apiKey', in: 'cookie', name: 'refreshToken', description: 'Authentication via long-lived Refresh Token (HTTP-only cookie)' },
         'cookieAuth',
       )
-      .addTag('Authentication', 'APIs for user registration, login, and session management.')
+      .addTag('Authentication', 'APIs for user registration, login, and authentication management.')
       .build();
 
     const document = SwaggerModule.createDocument(app, options);

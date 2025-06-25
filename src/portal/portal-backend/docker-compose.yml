@@ -11,10 +11,10 @@ services:
       - NODE_ENV=development
       - ENABLE_SWAGGER_DOCS=true
       - PORT=8080
-      # Pass AWS credentials from the host's environment (your PowerShell session)
+      # Pass AWS credentials from the host's environment
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      # - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN} # Uncomment if you use a temporary AWS Session Token
+      # - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN} # Uncomment if you use a temporary AWS token
       - AWS_REGION=${AWS_REGION} # Ensure this matches your AWS_REGION in .env and your actual region
       # ADDED: X-Ray Daemon address for the backend service
       - AWS_XRAY_DAEMON_ADDRESS=xray-daemon:2000

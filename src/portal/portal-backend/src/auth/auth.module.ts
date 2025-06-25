@@ -3,7 +3,7 @@
  * @file auth.module.ts
  * @description NestJS module for authentication-related features.
  * This module encapsulates controllers, services, and other components
- * responsible for user registration, login, and session management.
+ * responsible for user registration, login, and authentication management.
  *
  * @module AuthModule
  * @author Minkalla

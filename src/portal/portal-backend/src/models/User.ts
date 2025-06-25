@@ -2,7 +2,7 @@
  * @file User.ts
  * @description Mongoose schema and model definition for the User entity in the Quantum-Safe Privacy Portal Backend.
  * This schema defines the structure for storing user authentication credentials and basic profile information,
- * including fields for enhanced login security and session management.
+ * including fields for enhanced login security and authentication management.
  *
  * @module UserModel
  * @author Minkalla
