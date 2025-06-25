@@ -69,7 +69,7 @@ export class JwtService {
    */
   generateTokens(
     payload: TokenPayload,
-    rememberMe: boolean = false
+    rememberMe: boolean = false,
   ): { accessToken: string; refreshToken: string } {
     if (!this.jwtAccessSecret || !this.jwtRefreshSecret) {
       this.logger.error('JWT secrets are not initialized. Cannot generate tokens.');

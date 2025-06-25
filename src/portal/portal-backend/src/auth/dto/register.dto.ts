@@ -28,7 +28,7 @@ export class RegisterDto {
   @IsString({ message: 'Email must be a string.' })
   @MinLength(5, { message: 'Email must be at least 5 characters long.' })
   @MaxLength(255, { message: 'Email must not exceed 255 characters.' })
-  email!: string; // CHANGED: Added definite assignment assertion
+    email!: string; // CHANGED: Added definite assignment assertion
 
   @ApiProperty({
     description: 'The password for the user account.',
@@ -39,5 +39,5 @@ export class RegisterDto {
   @IsString({ message: 'Password must be a string.' })
   @MinLength(8, { message: 'Password must be at least 8 characters long.' })
   @MaxLength(255, { message: 'Password must not exceed 255 characters.' })
-  password!: string; // CHANGED: Added definite assignment assertion
+    password!: string; // CHANGED: Added definite assignment assertion
 }

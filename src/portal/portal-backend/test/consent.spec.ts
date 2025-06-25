@@ -23,21 +23,18 @@ import { JwtService } from '../src/jwt/jwt.service';
 import { ConsentType } from '../src/consent/dto/create-consent.dto';
 import { ConfigModule } from '@nestjs/config';
 
-
 describe('POST /portal/consent (Integration Tests)', () => {
   let app: INestApplication;
-  let consentService: ConsentService;
-  let jwtService: JwtService;
   let validJwtToken: string;
   let testUserId: string;
 
   beforeAll(async () => {
     const mongoUri = (global as any).__MONGO_URI__;
 
-    process.env.AWS_REGION = 'us-east-1';
-    process.env.SKIP_SECRETS_MANAGER = 'true';
-    process.env.JWT_ACCESS_SECRET_ID = 'test-access-secret';
-    process.env.JWT_REFRESH_SECRET_ID = 'test-refresh-secret';
+    process.env['AWS_REGION'] = 'us-east-1';
+    process.env['SKIP_SECRETS_MANAGER'] = 'true';
+    process.env['JWT_ACCESS_SECRET_ID'] = 'test-access-secret';
+    process.env['JWT_REFRESH_SECRET_ID'] = 'test-refresh-secret';
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
@@ -49,28 +46,25 @@ describe('POST /portal/consent (Integration Tests)', () => {
         ConsentModule,
       ],
     })
-    .overrideProvider(JwtService)
-    .useValue({
-      verifyToken: jest.fn().mockImplementation((token: string, type: string) => {
-        if (token === 'valid-jwt-token') {
-          return { userId: testUserId, email: 'test@example.com' };
-        }
-        return null;
-      }),
-      generateTokens: jest.fn().mockReturnValue({
-        accessToken: 'valid-jwt-token',
-        refreshToken: 'valid-refresh-token',
-      }),
-    })
-    .compile();
+      .overrideProvider(JwtService)
+      .useValue({
+        verifyToken: jest.fn().mockImplementation((token: string) => {
+          if (token === 'valid-jwt-token') {
+            return { userId: testUserId, email: 'test@example.com' };
+          }
+          return null;
+        }),
+        generateTokens: jest.fn().mockReturnValue({
+          accessToken: 'valid-jwt-token',
+          refreshToken: 'valid-refresh-token',
+        }),
+      })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('portal');
     app.useGlobalPipes(new ValidationPipe());
-    
-    consentService = moduleFixture.get<ConsentService>(ConsentService);
-    jwtService = moduleFixture.get<JwtService>(JwtService);
-    
+
     testUserId = '60d5ec49f1a23c001c8a4d7d';
     validJwtToken = 'valid-jwt-token';
 
@@ -406,6 +400,48 @@ describe('POST /portal/consent (Integration Tests)', () => {
 
       expect(response.body).toHaveProperty('statusCode', 404);
       expect(response.body).toHaveProperty('message', 'No consent records found for this user');
+    });
+
+    it('should return 401 Unauthorized when Authorization header is missing', async () => {
+      const response = await request(app.getHttpServer())
+        .get(`/portal/consent/${testUserId}`)
+        .expect(401);
+
+      expect(response.body).toHaveProperty('statusCode', 401);
+      expect(response.body).toHaveProperty('message', 'Authorization header is missing');
+    });
+
+    it('should return 401 Unauthorized when JWT token is invalid', async () => {
+      const response = await request(app.getHttpServer())
+        .get(`/portal/consent/${testUserId}`)
+        .set('Authorization', 'Bearer invalid-token')
+        .expect(401);
+
+      expect(response.body).toHaveProperty('statusCode', 401);
+      expect(response.body).toHaveProperty('message', 'Invalid or expired JWT token');
+    });
+
+    it('should return 400 Bad Request when user_id is malformed', async () => {
+      const malformedUserId = 'invalid-user-id';
+
+      const response = await request(app.getHttpServer())
+        .get(`/portal/consent/${malformedUserId}`)
+        .set('Authorization', `Bearer ${validJwtToken}`)
+        .expect(400);
+
+      expect(response.body).toHaveProperty('statusCode', 400);
+      expect(response.body.message).toContain('User ID must be exactly 24 characters long.');
+    });
+
+    it('should return 400 Bad Request when user_id contains invalid characters', async () => {
+      const invalidUserId = '60d5ec49f1a23c001c8a4d7!';
+
+      const response = await request(app.getHttpServer())
+        .get(`/portal/consent/${invalidUserId}`)
+        .set('Authorization', `Bearer ${validJwtToken}`)
+        .expect(400);
+
+      expect(response.body).toHaveProperty('statusCode', 400);
     });
   });
 });

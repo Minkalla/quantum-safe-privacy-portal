@@ -17,6 +17,7 @@ This document provides comprehensive guidance for developers working with the te
 7. [Troubleshooting](#7-troubleshooting)
 8. [Best Practices](#8-best-practices)
 9. [CI/CD Integration](#9-cicd-integration)
+10. [E2E Testing with Cypress](#10-e2e-testing-with-cypress)
 
 ---
 
@@ -541,6 +542,119 @@ module.exports = {
 
 ---
 
+## 10. E2E Testing with Cypress
+
+### Overview
+The E2E testing framework uses Cypress to validate complete user workflows and API contracts. As of Sub-task 1.5.6d, we achieve **100% E2E test success rate (57/57 tests)**.
+
+### Quick Start
+```bash
+# Start backend server
+cd src/portal/portal-backend
+npm run build
+SKIP_SECRETS_MANAGER=true npm run start:dev
+
+# Run E2E tests (in separate terminal)
+npx cypress run --headless
+
+# Run specific test file
+npx cypress run --headless --spec "test/e2e/consent-creation.cy.js"
+
+# Open Cypress UI for debugging
+npx cypress open
+```
+
+### Test Structure
+```
+test/e2e/
+├── consent-creation.cy.js    # Consent API creation tests
+├── consent-retrieval.cy.js   # Consent API retrieval tests
+├── login-flow.cy.js          # Authentication flow tests
+├── support/
+│   └── index.js             # Cypress configuration
+└── utils/
+    └── db-helpers.js        # Database setup/cleanup utilities
+```
+
+### Key Test Categories
+
+#### 1. Validation Error Testing
+Tests exact error message formats and HTTP status codes:
+```javascript
+// Example: User ID validation
+cy.request({
+  method: 'POST',
+  url: '/portal/consent',
+  body: { userId: 'invalid' },
+  failOnStatusCode: false
+}).then((response) => {
+  expect(response.status).to.eq(400);
+  expect(response.body.message).to.include('User ID must be exactly 24 characters long');
+});
+```
+
+#### 2. Authentication Flow Testing
+- Login with valid/invalid credentials
+- SQL injection attempt detection (returns 401)
+- RefreshToken generation when rememberMe=true
+- Session management
+
+#### 3. Consent Management Testing
+- Consent creation with validation
+- Duplicate consent prevention (409 status)
+- Consent retrieval with filtering
+- Response format validation
+
+### Critical Configuration Requirements
+
+#### ValidationPipe Configuration
+The ValidationPipe must be configured to return exact error message strings:
+```typescript
+// main.ts
+app.useGlobalPipes(new ValidationPipe({
+  exceptionFactory: (errors) => {
+    const errorMessages: string[] = [];
+    errors.forEach((error) => {
+      if (error.constraints) {
+        const constraintMessages = Object.values(error.constraints);
+        if (constraintMessages.length > 0) {
+          errorMessages.push(constraintMessages[0] as string);
+        }
+      }
+    });
+    return new BadRequestException({
+      statusCode: 400,
+      message: errorMessages.length === 1 ? errorMessages[0] : errorMessages,
+      error: 'Bad Request',
+    });
+  },
+}));
+```
+
+### Best Practices
+
+#### 1. Contract-First Development
+- Define exact error messages in constants
+- Use same constants in DTOs and tests
+- Document HTTP status code contracts
+
+#### 2. Test Data Management
+- Use database tasks for setup/cleanup
+- Avoid test data contamination
+- Use unique test data per test run
+
+#### 3. Error Message Consistency
+- Use shared validation constants
+- Test ValidationPipe format independently
+- Verify decorator message precedence
+
+For detailed troubleshooting and prevention strategies, see:
+- `docs/E2E_TESTING_BEST_PRACTICES.md` - Comprehensive post-mortem analysis
+- `docs/VALIDATION_CONTRACTS.md` - Error message standardization guide
+- `docs/DEBUGGING.md` - General debugging guidance
+
+---
+
 ## Conclusion
 
 This testing infrastructure provides a robust foundation for maintaining code quality in the Quantum-Safe Privacy Portal. The minimal Jest configuration approach ensures reliable test execution while maintaining security and performance benefits.
@@ -558,6 +672,9 @@ This testing infrastructure provides a robust foundation for maintaining code qu
 - [Jest Configuration Documentation](docs/JEST_CONFIGURATION.md)
 - [Debugging Guide](docs/DEBUGGING.md)
 - [Test Validation Status](docs/TEST_VALIDATION.md)
+- [E2E Testing Best Practices](docs/E2E_TESTING_BEST_PRACTICES.md)
+- [Validation Contracts](docs/VALIDATION_CONTRACTS.md)
+- [Cypress E2E Testing](https://docs.cypress.io/)
 - [NestJS Testing Documentation](https://docs.nestjs.com/fundamentals/testing)
 
 ---

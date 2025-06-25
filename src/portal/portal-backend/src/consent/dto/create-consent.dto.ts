@@ -34,24 +34,24 @@ export class CreateConsentDto {
   @IsString({ message: 'User ID must be a string.' })
   @MinLength(24, { message: 'User ID must be exactly 24 characters long.' })
   @MaxLength(24, { message: 'User ID must be exactly 24 characters long.' })
-  userId!: string;
+    userId!: string;
 
   @ApiProperty({
     description: 'The type of consent being provided.',
     example: 'marketing',
     enum: ConsentType,
   })
-  @IsEnum(ConsentType, { 
-    message: 'Consent type must be one of: marketing, analytics, data_processing, cookies, third_party_sharing' 
+  @IsEnum(ConsentType, {
+    message: 'Consent type must be one of: marketing, analytics, data_processing, cookies, third_party_sharing',
   })
-  consentType!: ConsentType;
+    consentType!: ConsentType;
 
   @ApiProperty({
     description: 'Whether consent is granted (true) or revoked (false).',
     example: true,
   })
   @IsBoolean({ message: 'Granted must be a boolean value.' })
-  granted!: boolean;
+    granted!: boolean;
 
   @ApiProperty({
     description: 'IP address from which consent was provided (optional, for audit trail).',
@@ -61,7 +61,7 @@ export class CreateConsentDto {
   @IsOptional()
   @IsString({ message: 'IP address must be a string.' })
   @MaxLength(45, { message: 'IP address must not exceed 45 characters.' })
-  ipAddress?: string;
+    ipAddress?: string;
 
   @ApiProperty({
     description: 'User agent string from which consent was provided (optional, for audit trail).',
@@ -71,5 +71,5 @@ export class CreateConsentDto {
   @IsOptional()
   @IsString({ message: 'User agent must be a string.' })
   @MaxLength(500, { message: 'User agent must not exceed 500 characters.' })
-  userAgent?: string;
+    userAgent?: string;
 }

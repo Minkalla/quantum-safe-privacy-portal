@@ -70,7 +70,7 @@ export class AuthService {
    * @throws UnauthorizedException for invalid credentials.
    * @throws ForbiddenException if account is locked.
    */
-  async login(loginDto: LoginDto): Promise<{ accessToken: string; refreshToken: string; user: { id: string; email: string } }> {
+  async login(loginDto: LoginDto): Promise<{ accessToken: string; refreshToken?: string; user: { id: string; email: string } }> {
     const { email, password, rememberMe } = loginDto;
 
     const user = await this.userModel
@@ -98,13 +98,13 @@ export class AuthService {
       await user.save();
       throw new UnauthorizedException('Invalid credentials');
     }
-
     user.failedLoginAttempts = 0;
     user.lockUntil = null;
     user.lastLoginAt = new Date();
 
     // CHANGED: Explicitly cast user._id to ObjectId for .toString() method
     const tokenPayload = { userId: (user._id as ObjectId).toString(), email: user.email };
+
     const { accessToken, refreshToken } = this.jwtService.generateTokens(tokenPayload, rememberMe);
 
     const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
@@ -112,13 +112,18 @@ export class AuthService {
 
     await user.save();
 
-    return {
+    const response: any = {
       accessToken,
-      refreshToken,
       user: {
         id: (user._id as ObjectId).toString(), // CHANGED: Explicitly cast user._id to ObjectId for .toString() method
         email: user.email,
       },
     };
+
+    if (rememberMe) {
+      response.refreshToken = refreshToken;
+    }
+
+    return response;
   }
 }

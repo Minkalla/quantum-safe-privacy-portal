@@ -16,6 +16,7 @@ import { Controller, Post, Get, Body, Param, UseGuards, ValidationPipe, HttpCode
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { ConsentService } from './consent.service';
 import { CreateConsentDto } from './dto/create-consent.dto';
+import { GetConsentParamsDto } from './dto/get-consent.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Request } from 'express';
 
@@ -93,7 +94,18 @@ export class ConsentController {
     }
 
     try {
-      return await this.consentService.createConsent(createConsentDto);
+      const result = await this.consentService.createConsent(createConsentDto);
+
+      return {
+        consentId: result._id,
+        userId: result.userId,
+        consentType: result.consentType,
+        granted: result.granted,
+        ipAddress: result.ipAddress,
+        userAgent: result.userAgent,
+        createdAt: result.createdAt,
+        updatedAt: result.updatedAt,
+      };
     } catch (error: any) {
       if (error.name === 'ValidationError') {
         throw new BadRequestException(error.message);
@@ -148,7 +160,18 @@ export class ConsentController {
       },
     },
   })
-  async getConsentByUserId(@Param('userId') userId: string) {
-    return this.consentService.getConsentByUserId(userId);
+  async getConsentByUserId(@Param(ValidationPipe) params: GetConsentParamsDto) {
+    const consents = await this.consentService.getConsentByUserId(params.userId);
+
+    return consents.map(consent => ({
+      consentId: consent._id,
+      userId: consent.userId,
+      consentType: consent.consentType,
+      granted: consent.granted,
+      ipAddress: consent.ipAddress,
+      userAgent: consent.userAgent,
+      createdAt: consent.createdAt,
+      updatedAt: consent.updatedAt,
+    }));
   }
 }

@@ -17,7 +17,36 @@ This repository contains the backend services for the Minkalla Quantum-Safe Priv
     * **Dual-Token Strategy:** Issues a short-lived JWT Access Token (response body) and a long-lived Refresh Token (secure HttpOnly, SameSite=Strict cookie) for balanced security and user experience.
     * **Brute-Force Protection:** Implements account lockout after multiple failed login attempts, safeguarding user accounts.
 
-### 2. Enterprise-Grade Security Middleware
+### 2. E2E Testing Status ✅
+
+**Current Status**: 100% E2E Test Success Rate (57/57 tests passing)
+
+The backend includes comprehensive E2E testing with Cypress covering:
+- **Authentication Flow**: Login, SQL injection detection, refresh token generation
+- **Consent Management**: Creation, retrieval, validation, duplicate prevention
+- **API Contracts**: Exact error message formats, HTTP status codes, response schemas
+
+**Key Testing Achievements**:
+- ValidationPipe configured for exact error message format matching
+- SQL injection attempts properly return 401 status
+- Duplicate consent prevention with immediate conflict detection (409 status)
+- Comprehensive validation error testing with exact string matching
+
+**Running E2E Tests**:
+```bash
+# Start backend server
+npm run build && SKIP_SECRETS_MANAGER=true npm run start:dev
+
+# Run all E2E tests
+npx cypress run --headless
+
+# Run specific test suite
+npx cypress run --headless --spec "test/e2e/consent-creation.cy.js"
+```
+
+For detailed E2E testing guidance, see `docs/E2E_TESTING_BEST_PRACTICES.md` and `docs/VALIDATION_CONTRACTS.md`.
+
+### 3. Enterprise-Grade Security Middleware
 * **Cross-Origin Resource Sharing (CORS):** Configurable to restrict access to authorized origins, ensuring secure frontend-backend communication.
 * **Security Headers (Helmet):** Configured to set critical HTTP headers (`X-Frame-Options: DENY`, CSP, HSTS, X-Content-Type-Options, etc.) to mitigate common web vulnerabilities like XSS, clickjacking, and content sniffing.
 * **HTTP Parameter Pollution (HPP) Protection:** Guards against attacks manipulating query parameters.

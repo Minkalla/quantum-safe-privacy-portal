@@ -25,7 +25,7 @@
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import * as hpp from 'hpp';
@@ -34,6 +34,7 @@ import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as express from 'express';
 import { AppConfigService } from './config/config.service';
+import * as path from 'path';
 
 import * as AWSXRay from 'aws-xray-sdk';
 import * as http from 'http';
@@ -55,16 +56,8 @@ process.on('unhandledRejection', (reason, _promise) => { // CHANGED: Renamed 'pr
 });
 
 console.log('🚀 Application bootstrap started');
-// Fixed ts(4111) by using bracket notation for process.env access
 console.log('📍 NODE_ENV:', process.env['NODE_ENV']);
-console.log('📍 SKIP_SECRETS_MANAGER:', process.env['SKIP_SECRETS_MANAGER']);
-console.log('📍 PORT (from process.env):', process.env['PORT']);
-console.log('📍 MONGO_URI (from process.env):', process.env['MONGODB_URI']);
-console.log('📍 JWT_ACCESS_SECRET_ID (from process.env):', process.env['JWT_ACCESS_SECRET_ID'] ? 'SET' : 'NOT SET');
-console.log('📍 JWT_REFRESH_SECRET_ID (from process.env):', process.env['JWT_REFRESH_SECRET_ID'] ? 'SET' : 'NOT SET');
-console.log('📍 AWS_REGION (from process.env):', process.env['AWS_REGION']);
-console.log('📍 AWS_ACCESS_KEY_ID (from process.env):', process.env['AWS_ACCESS_KEY_ID'] ? 'SET' : 'NOT SET');
-console.log('📍 AWS_SECRET_ACCESS_KEY (from process.env):', process.env['AWS_SECRET_ACCESS_KEY'] ? 'SET' : 'NOT SET');
+console.log('📍 Configuration loaded successfully');
 // --- END DEBUGGING ADDITIONS ---
 
 AWSXRay.captureHTTPsGlobal(http);
@@ -81,7 +74,6 @@ async function bootstrap() {
   app.useLogger(winstonLogger);
   console.log('✅ Winston logger applied to NestJS app');
 
-
   const configService = app.get(AppConfigService);
   const nodeEnv = configService.get<string>('NODE_ENV') || 'development';
   const port = configService.get<number>('PORT') || 3000;
@@ -91,15 +83,40 @@ async function bootstrap() {
 
   console.log('✅ ConfigService values fetched. Node_ENV:', nodeEnv, 'Port:', port);
 
-
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
     forbidNonWhitelisted: true,
     transform: true,
     disableErrorMessages: nodeEnv === 'production',
+    exceptionFactory: (errors) => {
+      const errorMessages: string[] = [];
+      
+      const processError = (error: any, parentPath = '') => {
+        if (error.constraints) {
+          const constraintMessages = Object.values(error.constraints);
+          if (constraintMessages.length > 0) {
+            errorMessages.push(constraintMessages[0] as string);
+          }
+        }
+        
+        if (error.children && error.children.length > 0) {
+          error.children.forEach((child: any) => {
+            const childPath = parentPath ? `${parentPath}.${error.property}` : error.property;
+            processError(child, childPath);
+          });
+        }
+      };
+      
+      errors.forEach(error => processError(error));
+      
+      return new BadRequestException({
+        statusCode: 400,
+        message: errorMessages.length === 1 ? errorMessages[0] : errorMessages,
+        error: 'Bad Request',
+      });
+    },
   }));
   console.log('✅ Global ValidationPipe applied');
-
 
   app.use(express.json({ limit: '10kb' }));
   app.use(cookieParser());
@@ -121,7 +138,6 @@ async function bootstrap() {
     credentials: true,
   });
   console.log('✅ CORS configured');
-
 
   app.use(helmet({
     contentSecurityPolicy: false,
@@ -145,18 +161,21 @@ async function bootstrap() {
   }));
   console.log('✅ Helmet middleware applied');
 
-
   app.use(hpp());
   console.log('✅ HPP middleware applied');
-
 
   app.use(AWSXRay.express.openSegment('MinkallaBackend'));
   console.log('✅ X-Ray Express middleware applied (openSegment)');
 
-
   app.setGlobalPrefix('portal');
   console.log('✅ Global prefix set to /portal');
 
+  if (nodeEnv === 'test') {
+    const testStaticPath = path.join(__dirname, '..', 'test', 'e2e');
+    app.use('/test/e2e', express.static(testStaticPath));
+    console.log('✅ Static file serving configured for E2E tests at /test/e2e');
+    console.log('📁 Serving files from:', testStaticPath);
+  }
 
   if (enableSwaggerDocs || nodeEnv === 'development') {
     const options = new DocumentBuilder()
@@ -165,13 +184,13 @@ async function bootstrap() {
       .setVersion(appVersion)
       .addBearerAuth(
         { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', description: 'Authentication via short-lived Access Token' },
-        'bearerAuth'
+        'bearerAuth',
       )
       .addApiKey(
         { type: 'apiKey', in: 'cookie', name: 'refreshToken', description: 'Authentication via long-lived Refresh Token (HTTP-only cookie)' },
-        'cookieAuth'
+        'cookieAuth',
       )
-      .addTag('Authentication', 'APIs for user registration, login, and session management.')
+      .addTag('Authentication', 'APIs for user registration, login, and authentication management.')
       .build();
 
     const document = SwaggerModule.createDocument(app, options);
@@ -190,7 +209,6 @@ async function bootstrap() {
 
   app.use(AWSXRay.express.closeSegment());
   console.log('✅ X-Ray Express middleware applied (closeSegment)');
-
 
   await app.listen(port);
   console.log('✅ NestJS app listening on port', port);

@@ -6,6 +6,111 @@ This document serves as the definitive technical troubleshooting and debugging k
 
 ---
 
+## E2E Testing Troubleshooting
+
+### ValidationPipe Error Format Issues
+
+**Problem**: E2E tests expect exact error message strings but receive objects or arrays.
+
+**Symptoms**:
+```
+AssertionError: expected [ Array(1) ] to include 'User ID must be exactly 24 characters long'
+```
+
+**Root Cause**: NestJS ValidationPipe default configuration returns complex error objects instead of simple strings.
+
+**Solution**: Configure ValidationPipe exceptionFactory in `main.ts`:
+```typescript
+app.useGlobalPipes(new ValidationPipe({
+  exceptionFactory: (errors) => {
+    const errorMessages: string[] = [];
+    errors.forEach((error) => {
+      if (error.constraints) {
+        const constraintMessages = Object.values(error.constraints);
+        if (constraintMessages.length > 0) {
+          errorMessages.push(constraintMessages[0] as string);
+        }
+      }
+    });
+    return new BadRequestException({
+      statusCode: 400,
+      message: errorMessages.length === 1 ? errorMessages[0] : errorMessages,
+      error: 'Bad Request',
+    });
+  },
+}));
+```
+
+### Cypress Task Registration Errors
+
+**Problem**: `CypressError: cy.task('setupE2EDatabase') failed - The 'task' event has not been registered`
+
+**Solution**: Register tasks in `cypress.config.js`:
+```javascript
+export default defineConfig({
+  e2e: {
+    setupNodeEvents(on, config) {
+      on('task', {
+        setupE2EDatabase: require('./test/e2e/utils/db-helpers').setupE2EDatabase,
+        cleanupE2EDatabase: require('./test/e2e/utils/db-helpers').cleanupE2EDatabase,
+      });
+      return config;
+    },
+  },
+});
+```
+
+### HTTP Status Code Mismatches
+
+**Problem**: Tests expect specific status codes but receive different ones.
+
+**Common Cases**:
+- SQL injection attempts should return 401, not 400
+- Duplicate consent should return 409, not 200
+- Validation errors should return 400
+
+**Solution**: Verify exception types in controllers:
+```typescript
+// For SQL injection (401)
+throw new UnauthorizedException('Invalid credentials');
+
+// For duplicates (409)
+throw new ConflictException('Consent record already exists');
+
+// For validation (400)
+throw new BadRequestException('Validation failed');
+```
+
+### Test Data Contamination
+
+**Problem**: Tests expect specific number of records but find more due to previous test data.
+
+**Solution**: Implement proper database cleanup:
+```javascript
+// In test files
+beforeEach(() => {
+  cy.task('cleanupE2EDatabase');
+  cy.task('setupE2EDatabase');
+});
+```
+
+### Debugging Commands
+
+```bash
+# Run specific failing test with debug output
+npx cypress run --headless --spec "test/e2e/consent-creation.cy.js" --config video=true
+
+# Check ValidationPipe response format
+curl -X POST http://localhost:8080/portal/consent \
+  -H "Content-Type: application/json" \
+  -d '{"userId":"invalid"}' | jq
+
+# Verify database state
+docker exec -it mongo-container mongosh --eval "db.consents.find().pretty()"
+```
+
+---
+
 ## Implementation Plan for Diagnosing Silent NestJS Crash in GitHub Actions CI
 
 **Artifact ID:** 7d2e8b1a-9c5f-4d7c-a3e6-f2a3b4c5d678  

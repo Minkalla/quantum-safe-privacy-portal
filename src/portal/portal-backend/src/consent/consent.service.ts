@@ -18,7 +18,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { CreateConsentDto } from './dto/create-consent.dto';
 import { IConsent } from '../models/Consent';
-import { ObjectId } from 'mongodb';
 
 @Injectable()
 export class ConsentService {
@@ -32,21 +31,16 @@ export class ConsentService {
    * @returns Created or updated consent record.
    * @throws ConflictException if attempting to create duplicate consent with different granted status.
    */
-  async createConsent(createConsentDto: CreateConsentDto): Promise<{ consentId: string; userId: string; consentType: string; granted: boolean }> {
+  async createConsent(createConsentDto: CreateConsentDto): Promise<IConsent> {
     const { userId, consentType, granted, ipAddress, userAgent } = createConsentDto;
 
     const existingConsent = await this.consentModel.findOne({ userId, consentType });
-    
+
     if (existingConsent) {
       if (existingConsent.granted === granted) {
-        const timeDifference = Date.now() - existingConsent.updatedAt.getTime();
-        const fiveMinutesInMs = 5 * 60 * 1000;
-        
-        if (timeDifference < fiveMinutesInMs) {
-          throw new ConflictException('Consent record already exists with the same granted status');
-        }
+        throw new ConflictException('Consent record already exists with the same granted status');
       }
-      
+
       existingConsent.granted = granted;
       if (ipAddress !== undefined) {
         existingConsent.ipAddress = ipAddress;
@@ -54,15 +48,10 @@ export class ConsentService {
       if (userAgent !== undefined) {
         existingConsent.userAgent = userAgent;
       }
-      
+
       const updatedConsent = await existingConsent.save();
-      
-      return {
-        consentId: (updatedConsent._id as ObjectId).toString(),
-        userId: updatedConsent.userId,
-        consentType: updatedConsent.consentType,
-        granted: updatedConsent.granted,
-      };
+
+      return updatedConsent;
     }
 
     const consentData: any = {
@@ -70,7 +59,7 @@ export class ConsentService {
       consentType,
       granted,
     };
-    
+
     if (ipAddress !== undefined) {
       consentData.ipAddress = ipAddress;
     }
@@ -81,12 +70,7 @@ export class ConsentService {
 
     const savedConsent = await newConsent.save();
 
-    return {
-      consentId: (savedConsent._id as ObjectId).toString(),
-      userId: savedConsent.userId,
-      consentType: savedConsent.consentType,
-      granted: savedConsent.granted,
-    };
+    return savedConsent;
   }
 
   /**
@@ -97,7 +81,7 @@ export class ConsentService {
    */
   async getConsentByUserId(userId: string): Promise<IConsent[]> {
     const consents = await this.consentModel.find({ userId });
-    
+
     if (!consents || consents.length === 0) {
       throw new NotFoundException('No consent records found for this user');
     }

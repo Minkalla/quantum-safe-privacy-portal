@@ -15,16 +15,16 @@ describe('SecretsService', () => {
           useValue: {
             get: jest.fn((key: string) => {
               switch (key) {
-                case 'SKIP_SECRETS_MANAGER':
-                  return 'true';
-                case 'AWS_REGION':
-                  return 'us-east-1';
-                case 'JWT_ACCESS_SECRET_ID':
-                  return 'example/my-first-jwt-secret';
-                case 'JWT_REFRESH_SECRET_ID':
-                  return 'example/test-example-test';
-                default:
-                  return undefined;
+              case 'SKIP_SECRETS_MANAGER':
+                return 'true';
+              case 'AWS_REGION':
+                return 'us-east-1';
+              case 'JWT_ACCESS_SECRET_ID':
+                return 'example/my-first-jwt-secret';
+              case 'JWT_REFRESH_SECRET_ID':
+                return 'example/test-example-test';
+              default:
+                return undefined;
               }
             }),
           },
@@ -65,7 +65,7 @@ describe('SecretsService', () => {
 
       const accessResult = await service.getSecret('example/my-first-jwt-secret');
       const refreshResult = await service.getSecret('example/test-example-test');
-      
+
       expect(accessResult).toBe('DUMMY_SECRET_FOR_EXAMPLE_MY_FIRST_JWT_SECRET');
       expect(refreshResult).toBe('DUMMY_SECRET_FOR_EXAMPLE_TEST_EXAMPLE_TEST');
     });
@@ -78,7 +78,7 @@ describe('SecretsService', () => {
 
       const result1 = await service.getSecret('example/my-first-jwt-secret');
       const result2 = await service.getSecret('example/my-first-jwt-secret');
-      
+
       expect(result1).toBe(result2);
     });
   });

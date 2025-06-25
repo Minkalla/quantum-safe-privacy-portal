@@ -14,7 +14,7 @@
  * for API documentation.
  */
 
-import { Controller, Post, Body, Res, HttpCode, HttpStatus } from '@nestjs/common'; // Removed: UsePipes, ValidationPipe (unused imports)
+import { Controller, Post, Body, Res, HttpCode, HttpStatus, UnauthorizedException } from '@nestjs/common'; // Removed: UsePipes, ValidationPipe (unused imports)
 import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -183,7 +183,7 @@ export class AuthController {
    * x-threat-model:
    * - Brute-Force
    * - Credential Stuffing
-   * - Session Hijacking (via insecure Refresh Token handling)
+   * - Token Hijacking (via insecure Refresh Token handling)
    * - Rate Limiting
    * - Strong Password Policy
    * - DTO Validation
@@ -198,6 +198,29 @@ export class AuthController {
   @ApiResponse({ status: 403, description: 'Account locked.' })
   @ApiResponse({ status: 429, description: 'Too many login attempts.' })
   async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const sqlInjectionPatterns = [
+      /('|(\\'))/i,
+      /(;|\\;)/i,
+      /(--|\\--)/i,
+      /(\bOR\b|\bAND\b)/i,
+      /(\bUNION\b|\bSELECT\b)/i,
+      /(\bINSERT\b|\bUPDATE\b|\bDELETE\b)/i,
+      /(\bDROP\b|\bCREATE\b|\bALTER\b)/i,
+      /(\/\*|\*\/)/i,
+      /(\bEXEC\b|\bEXECUTE\b)/i
+    ];
+    
+    const containsSqlInjection = (input: string) => {
+      return sqlInjectionPatterns.some(pattern => pattern.test(input));
+    };
+    
+    if (!emailRegex.test(loginDto.email) || 
+        containsSqlInjection(loginDto.email) || 
+        containsSqlInjection(loginDto.password)) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
     const { accessToken, refreshToken, user } = await this.authService.login(loginDto);
 
     const cookieOptions = {
@@ -208,6 +231,12 @@ export class AuthController {
     };
     res.cookie('refreshToken', refreshToken, cookieOptions);
 
-    return { status: 'success', message: 'Logged in successfully', accessToken, user };
+    const response: any = { status: 'success', message: 'Logged in successfully', accessToken, user };
+
+    if (loginDto.rememberMe && refreshToken) {
+      response.refreshToken = refreshToken;
+    }
+
+    return response;
   }
 }
