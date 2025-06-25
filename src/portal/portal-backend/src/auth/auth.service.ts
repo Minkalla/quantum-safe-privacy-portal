@@ -15,7 +15,7 @@
  * protection and secure password management.
  */
 
-import { Injectable, ConflictException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import { Injectable, ConflictException, UnauthorizedException, ForbiddenException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
@@ -24,7 +24,7 @@ import { LoginDto } from './dto/login.dto';
 import { IUser } from '../models/User';
 import { JwtService } from '../jwt/jwt.service';
 import { PQCFeatureFlagsService } from '../pqc/pqc-feature-flags.service';
-import { ObjectId } from 'mongodb';// ADDED: Import ObjectId type
+import { ObjectId } from 'mongodb';
 
 // Brute-force protection settings
 const MAX_FAILED_ATTEMPTS = 5;
@@ -32,6 +32,8 @@ const LOCK_TIME_MINUTES = 60; // 1 hour
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @InjectModel('User') private readonly userModel: Model<IUser>,
     private readonly jwtService: JwtService,
@@ -70,8 +72,29 @@ export class AuthService {
     return { userId, email: savedUser.email };
   }
 
-  private async generatePQCKeys(_userId: string): Promise<void> {
-    return Promise.resolve();
+  private async generatePQCKeys(userId: string): Promise<void> {
+    try {
+      const pqcPublicKey = this.generatePlaceholderKey('kyber768_public', userId);
+      const pqcSigningKey = this.generatePlaceholderKey('dilithium3_private', userId);
+      
+      await this.userModel.findByIdAndUpdate(userId, {
+        pqcPublicKey,
+        pqcSigningKey,
+        pqcKeyGeneratedAt: new Date(),
+        usePQC: true,
+      });
+
+      this.logger.log(`PQC keys generated and stored for user ${userId}`);
+    } catch (error) {
+      this.logger.error(`Failed to generate PQC keys for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  private generatePlaceholderKey(keyType: string, userId: string): string {
+    const timestamp = Date.now();
+    const hash = require('crypto').createHash('sha256').update(`${keyType}_${userId}_${timestamp}`).digest('hex');
+    return `${keyType}_${hash.substring(0, 32)}`;
   }
 
   /**

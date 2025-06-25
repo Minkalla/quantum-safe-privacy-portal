@@ -42,7 +42,10 @@ export interface IUser extends Document {
   failedLoginAttempts?: number | null; // MODIFIED: Allowed null
   lockUntil?: Date | null; // MODIFIED: Allowed null
   refreshTokenHash?: string | null; // MODIFIED: Allowed null
-  // Future: PQC public keys, consent links, etc.
+  pqcPublicKey?: string | null; // PQC public key for Kyber-768 KEM
+  pqcSigningKey?: string | null; // PQC signing key for Dilithium-3
+  pqcKeyGeneratedAt?: Date | null; // Timestamp of PQC key generation
+  usePQC?: boolean; // Flag indicating if user is enrolled in PQC
 }
 
 /**
@@ -87,6 +90,24 @@ export const UserSchema = new Schema<IUser>( // MODIFIED: Added 'export' here
       type: String,
       default: null, // MODIFIED: Default to null
       select: false, // MODIFIED: Do not return by default on queries
+    },
+    pqcPublicKey: {
+      type: String,
+      default: null,
+      select: false, // Sensitive cryptographic material
+    },
+    pqcSigningKey: {
+      type: String,
+      default: null,
+      select: false, // Sensitive cryptographic material
+    },
+    pqcKeyGeneratedAt: {
+      type: Date,
+      default: null,
+    },
+    usePQC: {
+      type: Boolean,
+      default: false,
     },
   },
   {
