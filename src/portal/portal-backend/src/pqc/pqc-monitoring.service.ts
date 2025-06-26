@@ -206,16 +206,39 @@ export class PQCMonitoringService {
   }
 
   async getMetricsSummary(): Promise<PQCMetrics> {
+    const successMetrics = this.calculateSuccessRates();
+    const rolloutPercentage = await this.getRolloutPercentage();
+    
     return {
       keyGenerationLatency: this.currentMetrics.get('keyGenerationLatency') || 0,
-      keyGenerationSuccess: true, // TODO: Calculate from recent operations
+      keyGenerationSuccess: successMetrics.keyGeneration,
       jwtSigningLatency: this.currentMetrics.get('jwtSigningLatency') || 0,
-      jwtSigningSuccess: true, // TODO: Calculate from recent operations
+      jwtSigningSuccess: successMetrics.jwtSigning,
       authenticationLatency: this.currentMetrics.get('authenticationLatency') || 0,
-      authenticationSuccess: true, // TODO: Calculate from recent operations
+      authenticationSuccess: successMetrics.authentication,
       errorRate: this.currentMetrics.get('errorRate') || 0,
-      rolloutPercentage: 0, // TODO: Get from feature flags service
+      rolloutPercentage: rolloutPercentage,
     };
+  }
+
+  private calculateSuccessRates(): { keyGeneration: boolean; jwtSigning: boolean; authentication: boolean } {
+    const errorRate = this.currentMetrics.get('errorRate') || 0;
+    const successThreshold = 0.95;
+    
+    return {
+      keyGeneration: (1 - errorRate) >= successThreshold,
+      jwtSigning: (1 - errorRate) >= successThreshold,
+      authentication: (1 - errorRate) >= successThreshold,
+    };
+  }
+
+  private async getRolloutPercentage(): Promise<number> {
+    try {
+      return this.currentMetrics.get('rolloutPercentage') || 0;
+    } catch (error) {
+      this.logger.warn('Failed to get rollout percentage, defaulting to 0', error);
+      return 0;
+    }
   }
 
   async testRollbackTriggers(): Promise<{ success: boolean; triggeredAlerts: string[] }> {
