@@ -76,7 +76,7 @@ jobs:
         working-directory: src/portal/portal-backend
         env:
           PQC_ENABLED: 'true'
-        run: npm run test:integration || echo "WARNING: Integration tests skipped - mock mode"
+        run: npm run test:integration || echo "WARNING - Integration tests skipped - mock mode"
 
   # Job 3: Security PQC Validation
   security-pqc-validation:
@@ -129,7 +129,7 @@ jobs:
               \"key_generation_ms\": 0.0,
               \"signing_ms\": 0.0,
               \"verification_ms\": 0.0,
-              \"memory_usage_mb\": $(python3 -c \"import psutil; print(psutil.virtual_memory().used / (1024 * 1024))\")
+              \"memory_usage_mb\": $(python3 -c \"import psutil; print(int(psutil.virtual_memory().used / (1024 * 1024)))\")
             }
           }" > baselines/performance_baseline.json
           if [ ! -f "baselines/performance_baseline.json" ]; then
