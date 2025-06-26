@@ -251,9 +251,9 @@ jobs:
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sudo sh -s -- -b /usr/local/bin
           
           # Install OWASP ZAP for web application security testing
-          wget -q https://github.com/zaproxy/zaproxy/releases/download/v2.14.0/ZAP_2.14.0_Linux.tar.gz
-          tar -xzf ZAP_2.14.0_Linux.tar.gz
-          sudo mv ZAP_2.14.0 /opt/zaproxy
+          wget -q https://github.com/zaproxy/zaproxy/releases/download/v2.16.1/ZAP_2.16.1_Linux.tar.gz
+          tar -xzf ZAP_2.16.1_Linux.tar.gz
+          sudo mv ZAP_2.16.1 /opt/zaproxy
           sudo ln -s /opt/zaproxy/zap.sh /usr/local/bin/zap.sh
           
           # Verify installations
