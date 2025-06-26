@@ -39,7 +39,20 @@ getrandom = "0.2"
 base64 = "0.21"
 
 [features]
-default = ["kyber768", "dilithium3"]
+default = ["kyber768", "dilithium3", "avx2"]
 kyber768 = []
 dilithium3 = []
+avx2 = ["pqcrypto-mlkem/avx2", "pqcrypto-mldsa/avx2"]
+neon = ["pqcrypto-mlkem/neon", "pqcrypto-mldsa/neon"]
+serialization = ["pqcrypto-mlkem/serialization", "pqcrypto-mldsa/serialization"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[profile.bench]
+opt-level = 3
+debug = true
     
