@@ -3,13 +3,20 @@ import { MetricsCollectorService } from './metrics-collector.service';
 
 describe('MetricsCollectorService', () => {
   let service: MetricsCollectorService;
+  let module: TestingModule;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [MetricsCollectorService],
     }).compile();
 
     service = module.get<MetricsCollectorService>(MetricsCollectorService);
+  });
+
+  afterEach(async () => {
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should be defined', () => {
