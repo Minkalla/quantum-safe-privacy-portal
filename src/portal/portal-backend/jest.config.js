@@ -28,7 +28,6 @@ module.exports = {
         diagnostics: {
           ignoreCodes: [2304, 2593, 2769]
         },
-        isolatedModules: true,
         transpileOnly: true,
         compilerOptions: {
           esModuleInterop: true,
