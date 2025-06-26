@@ -10,25 +10,28 @@ This project is currently under active development as part of the Minkalla MVP.
 
 ## Overview
 
-QynAuth is a foundational component of the Minkalla ecosystem, providing a secure authentication layer with a placeholder for future quantum-safe cryptographic capabilities. This MVP focuses on delivering robust classical authentication and demonstrating the Rust/Python hybrid architecture.
+QynAuth is a foundational component of the Minkalla ecosystem, providing a secure authentication layer with **production-ready quantum-safe cryptographic capabilities**. This implementation integrates NIST-approved post-quantum cryptographic algorithms through a high-performance Rust/Python hybrid architecture.
 
-## Features (MVP)
+## Features (WBS 1.2.2 Implementation)
 
-* **User Registration API:** `POST /auth/register` for new user sign-up.
-* **User Login API:** `POST /auth/login` for user authentication, returning a simple JWT-like token.
-* **Quantum-Safe Crypto Placeholder:** Defines an interface for future integration of quantum-safe algorithms, demonstrated via a Rust component interaction.
-* **Rust/Python Hybrid Architecture:** Showcases interoperability between Python (FastAPI) and Rust (for performance-critical or cryptographic operations).
-* **Health Check:** `GET /health` to verify service operational status.
+* **User Registration API:** `POST /auth/register` for new user sign-up with quantum-safe key generation.
+* **User Login API:** `POST /auth/login` for user authentication with PQC-secured JWT tokens.
+* **NIST Post-Quantum Cryptography:** Production implementation of Kyber-768 (KEM) and Dilithium-3 (digital signatures).
+* **Rust PQC Library:** High-performance cryptographic operations with memory-safe FFI integration.
+* **Python FastAPI Layer:** RESTful API service with comprehensive error handling and validation.
+* **Hybrid Architecture:** Optimized performance with Rust handling cryptographic operations and Python managing API logic.
+* **Health Check:** `GET /health` to verify service operational status and PQC algorithm availability.
 * **API Documentation:** Built-in Swagger UI for easy API exploration, automatically redirecting from the root URL.
-* **Unit Tested:** Core API endpoints and authentication logic are covered by comprehensive unit tests.
+* **Comprehensive Testing:** Unit tests, integration tests, and PQC algorithm validation coverage.
 
 ## Getting Started
 
 ### Prerequisites
 
-* Python 3.10+ and Poetry installed.
-* Rust and Cargo installed.
-* **Recommended for Development:** GitHub Codespaces for a consistent, pre-configured cloud development environment. A `.devcontainer` configuration is included for seamless setup.
+* **Python 3.10+** and Poetry installed for FastAPI service layer.
+* **Rust 1.83.0+** and Cargo installed for PQC cryptographic operations.
+* **PQC Dependencies:** Automatically managed via Cargo.toml (pqcrypto-kyber v0.8.1, pqcrypto-dilithium v0.5.0).
+* **Development Environment:** Optimized for GitHub Codespaces with pre-configured PQC toolchain. A `.devcontainer` configuration is included for seamless setup.
 
 ### Local Development Setup (Using Codespaces)
 
