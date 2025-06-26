@@ -33,7 +33,8 @@ def test_register_user_conflict():
         "/auth/register", json={"username": "existinguser", "password": "password123"}
     )
     response = client.post(
-        "/auth/register", json={"username": "existinguser", "password": "newpassword"}
+        "/auth/register",
+        json={"username": "existinguser", "password": "newpassword"}
     )
     assert response.status_code == 409
     assert response.json()["detail"] == "Username already registered"
@@ -41,10 +42,12 @@ def test_register_user_conflict():
 
 def test_login_success():
     client.post(
-        "/auth/register", json={"username": "loginuser", "password": "loginpassword"}
+        "/auth/register",
+        json={"username": "loginuser", "password": "loginpassword"}
     )
     response = client.post(
-        "/auth/login", json={"username": "loginuser", "password": "loginpassword"}
+        "/auth/login",
+        json={"username": "loginuser", "password": "loginpassword"}
     )
     assert response.status_code == 200
     assert "access_token" in response.json()
@@ -68,7 +71,8 @@ def test_login_incorrect_password():
 
 def test_login_nonexistent_user():
     response = client.post(
-        "/auth/login", json={"username": "nonexistentuser", "password": "anypassword"}
+        "/auth/login",
+        json={"username": "nonexistentuser", "password": "anypassword"}
     )
     assert response.status_code == 401
     assert (
