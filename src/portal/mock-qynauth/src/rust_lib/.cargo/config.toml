@@ -1,7 +1,18 @@
 [build]
-target = "x86_64-unknown-linux-gnu"
+# Remove hardcoded target for cross-platform compatibility
 
 [target.x86_64-unknown-linux-gnu]
+rustflags = [
+  "-C", "target-cpu=native",
+  "-C", "target-feature=+aes,+sse2,+sse4.1,+popcnt"
+]
+
+[target.aarch64-unknown-linux-gnu]
+rustflags = [
+  "-C", "target-cpu=native"
+]
+
+[target.x86_64-apple-darwin]
 rustflags = [
   "-C", "target-cpu=native",
   "-C", "target-feature=+aes,+sse2,+sse4.1,+popcnt"

@@ -39,5 +39,7 @@ getrandom = "0.2"
 base64 = "0.21"
 
 [features]
-default = []
+default = ["kyber768", "dilithium3"]
+kyber768 = []
+dilithium3 = []
     
