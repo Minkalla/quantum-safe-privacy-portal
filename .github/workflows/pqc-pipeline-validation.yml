@@ -138,15 +138,18 @@ jobs:
         working-directory: monitoring
         run: |
           mkdir -p baselines
-          echo "{
-            \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
-            \"metrics\": {
-              \"key_generation_ms\": 0.0,
-              \"signing_ms\": 0.0,
-              \"verification_ms\": 0.0,
-              \"memory_usage_mb\": $(python3 -c \"import psutil; print(int(psutil.virtual_memory().used / (1024 * 1024)))\")
+          memory_usage=$(python3 -c "import psutil; print(int(psutil.virtual_memory().used / (1024 * 1024)))")
+          cat > baselines/performance_baseline.json <<'EOF'
+          {
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "metrics": {
+              "key_generation_ms": 0.0,
+              "signing_ms": 0.0,
+              "verification_ms": 0.0,
+              "memory_usage_mb": $memory_usage
             }
-          }" > baselines/performance_baseline.json
+          }
+          EOF
           if [ ! -f "baselines/performance_baseline.json" ]; then
             echo "ERROR: Performance baseline not created"
             exit 1
