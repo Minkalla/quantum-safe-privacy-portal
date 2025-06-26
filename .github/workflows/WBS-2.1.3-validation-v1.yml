@@ -297,3 +297,21 @@ jobs:
           echo "   - Current metrics captured"
           echo "   - Regression analysis completed"
           echo "✅ No performance regressions detected"
+
+      - name: Setup Node.js for quality gates
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: src/portal/portal-backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: |
+          cd src/portal/portal-backend
+          npm ci
+
+      - name: Quality Gates Validation
+        run: |
+          cd src/portal/portal-backend
+          npm run quality:check-debt
+          npm run quality:gates
