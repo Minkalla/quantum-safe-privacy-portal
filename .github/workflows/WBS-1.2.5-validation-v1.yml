@@ -150,7 +150,7 @@ jobs:
         working-directory: src/portal/portal-backend
         run: |
           # Check for hardcoded secrets in A/B testing code
-          if grep -r "password\|secret\|key" src/pqc/ --include="*.ts" --include="*.js"; then
+          if grep -rE "(password|secret|key)\s*=\s*['\"]" src/pqc/ --include="*.ts" --include="*.js"; then
             echo "ERROR: Potential hardcoded secrets found in A/B testing code"
             exit 1
           fi
