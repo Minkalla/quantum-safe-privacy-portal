@@ -25,6 +25,7 @@
     "resolveJsonModule": true, // As per feedback
     "composite": true, // As per feedback
     "moduleResolution": "node", // As per feedback
+    "isolatedModules": true, // Fix ts-jest deprecation warning
     "lib": ["es2021", "esnext"], // UPDATED: As per feedback, removed DOM for backend
     "types": ["jest", "node"] // UPDATED: Removed 'express' as NestJS manages it
   },

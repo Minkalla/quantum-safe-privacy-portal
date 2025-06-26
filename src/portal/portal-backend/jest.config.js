@@ -5,6 +5,8 @@ module.exports = {
   testMatch: [
     '<rootDir>/test/**/*.spec.ts',
     '<rootDir>/test/**/*.test.ts',
+    '<rootDir>/src/**/*.spec.ts',
+    '<rootDir>/src/**/*.test.ts',
   ],
   moduleFileExtensions: ['ts', 'js', 'json', 'node'],
   collectCoverage: true,
@@ -26,7 +28,6 @@ module.exports = {
         diagnostics: {
           ignoreCodes: [2304, 2593, 2769]
         },
-        isolatedModules: true,
         transpileOnly: true,
         compilerOptions: {
           esModuleInterop: true,
