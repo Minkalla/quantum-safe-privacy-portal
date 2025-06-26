@@ -32,6 +32,13 @@ export class PQCMonitoringService {
       maxMemoryUsage: this.configService.get<number>('PQC_MAX_MEMORY_MB') || 50 * 1024 * 1024, // 50MB memory threshold
     };
     this.initializeBaselines();
+    
+    try {
+      require('aws-xray-sdk-core');
+      this.logger.log('AWS X-Ray integration enabled for PQC monitoring');
+    } catch (error) {
+      this.logger.warn('AWS X-Ray not available, using basic monitoring only');
+    }
   }
 
   private initializeBaselines(): void {
@@ -45,6 +52,13 @@ export class PQCMonitoringService {
     const latency = Date.now() - startTime;
     
     try {
+      this.createXRaySegment('PQC_KeyGeneration', {
+        userId,
+        latency,
+        success,
+        algorithm: 'kyber768_dilithium3',
+      });
+      
       await this.sendCloudWatchMetric('PQC/KeyGeneration/Latency', latency, 'Milliseconds');
       await this.sendCloudWatchMetric('PQC/KeyGeneration/Success', success ? 1 : 0, 'Count');
       
@@ -61,6 +75,13 @@ export class PQCMonitoringService {
     const latency = Date.now() - startTime;
     
     try {
+      this.createXRaySegment('PQC_JWTSigning', {
+        userId,
+        latency,
+        success,
+        algorithm: 'dilithium3',
+      });
+      
       await this.sendCloudWatchMetric('PQC/JWT/SigningLatency', latency, 'Milliseconds');
       await this.sendCloudWatchMetric('PQC/JWT/SigningSuccess', success ? 1 : 0, 'Count');
       
@@ -163,6 +184,26 @@ export class PQCMonitoringService {
 
   private async sendWebhookNotification(alert: any): Promise<void> {
     this.logger.warn(`Webhook Alert: ${JSON.stringify(alert)}`);
+  }
+
+  private createXRaySegment(name: string, metadata: any): void {
+    try {
+      const AWSXRay = require('aws-xray-sdk-core');
+      const segment = new AWSXRay.Segment(name);
+      
+      segment.addMetadata('pqc', metadata);
+      segment.addAnnotation('operation', name);
+      segment.addAnnotation('success', metadata.success);
+      
+      if (metadata.latency) {
+        segment.addAnnotation('latency_ms', metadata.latency);
+      }
+      
+      segment.close();
+      this.logger.debug(`X-Ray segment created for ${name}`);
+    } catch (error) {
+      this.logger.warn(`Failed to create X-Ray segment for ${name}: Basic monitoring only`);
+    }
   }
 
   async getMetricsSummary(): Promise<PQCMetrics> {
