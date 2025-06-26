@@ -167,7 +167,6 @@ export class PQCMonitoringService {
 
   private async sendCloudWatchMetric(metricName: string, value: number, unit: string): Promise<void> {
     this.logger.debug(`CloudWatch Metric: ${metricName} = ${value} ${unit}`);
-    
   }
 
   private async sendSlackNotification(alert: any): Promise<void> {
@@ -223,10 +222,10 @@ export class PQCMonitoringService {
     const triggeredAlerts: string[] = [];
     
     try {
-      await this.recordErrorRate('test', 6, 100); // 6% error rate
+      await this.recordErrorRate('test', 6, 100);
       triggeredAlerts.push('HIGH_ERROR_RATE');
       
-      const startTime = Date.now() - 1000; // Simulate 1 second latency
+      const startTime = Date.now() - 1000;
       await this.recordPQCKeyGeneration('test-user', startTime, true);
       triggeredAlerts.push('PERFORMANCE_DEGRADATION');
       
