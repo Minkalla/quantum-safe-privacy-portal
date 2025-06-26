@@ -6,6 +6,9 @@ targets = [
 ]
 
 [licenses]
+# Use version 2 configuration format
+version = 2
+
 # Only allow compatible licenses
 allow = [
     "MIT",
@@ -15,19 +18,10 @@ allow = [
     "BSD-3-Clause",
     "ISC",
     "Unicode-DFS-2016",
+    "Unicode-3.0",
 ]
 
-# Deny GPL and other copyleft licenses
-deny = [
-    "GPL-2.0",
-    "GPL-3.0", 
-    "AGPL-1.0",
-    "AGPL-3.0",
-]
-
-# Require license information
-unlicensed = "deny"
-copyleft = "deny"
+# With version = 2, licenses not in allow list are automatically denied
 
 [bans]
 # Deny multiple versions of the same crate
@@ -48,19 +42,14 @@ skip-tree = [
 ]
 
 [advisories]
-# Deny crates with security vulnerabilities
-vulnerability = "deny"
-
-# Allow unmaintained transitive dependencies, fail on workspace dependencies
-unmaintained = "workspace"
-
-# Deny crates with unsound code
-unsound = "deny"
+# Use version 2 configuration format
+version = 2
 
 # Deny yanked crates
 yanked = "deny"
 
 # Ignore specific advisories if needed
 ignore = [
-    # Add specific advisory IDs to ignore
+    # Ignore unmaintained paste crate (transitive dependency, low risk)
+    "RUSTSEC-2024-0436",
 ]
