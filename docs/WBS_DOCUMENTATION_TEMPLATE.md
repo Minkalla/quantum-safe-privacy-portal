@@ -5,6 +5,18 @@
 **Usage**: Mandatory for all WBS tasks post-PR approval  
 **Approval Required**: User must approve before proceeding
 
+## 🎯 **MANDATORY POST-PR TASKS**
+
+After your PR is approved, you MUST complete these two tasks before marking the WBS as complete:
+
+### **Task 1: Complete WBS Documentation** (30 minutes)
+Use this template to document your WBS implementation with zero technical debt.
+
+### **Task 2: Execute Top 1% Quality Framework** (6.5 hours)
+Follow the comprehensive implementation guide in <ref_file file="/home/ubuntu/repos/quantum-safe-privacy-portal/docs/TOP_1_PERCENT_QUALITY_FRAMEWORK.md" /> to achieve top 1% quality standards.
+
+**Both tasks are mandatory and must be completed by every engineer post-PR approval.**
+
 ## Template Overview
 
 This template provides a standardized structure for documenting WBS implementations, ensuring consistency, completeness, and maintainability across all NIST PQC project tasks.
