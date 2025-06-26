@@ -17,3 +17,10 @@ rustflags = [
   "-C", "target-cpu=native",
   "-C", "target-feature=+aes,+sse2,+sse4.1,+popcnt"
 ]
+
+[alias]
+build-pqc = "build --features kyber768,dilithium3,avx2"
+build-all = "build --all-features"
+bench-pqc = "bench --features kyber768,dilithium3,avx2"
+check-security = "deny check"
+audit-deps = "audit"
