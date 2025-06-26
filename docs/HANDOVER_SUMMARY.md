@@ -47,6 +47,7 @@ docs/
 ├── feature_flag_strategy.md        # WBS 1.1.6 deliverable
 ├── portal_backend_interop.md       # WBS 1.1.7 deliverable
 ├── testing_environments.md        # WBS 1.2.4 deliverable
+├── CI_TESTING_STRATEGY.md         # MANDATORY CI testing framework for all WBS
 └── WBS_STATUS_REPORT.md           # Comprehensive status report
 ```
 
@@ -100,11 +101,20 @@ src/portal/portal-backend/
 
 ## What's Next (for next engineer)
 
+### 🚨 MANDATORY: CI Pipeline Approval Process
+**BEFORE SUBMITTING ANY PR**, you MUST:
+1. **Create WBS-specific CI pipeline** following `docs/CI_TESTING_STRATEGY.md`
+2. **Request user approval** for your CI pipeline design
+3. **Wait for approval** before PR submission
+4. **Use approved CI pipeline** in your PR
+
 ### Immediate Next Steps
 1. **Review PR #18**: WBS 1.2.4 testing environments ready for approval
 2. **Choose next WBS**: Either WBS 1.2.5 (A/B testing infrastructure) or WBS 1.3 (Core PQC implementation)
-3. **If WBS 1.3**: Replace `perform_quantum_safe_operation_placeholder` functions
-4. **If WBS 1.2.5**: Implement A/B testing infrastructure for gradual PQC rollout
+3. **Create CI pipeline** for chosen WBS following the mandatory strategy
+4. **Request CI approval** from user before proceeding with implementation
+5. **If WBS 1.3**: Replace `perform_quantum_safe_operation_placeholder` functions
+6. **If WBS 1.2.5**: Implement A/B testing infrastructure for gradual PQC rollout
 
 ### Key Files to Modify
 ```
@@ -123,6 +133,10 @@ ml-dsa = "0.1.0"
 ```
 
 ### Testing Strategy
+- **MANDATORY**: Follow `docs/CI_TESTING_STRATEGY.md` for all WBS implementations
+- **CI Pipeline Template**: Use `testing-environment-validation-v1.yml` as base template
+- **Three-Job Structure**: Environment setup → Integration testing → Security validation
+- **User Approval Required**: Get CI pipeline approved before PR submission
 - Use existing CI pipelines (PQC validation + testing environment validation)
 - Utilize isolated test databases: `pqc_test_dev_db` and `pqc_test_integration_db`
 - Follow migration strategy in `docs/migration_strategy.md`
@@ -166,9 +180,14 @@ cat docs/testing_environments.md         # Testing environment setup
 # 4. Review current PR status
 # PR #18: https://github.com/Minkalla/quantum-safe-privacy-portal/pull/18
 
-# 5. Choose next WBS task:
+# 5. MANDATORY: Follow CI testing strategy
+cat docs/CI_TESTING_STRATEGY.md     # Read mandatory CI requirements
+
+# 6. Choose next WBS task:
 # Option A: WBS 1.2.5 - A/B testing infrastructure
 # Option B: WBS 1.3 - Core PQC algorithm implementation
+
+# 7. BEFORE IMPLEMENTATION: Create and get approval for WBS-specific CI pipeline
 ```
 
 ---
