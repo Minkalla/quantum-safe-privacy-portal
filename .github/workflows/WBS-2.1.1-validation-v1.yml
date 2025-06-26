@@ -61,6 +61,7 @@ jobs:
       - name: Test PQC library availability and compatibility
         working-directory: ${{ github.workspace }}/src/portal/mock-qynauth/src/rust_lib
         run: |
+          mkdir -p /tmp/pqc_dependencies/research
           echo "🔍 Testing availability of NIST PQC libraries for research..."
           
           # Test current dependencies
@@ -134,6 +135,7 @@ jobs:
           echo "✅ Security research tools installed"
       - name: Validate Security Research Methodology
         run: |
+          mkdir -p /tmp/pqc_dependencies/research
           echo "🛡️ Validating security research methodology..."
           echo "# Security Research Methodology" > /tmp/pqc_dependencies/research/methodology.md
           echo "- Search and evaluate NIST PQC libraries (Kyber, Dilithium)" >> /tmp/pqc_dependencies/research/methodology.md
