@@ -8,7 +8,7 @@ on:
 jobs:
   # Job 1: Environment Setup Validation
   environment-setup-validation:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     services:
       mongodb:
         image: mongo:6.0
@@ -63,7 +63,7 @@ jobs:
 
   # Job 2: Integration Test Validation with Performance Monitoring
   integration-test-validation:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: environment-setup-validation
     services:
       mongodb:
@@ -236,7 +236,7 @@ jobs:
 
   # Job 3: Security Environment Validation
   security-environment-validation:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: integration-test-validation
     steps:
       - uses: actions/checkout@v4
