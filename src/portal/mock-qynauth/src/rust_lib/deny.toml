@@ -51,8 +51,8 @@ skip-tree = [
 # Deny crates with security vulnerabilities
 vulnerability = "deny"
 
-# Deny crates that are unmaintained
-unmaintained = "warn"
+# Allow unmaintained transitive dependencies, fail on workspace dependencies
+unmaintained = "workspace"
 
 # Deny crates with unsound code
 unsound = "deny"
