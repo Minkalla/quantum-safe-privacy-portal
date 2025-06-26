@@ -5,7 +5,7 @@ edition = "2021"
 
 [lib]
 name = "qynauth_pqc"
-crate-type = ["cdylib", "rlib"]
+crate-type = ["cdylib", "rlib", "staticlib"]
 
 [dependencies]
 # NIST PQC Algorithms (Updated to maintained versions)
