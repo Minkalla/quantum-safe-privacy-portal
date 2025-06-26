@@ -77,11 +77,11 @@ export class AuthService {
   private async generatePQCKeys(userId: string): Promise<void> {
     const startTime = Date.now();
     let success = false;
-    
+
     try {
       const pqcPublicKey = this.generatePlaceholderKey('kyber768_public', userId);
       const pqcSigningKey = this.generatePlaceholderKey('dilithium3_private', userId);
-      
+
       await this.userModel.findByIdAndUpdate(userId, {
         pqcPublicKey,
         pqcSigningKey,

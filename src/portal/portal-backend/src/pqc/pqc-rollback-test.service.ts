@@ -47,19 +47,19 @@ export class PQCRollbackTestService {
 
     try {
       await this.pqcMonitoring.recordErrorRate('keyGeneration', 10, 100);
-      
+
       return {
         testName,
         success: true,
         triggeredRollback: true,
-        details: { errorRate: 10, threshold: 5, expected: 'rollback' }
+        details: { errorRate: 10, threshold: 5, expected: 'rollback' },
       };
     } catch (error: any) {
       return {
         testName,
         success: false,
         triggeredRollback: false,
-        details: { error: error.message }
+        details: { error: error.message },
       };
     }
   }
@@ -72,27 +72,27 @@ export class PQCRollbackTestService {
       const baselineLatency = 100; // 100ms baseline
       const degradedLatency = 300; // 300ms = 200% increase
       const startTime = Date.now() - degradedLatency;
-      
+
       await this.pqcMonitoring.recordPQCKeyGeneration('test-user-perf', startTime, true);
-      
+
       return {
         testName,
         success: true,
         triggeredRollback: true,
-        details: { 
-          baselineLatency, 
-          actualLatency: degradedLatency, 
+        details: {
+          baselineLatency,
+          actualLatency: degradedLatency,
           increase: '200%',
           threshold: '50%',
-          expected: 'rollback'
-        }
+          expected: 'rollback',
+        },
       };
     } catch (error: any) {
       return {
         testName,
         success: false,
         triggeredRollback: false,
-        details: { error: error.message }
+        details: { error: error.message },
       };
     }
   }
@@ -105,25 +105,25 @@ export class PQCRollbackTestService {
       const memoryUsage = process.memoryUsage();
       const heapUsedMB = memoryUsage.heapUsed / 1024 / 1024;
       const thresholdMB = 50;
-      
+
       const exceedsThreshold = heapUsedMB > thresholdMB;
-      
+
       return {
         testName,
         success: true,
         triggeredRollback: exceedsThreshold,
-        details: { 
-          heapUsedMB: Math.round(heapUsedMB), 
+        details: {
+          heapUsedMB: Math.round(heapUsedMB),
           thresholdMB,
-          exceedsThreshold
-        }
+          exceedsThreshold,
+        },
       };
     } catch (error: any) {
       return {
         testName,
         success: false,
         triggeredRollback: false,
-        details: { error: error.message }
+        details: { error: error.message },
       };
     }
   }
@@ -139,30 +139,30 @@ export class PQCRollbackTestService {
       for (let i = 0; i < concurrentUsers; i++) {
         const userId = `test-user-${i}`;
         const startTime = Date.now();
-        
+
         promises.push(
-          this.pqcMonitoring.recordPQCKeyGeneration(userId, startTime, Math.random() > 0.1) // 90% success rate
+          this.pqcMonitoring.recordPQCKeyGeneration(userId, startTime, Math.random() > 0.1), // 90% success rate
         );
       }
 
       await Promise.all(promises);
-      
+
       return {
         testName,
         success: true,
         triggeredRollback: false, // Should not trigger rollback with 90% success
-        details: { 
+        details: {
           concurrentUsers,
           successRate: '90%',
-          expected: 'no rollback'
-        }
+          expected: 'no rollback',
+        },
       };
     } catch (error: any) {
       return {
         testName,
         success: false,
         triggeredRollback: false,
-        details: { error: error.message }
+        details: { error: error.message },
       };
     }
   }
@@ -190,18 +190,18 @@ export class PQCRollbackTestService {
         testName,
         success: true,
         triggeredRollback: false, // Feature flags are working as expected
-        details: { 
+        details: {
           initialState,
           rollbackState,
-          consistent: true
-        }
+          consistent: true,
+        },
       };
     } catch (error: any) {
       return {
         testName,
         success: false,
         triggeredRollback: false,
-        details: { error: error.message }
+        details: { error: error.message },
       };
     }
   }
@@ -227,7 +227,7 @@ export class PQCRollbackTestService {
 
       return {
         isReady: issues.length === 0,
-        issues
+        issues,
       };
     } catch (error: any) {
       issues.push(`Rollback validation failed: ${error.message}`);
