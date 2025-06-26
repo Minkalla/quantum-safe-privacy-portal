@@ -2,18 +2,24 @@
 
 ## Deployment Guide: Minkalla Quantum-Safe Privacy Portal Backend
 
-This document provides step-by-step instructions for deploying the backend in local, staging, and production environments.
+This document provides step-by-step instructions for deploying the backend in local, staging, and production environments, including the WBS 1.2.2 Rust toolchain with NIST Post-Quantum Cryptography (PQC) dependencies.
 
 ---
 
 ## 1. Local Development (Docker Compose)
-- **Prerequisites:** Docker Desktop, Node.js, npm
+- **Prerequisites:** Docker Desktop, Node.js, npm, Rust 1.83.0+, Poetry
 - **Steps:**
   1. Clone the repository
   2. Copy `.env.example` to `.env` and fill in required values
-  3. Run `docker compose up --build` in `src/portal/portal-backend/`
-  4. Access backend at `http://localhost:8080/`
-  5. Access Swagger UI at `http://localhost:8080/api-docs/`
+  3. **Build Rust PQC Library (WBS 1.2.2):**
+     ```bash
+     cd src/portal/mock-qynauth/src/rust_lib
+     cargo build --features kyber768,dilithium3
+     ```
+  4. Run `docker compose up --build` in `src/portal/portal-backend/`
+  5. Access backend at `http://localhost:8080/`
+  6. Access Swagger UI at `http://localhost:8080/api-docs/`
+  7. **QynAuth PQC Service:** `http://localhost:3001/docs`
 
 ---
 
@@ -37,7 +43,10 @@ This document provides step-by-step instructions for deploying the backend in lo
 
 ## 4. CI/CD Integration
 - The main workflow is `.github/workflows/backend.yml`
+- **WBS 1.2.2 Rust PQC Validation:** `.github/workflows/ci-cd-validation.yml`
 - CI/CD handles build, test, SAST/DAST scans, and artifact upload
+- **PQC Dependencies:** Validates pqcrypto-kyber v0.8.1, pqcrypto-dilithium v0.5.0
+- **Rust Toolchain:** Automated build, lint, and script validation
 
 ---
 
@@ -47,4 +56,4 @@ This document provides step-by-step instructions for deploying the backend in lo
 
 ---
 
-_Last updated: 2025-06-21_
+_Last updated: 2025-06-26 (WBS 1.2.2 Rust PQC Integration)_

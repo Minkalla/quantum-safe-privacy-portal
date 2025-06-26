@@ -10,7 +10,9 @@
     }
   ],
   "settings": {
-    "rust-analyzer.cargo.features": ["pqc-kyber", "pqc-dilithium"],
-    "rust-analyzer.checkOnSave.command": "clippy"
+    "rust-analyzer.cargo.features": ["kyber768", "dilithium3"],
+    "rust-analyzer.checkOnSave.command": "clippy",
+    "rust-analyzer.cargo.buildScripts.enable": true,
+    "rust-analyzer.procMacro.enable": true
   }
 }

@@ -2,7 +2,11 @@
 
 ## Minkalla Quantum-Safe Privacy Portal: Troubleshooting Knowledge Base
 
-This document serves as the definitive technical troubleshooting and debugging knowledge base for the backend and CI/CD pipeline. It is designed to help engineers quickly diagnose, resolve, and understand issues encountered during development, testing, and deployment.
+This document serves as the definitive technical troubleshooting and debugging knowledge base for the backend, Rust PQC library, and CI/CD pipeline. It is designed to help engineers quickly diagnose, resolve, and understand issues encountered during development, testing, and deployment.
+
+### WBS 1.2.2 Rust Toolchain Integration
+
+Following WBS 1.2.2 completion, the project now includes NIST-approved Post-Quantum Cryptography (PQC) capabilities through a Rust library with pqcrypto-kyber v0.8.1 and pqcrypto-dilithium v0.5.0 dependencies. This adds new debugging considerations for hybrid Python/Rust architecture.
 
 ---
 

@@ -4,7 +4,8 @@
 
 This document provides step-by-step technical instructions for setting up, configuring, and verifying all observability and security scanning tools integrated into the backend. It is intended for developers, DevOps, and security engineers.
 
-**Current Status**: ✅ **100% E2E Test Observability** (57/57 tests passing with comprehensive monitoring)
+**Current Status**: ✅ **100% E2E Test Observability** (57/57 tests passing with comprehensive monitoring)  
+**WBS 1.2.2 Status**: ✅ **Rust Toolchain with PQC Dependencies Configured** - NIST-approved post-quantum cryptographic monitoring ready
 
 ---
 
@@ -70,15 +71,18 @@ This document provides step-by-step technical instructions for setting up, confi
 ## 4. Enhanced Trivy SAST Scanning
 
 ### Core Static Analysis
-- **Purpose:** Static Application Security Testing (SAST) for Docker images.
+- **Purpose:** Static Application Security Testing (SAST) for Docker images and Rust dependencies.
 - **Setup:**
   - Trivy is configured in `.github/workflows/backend.yml` to scan the backend Docker image after build.
+  - **WBS 1.2.2 Enhancement:** Rust PQC dependencies (pqcrypto-kyber v0.8.1, pqcrypto-dilithium v0.5.0) included in security scanning
   - The scan outputs results in table format to `src/portal/portal-backend/trivy-results.txt`.
   - The scan is set to `continue-on-error: true` to allow the pipeline to proceed even if vulnerabilities are found.
 
 ### E2E Testing Integration
 - **ValidationPipe Security:** Trivy scans validate secure error handling implementation
 - **Authentication Dependencies:** All JWT and bcrypt dependencies scanned for vulnerabilities
+- **PQC Dependencies Security:** NIST post-quantum cryptographic libraries validated for vulnerabilities
+- **Rust Toolchain Security:** Cargo dependencies and build configurations scanned
 - **E2E Test Dependencies:** Cypress and testing framework dependencies validated
 - **Container Security:** Docker images used in E2E testing scanned for vulnerabilities
 
@@ -158,4 +162,4 @@ This document provides step-by-step technical instructions for setting up, confi
 
 ---
 
-_Last updated: 2025-06-24 (Sub-task 1.5.6d completion - 100% E2E test observability)_
+_Last updated: 2025-06-26 (WBS 1.2.2 completion - Rust toolchain with PQC dependencies configured, enhanced security scanning for post-quantum cryptography)_

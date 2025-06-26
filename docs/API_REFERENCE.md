@@ -1,9 +1,9 @@
 # API Reference: Minkalla Quantum-Safe Privacy Portal Backend
 
 **Artifact ID**: API_REFERENCE  
-**Version ID**: v2.0  
-**Date**: June 24, 2025  
-**Objective**: Comprehensive API documentation with detailed schemas, authentication flows, and E2E testing insights from Sub-task 1.5.6d (100% test success rate).
+**Version ID**: v2.1  
+**Date**: June 26, 2025  
+**Objective**: Comprehensive API documentation with detailed schemas, authentication flows, E2E testing insights from Sub-task 1.5.6d (100% test success rate), and WBS 1.2.2 Rust toolchain configuration with NIST PQC dependencies.
 
 This document provides detailed API endpoint documentation, including request/response schemas, authentication flows, validation requirements, and error handling patterns. For interactive documentation, see the Swagger UI at `/api-docs` when running the backend.
 
@@ -70,6 +70,7 @@ This document provides detailed API endpoint documentation, including request/re
 - **Case-Insensitive Email**: Supports uppercase/lowercase email variations
 - **SQL Injection Protection**: Returns 401 for injection attempts (not 400)
 - **Brute Force Protection**: Account lockout after multiple failed attempts
+- **Quantum-Safe Cryptography**: Integration with QynAuth PQC service using NIST-approved Kyber-768 and Dilithium-3 algorithms (WBS 1.2.2)
 
 **Error Responses:**
 - `401 Unauthorized`: Invalid credentials or SQL injection attempts
@@ -286,12 +287,13 @@ The API uses a custom ValidationPipe configuration that ensures exact error mess
 
 ## 🔄 Version History
 
+- **v2.1** (June 26, 2025): Added WBS 1.2.2 Rust toolchain configuration with NIST PQC dependencies, quantum-safe authentication integration
 - **v2.0** (June 24, 2025): Complete rewrite with E2E testing insights, detailed schemas, and security documentation
 - **v1.0** (June 21, 2025): Initial API reference with basic endpoint information
 
 ---
 
 **Document Maintainer**: Minkalla Development Team  
-**Last Updated**: June 24, 2025  
-**Next Review**: July 24, 2025  
-**Related Documents**: `docs/E2E_TESTING_BEST_PRACTICES.md`, `docs/VALIDATION_CONTRACTS.md`
+**Last Updated**: June 26, 2025  
+**Next Review**: July 26, 2025  
+**Related Documents**: `docs/E2E_TESTING_BEST_PRACTICES.md`, `docs/VALIDATION_CONTRACTS.md`, `/tmp/pqc_environment/rust_toolchain_config.md`
