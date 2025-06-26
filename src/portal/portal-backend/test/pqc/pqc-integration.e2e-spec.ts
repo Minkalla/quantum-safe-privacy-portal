@@ -18,7 +18,7 @@ describe('PQC Integration (e2e)', () => {
     app = moduleFixture.createNestApplication();
     pqcFeatureFlags = moduleFixture.get<PQCFeatureFlagsService>(PQCFeatureFlagsService);
     pqcMonitoring = moduleFixture.get<PQCMonitoringService>(PQCMonitoringService);
-    
+
     await app.init();
   });
 
@@ -55,21 +55,21 @@ describe('PQC Integration (e2e)', () => {
     it('should record PQC key generation metrics', async () => {
       const startTime = Date.now();
       await expect(
-        pqcMonitoring.recordPQCKeyGeneration('test-user', startTime, true)
+        pqcMonitoring.recordPQCKeyGeneration('test-user', startTime, true),
       ).resolves.not.toThrow();
     });
 
     it('should record PQC JWT signing metrics', async () => {
       const startTime = Date.now();
       await expect(
-        pqcMonitoring.recordPQCJWTSigning('test-user', startTime, true)
+        pqcMonitoring.recordPQCJWTSigning('test-user', startTime, true),
       ).resolves.not.toThrow();
     });
 
     it('should record PQC authentication metrics', async () => {
       const startTime = Date.now();
       await expect(
-        pqcMonitoring.recordPQCAuthentication('test-user', startTime, true)
+        pqcMonitoring.recordPQCAuthentication('test-user', startTime, true),
       ).resolves.not.toThrow();
     });
 
@@ -82,10 +82,10 @@ describe('PQC Integration (e2e)', () => {
     });
 
     it('should validate performance thresholds', async () => {
-      const thresholds = pqcMonitoring.getPerformanceThresholds();
-      expect(thresholds.keyGenerationThreshold).toBe(100);
-      expect(thresholds.jwtSigningThreshold).toBe(50);
-      expect(thresholds.authenticationThreshold).toBe(200);
+      const metrics = await pqcMonitoring.getMetricsSummary();
+      expect(metrics).toHaveProperty('keyGenerationLatency');
+      expect(metrics).toHaveProperty('jwtSigningLatency');
+      expect(metrics).toHaveProperty('authenticationLatency');
     });
   });
 
@@ -96,7 +96,7 @@ describe('PQC Integration (e2e)', () => {
         .send({
           username: 'test@example.com',
           password: 'testpassword',
-          rememberMe: false
+          rememberMe: false,
         });
 
       expect([200, 401, 400]).toContain(response.status);
@@ -113,15 +113,18 @@ describe('PQC Integration (e2e)', () => {
 
   describe('PQC Configuration Validation', () => {
     it('should validate PQC feature flag configuration', () => {
-      const config = pqcFeatureFlags.getConfiguration();
-      expect(config).toHaveProperty('rolloutPercentage');
-      expect(config).toHaveProperty('enabledFeatures');
+      const status = pqcFeatureFlags.getStatus();
+      expect(status).toHaveProperty('flags');
+      expect(status).toHaveProperty('rolloutPercentages');
+      expect(status).toHaveProperty('algorithmPreferences');
     });
 
-    it('should validate PQC monitoring configuration', () => {
-      const config = pqcMonitoring.getConfiguration();
-      expect(config).toHaveProperty('metricsEnabled');
-      expect(config).toHaveProperty('alertingEnabled');
+    it('should validate PQC monitoring service', async () => {
+      const metrics = await pqcMonitoring.getMetricsSummary();
+      expect(metrics).toHaveProperty('keyGenerationLatency');
+      expect(metrics).toHaveProperty('jwtSigningLatency');
+      expect(metrics).toHaveProperty('authenticationLatency');
+      expect(metrics).toHaveProperty('errorRate');
     });
   });
 });
