@@ -38,6 +38,13 @@ getrandom = "0.2"
 # Encoding
 base64 = "0.21"
 
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "pqc_benchmarks"
+harness = false
+
 [features]
 default = ["kyber768", "dilithium3", "avx2"]
 kyber768 = []
