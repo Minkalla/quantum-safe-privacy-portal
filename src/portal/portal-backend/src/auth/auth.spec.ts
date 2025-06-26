@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { JwtService } from '../jwt/jwt.service';
+import { PQCFeatureFlagsService } from '../pqc/pqc-feature-flags.service';
+import { PQCMonitoringService } from '../pqc/pqc-monitoring.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { ConflictException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
@@ -31,6 +33,18 @@ describe('AuthService', () => {
               accessToken: 'mock-access-token',
               refreshToken: 'mock-refresh-token',
             }),
+          },
+        },
+        {
+          provide: PQCFeatureFlagsService,
+          useValue: {
+            isEnabled: jest.fn().mockReturnValue(false),
+          },
+        },
+        {
+          provide: PQCMonitoringService,
+          useValue: {
+            recordPQCKeyGeneration: jest.fn().mockResolvedValue(undefined),
           },
         },
         {

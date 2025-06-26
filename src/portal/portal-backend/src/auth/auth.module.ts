@@ -18,14 +18,16 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthController } from './auth.controller';
-import { AuthService } from './auth.service'; // REVERTED: Removed .js extension
+import { AuthService } from './auth.service';
 import { UserSchema } from '../models/User';
 import { JwtModule } from '../jwt/jwt.module';
+import { PQCFeatureFlagsModule } from '../pqc/pqc-feature-flags.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]),
     JwtModule,
+    PQCFeatureFlagsModule,
   ],
   controllers: [AuthController],
   providers: [AuthService],

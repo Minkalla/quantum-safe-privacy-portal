@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from './jwt.service';
 import { ConfigService } from '@nestjs/config';
 import { SecretsService } from '../secrets/secrets.service';
+import { PQCFeatureFlagsService } from '../pqc/pqc-feature-flags.service';
+import { PQCMonitoringService } from '../pqc/pqc-monitoring.service';
 
 describe('JwtService', () => {
   let service: JwtService;
@@ -20,6 +22,18 @@ describe('JwtService', () => {
           provide: SecretsService,
           useValue: {
             getSecret: jest.fn().mockResolvedValue('mock-secret'),
+          },
+        },
+        {
+          provide: PQCFeatureFlagsService,
+          useValue: {
+            isEnabled: jest.fn().mockReturnValue(false),
+          },
+        },
+        {
+          provide: PQCMonitoringService,
+          useValue: {
+            recordPQCJWTSigning: jest.fn().mockResolvedValue(undefined),
           },
         },
       ],

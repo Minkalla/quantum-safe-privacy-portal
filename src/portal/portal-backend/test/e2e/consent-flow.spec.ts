@@ -6,6 +6,8 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ConsentModule } from '../../src/consent/consent.module';
 import { AuthModule } from '../../src/auth/auth.module';
 import { JwtModule } from '../../src/jwt/jwt.module';
+import { PQCFeatureFlagsService } from '../../src/pqc/pqc-feature-flags.service';
+import { PQCMonitoringService } from '../../src/pqc/pqc-monitoring.service';
 import { ConsentType } from '../../src/consent/dto/create-consent.dto';
 import { JwtService } from '../../src/jwt/jwt.service';
 import { AuthService } from '../../src/auth/auth.service';
@@ -47,6 +49,14 @@ describe('E2E Consent Flow Tests', () => {
           accessToken: 'e2e-access-token',
           refreshToken: 'e2e-refresh-token',
         }),
+      })
+      .overrideProvider(PQCFeatureFlagsService)
+      .useValue({
+        isEnabled: jest.fn().mockReturnValue(false),
+      })
+      .overrideProvider(PQCMonitoringService)
+      .useValue({
+        recordPQCKeyGeneration: jest.fn().mockResolvedValue(undefined),
       })
       .compile();
 

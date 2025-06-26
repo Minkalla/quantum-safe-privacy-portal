@@ -27,6 +27,7 @@ import { JwtModule } from './jwt/jwt.module';
 import { SecretsModule } from './secrets/secrets.module';
 import { ConsentModule } from './consent/consent.module';
 import { ConfigModule } from './config/config.module';
+import { PQCFeatureFlagsModule } from './pqc/pqc-feature-flags.module';
 
 // Removed: import * as AWSXRay from 'aws-xray-sdk'; // REMOVED as per plan
 
@@ -65,6 +66,7 @@ import { ConfigModule } from './config/config.module';
     JwtModule,
     SecretsModule,
     ConsentModule,
+    PQCFeatureFlagsModule,
   ],
   controllers: [],
   providers: [],
