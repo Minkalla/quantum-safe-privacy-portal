@@ -23,8 +23,8 @@ jobs:
       - name: Verify PQC dependencies
         working-directory: src/portal/mock-qynauth/src/rust_lib
         run: |
-          if ! grep -q "pqcrypto-kyber" Cargo.toml || ! grep -q "pqcrypto-dilithium" Cargo.toml; then
-            echo "ERROR: PQC dependencies (pqcrypto-kyber, pqcrypto-dilithium) not found in Cargo.toml"
+          if ! grep -q "pqcrypto-mlkem" Cargo.toml || ! grep -q "pqcrypto-mldsa" Cargo.toml; then
+            echo "ERROR: PQC dependencies (pqcrypto-mlkem, pqcrypto-mldsa) not found in Cargo.toml"
             exit 1
           fi
           cargo update
