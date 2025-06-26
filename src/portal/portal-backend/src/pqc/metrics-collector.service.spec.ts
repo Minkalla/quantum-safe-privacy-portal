@@ -6,6 +6,8 @@ describe('MetricsCollectorService', () => {
   let module: TestingModule;
 
   beforeEach(async () => {
+    jest.useFakeTimers();
+    
     module = await Test.createTestingModule({
       providers: [MetricsCollectorService],
     }).compile();
@@ -17,6 +19,11 @@ describe('MetricsCollectorService', () => {
     if (module) {
       await module.close();
     }
+    jest.clearAllTimers();
+  });
+
+  afterAll(() => {
+    jest.useRealTimers();
   });
 
   it('should be defined', () => {

@@ -7,15 +7,28 @@ describe('RollbackSystemService', () => {
   let service: RollbackSystemService;
   let abTestingService: ABTestingService;
   let metricsCollector: MetricsCollectorService;
+  let module: TestingModule;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    jest.useFakeTimers();
+    module = await Test.createTestingModule({
       providers: [RollbackSystemService, ABTestingService, MetricsCollectorService],
     }).compile();
 
     service = module.get<RollbackSystemService>(RollbackSystemService);
     abTestingService = module.get<ABTestingService>(ABTestingService);
     metricsCollector = module.get<MetricsCollectorService>(MetricsCollectorService);
+  });
+
+  afterEach(async () => {
+    if (module) {
+      await module.close();
+    }
+    jest.clearAllTimers();
+  });
+
+  afterAll(() => {
+    jest.useRealTimers();
   });
 
   it('should be defined', () => {
