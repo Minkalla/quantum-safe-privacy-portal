@@ -1,10 +1,10 @@
+import hashlib
+import logging
+import secrets
+import subprocess  # For quantum-safe crypto placeholder
+
 from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel
-import secrets
-import hashlib
-import subprocess # For quantum-safe crypto placeholder
-import json
-import logging
 
 # Add this import for redirection
 from starlette.responses import RedirectResponse
@@ -15,31 +15,38 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="QynAuth MVP API",
-    description="Minimal Secure Classical Authentication with Quantum-Safe Crypto Placeholder",
+    description="Minimal Secure Classical Authentication with Quantum-Safe Crypto Placeholder",  # noqa: E501
     version="0.1.0",
 )
 
 # In-memory user store for MVP simplicity (replace with DB later)
 # Store hashed passwords and associated JWT tokens
-users_db = {} # { "username": {"hashed_password": "...", "salt": "...", "token": "..."} }
+users_db = (
+    {}
+)  # { "username": {"hashed_password": "...", "salt": "...", "token": "..."} }
+
 
 # Pydantic models for request/response bodies
 class RegisterPayload(BaseModel):
     username: str
     password: str
 
+
 class LoginPayload(BaseModel):
     username: str
     password: str
+
 
 class AuthTokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
+
 # New route to redirect from root to /docs
 @app.get("/")
 async def redirect_to_docs():
     return RedirectResponse(url="/docs")
+
 
 @app.get("/health", response_model=dict)
 async def health_check():
@@ -51,7 +58,12 @@ async def health_check():
     logger.info("Health check requested.")
     return {"status": "ok", "message": "QynAuth API is running!"}
 
-@app.post("/auth/register", response_model=AuthTokenResponse, status_code=status.HTTP_201_CREATED)
+
+@app.post(
+    "/auth/register",
+    response_model=AuthTokenResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def register(payload: RegisterPayload):
     """
     Registers a new user with a username and password.
@@ -64,13 +76,15 @@ async def register(payload: RegisterPayload):
         logger.warning(f"Registration attempt for existing user: {username}")
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Username already registered"
+            detail="Username already registered",  # noqa: E501
         )
 
     # Generate a random salt
     salt = secrets.token_hex(16)
     # Hash the password with the salt
-    hashed_password = hashlib.sha256((password + salt).encode('utf-8')).hexdigest()
+    hashed_password = hashlib.sha256(
+        (password + salt).encode("utf-8")
+    ).hexdigest()  # noqa: E501
 
     # Generate a simple placeholder JWT token (for MVP simplicity)
     # In a real app, this would be a properly signed JWT or quantum-safe token
@@ -79,41 +93,53 @@ async def register(payload: RegisterPayload):
     users_db[username] = {
         "hashed_password": hashed_password,
         "salt": salt,
-        "token": jwt_token
+        "token": jwt_token,
     }
 
     logger.info(f"User {username} registered successfully.")
 
-    # Simulate quantum-safe key generation/exchange (placeholder call to Rust/external process)
+    # Simulate quantum-safe key generation/exchange (placeholder call to Rust/external process)  # noqa: E501
     try:
         # For MVP, simulate a successful call
-        # In real scenario, this would call out to Rust via FFI, e.g., using python-rust-fastapi binding or direct FFI
-        # As per handover, robust subprocess simulation in main.py for MVP
-        # Example: subprocess.run(['./rust_lib_executable', 'generate_keys'], check=True, capture_output=True)
-        logger.info(f"Simulating quantum-safe key generation for user {username}")
-        # Ensure the path to the Rust executable is correct relative to where the FastAPI app runs
+        # In real scenario, this would call out to Rust via FFI, e.g., using python-rust-fastapi binding or direct FFI  # noqa: E501
+        # As per handover, robust subprocess simulation in main.py for MVP  # noqa: E501
+        # Example: subprocess.run(['./rust_lib_executable', 'generate_keys'], check=True, capture_output=True)  # noqa: E501
+        logger.info(
+            f"Simulating quantum-safe key generation for user {username}"
+        )  # noqa: E501
+        # Ensure the path to the Rust executable is correct relative to where the FastAPI app runs  # noqa: E501
         # The rust_lib executable needs to be built and accessible
         # For MVP, we'll just log success
 
         # Placeholder for future quantum-safe crypto bridge
         # Example using a subprocess call:
-        # rust_exec_path = "../rust_lib/target/debug/rust_lib" # Adjust path based on your build output
-        # result = subprocess.run([rust_exec_path, "generate_keys", username], capture_output=True, text=True, check=True)
-        # logger.info(f"Quantum-safe key generation simulation result: {result.stdout.strip()}")
-        pass # Placeholder for actual subprocess call
+        # rust_exec_path = "../rust_lib/target/debug/rust_lib" # Adjust path based on your build output  # noqa: E501
+        # result = subprocess.run([rust_exec_path, "generate_keys", username], capture_output=True, text=True, check=True)  # noqa: E501
+        # logger.info(f"Quantum-safe key generation simulation result: {result.stdout.strip()}")  # noqa: E501
+        pass  # Placeholder for actual subprocess call
     except FileNotFoundError:
-        logger.error("Rust executable not found for quantum-safe key generation. Ensure it's built and path is correct.")
+        logger.error(
+            "Rust executable not found for quantum-safe key generation. "
+            "Ensure it's built and path is correct."
+        )
     except subprocess.CalledProcessError as e:
-        logger.error(f"Error during quantum-safe key generation simulation: {e.stderr.strip()}")
+        logger.error(
+            f"Error during quantum-safe key generation simulation: "
+            f"{e.stderr.strip()}"
+        )
     except Exception as e:
-        logger.error(f"Unexpected error during quantum-safe key generation simulation: {e}")
+        logger.error(
+            f"Unexpected error during quantum-safe key generation simulation: "
+            f"{e}"  # noqa: E501
+        )
 
     return AuthTokenResponse(access_token=jwt_token, token_type="bearer")
+
 
 @app.post("/auth/login", response_model=AuthTokenResponse)
 async def login(payload: LoginPayload):
     """
-    Authenticates a user and returns a JWT token (placeholder for quantum-safe token).
+    Authenticates a user and returns a JWT token (placeholder for quantum-safe token).  # noqa: E501
     """
     username = payload.username
     password = payload.password
@@ -124,21 +150,27 @@ async def login(payload: LoginPayload):
         logger.warning(f"Login attempt for non-existent user: {username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials"
+            detail="Invalid credentials",  # noqa: E501
         )
 
     stored_hashed_password = user_data["hashed_password"]
     stored_salt = user_data["salt"]
 
     # Hash the provided password with the stored salt for comparison
-    provided_hashed_password = hashlib.sha256((password + stored_salt).encode('utf-8')).hexdigest()
+    provided_hashed_password = hashlib.sha256(
+        (password + stored_salt).encode("utf-8")
+    ).hexdigest()
 
     if provided_hashed_password != stored_hashed_password:
-        logger.warning(f"Login attempt with incorrect password for user: {username}")
+        logger.warning(
+            f"Login attempt with incorrect password for user: {username}"
+        )  # noqa: E501
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials"
+            detail="Invalid credentials",  # noqa: E501
         )
 
     logger.info(f"User {username} logged in successfully.")
-    return AuthTokenResponse(access_token=user_data["token"], token_type="bearer")
+    return AuthTokenResponse(
+        access_token=user_data["token"], token_type="bearer"
+    )  # noqa: E501
