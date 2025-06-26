@@ -71,6 +71,7 @@ After your PR is approved, you MUST complete these tasks:
 - **Integration**: FFI-based Rust/Python integration
 - **Libraries**: pqcrypto-mlkem (0.1.0) + pqcrypto-mldsa (0.1.0) selected
 - **Security**: cargo-deny v2 configuration, zero critical vulnerabilities
+- **CI Status**: MongoDB compatibility issues resolved with ubuntu-22.04 runners
 
 #### **Repository Structure**
 ```
