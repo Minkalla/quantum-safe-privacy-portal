@@ -22,12 +22,19 @@ jobs:
       - name: Verify PQC dependencies
         working-directory: src/portal/mock-qynauth/src/rust_lib
         run: |
-          if ! grep -q "pqcrypto-kyber\|pqcrypto-mlkem" Cargo.toml || ! grep -q "pqcrypto-dilithium\|pqcrypto-mldsa" Cargo.toml; then
-            echo "ERROR: PQC dependencies (pqcrypto-kyber/mlkem, pqcrypto-dilithium/mldsa) not found in Cargo.toml"
+          if ! grep -q "pqcrypto-kyber" Cargo.toml || ! grep -q "pqcrypto-dilithium" Cargo.toml; then
+            echo "ERROR: PQC dependencies (pqcrypto-kyber, pqcrypto-dilithium) not found in Cargo.toml"
             exit 1
           fi
           cargo update
           cargo build --features kyber768,dilithium3
+      - name: Validate build configuration
+        working-directory: src/portal/mock-qynauth/src/rust_lib
+        run: |
+          if [ ! -f ".cargo/config.toml" ] || ! grep -q "target-cpu=native" ".cargo/config.toml"; then
+            echo "ERROR: Build configuration not found or incomplete"
+            exit 1
+          fi
       - name: Validate build artifacts
         working-directory: src/portal/mock-qynauth/src/rust_lib
         run: |
@@ -72,20 +79,24 @@ jobs:
       - name: Lint Python code
         working-directory: src/portal/mock-qynauth
         run: |
-          if [ -f "pyproject.toml" ]; then
-            poetry run black --check src/python_app || echo "Python linting skipped - not configured"
-            poetry run flake8 src/python_app || echo "Python linting skipped - not configured"
-            poetry run isort --check-only src/python_app || echo "Python linting skipped - not configured"
-          else
-            echo "Python linting skipped - no pyproject.toml found"
+          if [ -d "src/python_app" ]; then
+            poetry run black --check src/python_app
+            poetry run flake8 src/python_app
+            poetry run isort --check-only src/python_app
+            if [ $? -ne 0 ]; then
+              echo "ERROR: Python linting failed"
+              exit 1
+            fi
           fi
       - name: Lint Node.js code
         working-directory: src/portal/portal-backend
         run: |
           if [ -f "package.json" ]; then
-            npm run lint || echo "Node.js linting skipped - not configured"
-          else
-            echo "Node.js linting skipped - no package.json found"
+            npm run lint
+            if [ $? -ne 0 ]; then
+              echo "ERROR: Node.js linting failed"
+              exit 1
+            fi
           fi
       - name: Validate linting success
         run: echo "Multi-language linting validation successful"
