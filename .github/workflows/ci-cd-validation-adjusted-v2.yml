@@ -3,6 +3,7 @@ name: Adjusted CI/CD Pipeline Validation for WBS 1.2.2 (v2)
 on:
   pull_request:
     branches:
+      - main
       - pqc-implementation-main
       - pqc-dev-*
 
