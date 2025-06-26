@@ -71,7 +71,6 @@ jobs:
       - name: Install linting tools
         run: |
           pip install flake8 black isort
-          npm install -g eslint prettier
       - name: Lint Rust code
         working-directory: src/portal/mock-qynauth/src/rust_lib
         run: |
@@ -93,6 +92,7 @@ jobs:
         working-directory: src/portal/portal-backend
         run: |
           if [ -f "package.json" ]; then
+            npm ci
             npm run lint
             if [ $? -ne 0 ]; then
               echo "ERROR: Node.js linting failed"
