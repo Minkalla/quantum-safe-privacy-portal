@@ -1,0 +1,84 @@
+name: Rust PQC Validation
+
+on:
+  push:
+    branches: [ main, 'devin/**' ]
+    paths:
+      - 'src/portal/mock-qynauth/src/rust_lib/**'
+      - '.github/workflows/rust-validation.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/portal/mock-qynauth/src/rust_lib/**'
+      - '.github/workflows/rust-validation.yml'
+
+jobs:
+  rust-pqc-validation:
+    name: Rust PQC Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        components: rustfmt, clippy, rust-src
+        targets: x86_64-unknown-linux-gnu, wasm32-unknown-unknown
+        override: true
+        
+    - name: Cache Rust dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          src/portal/mock-qynauth/src/rust_lib/target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('src/portal/mock-qynauth/src/rust_lib/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+          
+    - name: Install cargo-audit for security scanning
+      run: cargo install cargo-audit
+      
+    - name: Build PQC library
+      working-directory: src/portal/mock-qynauth/src/rust_lib
+      run: |
+        echo "Building PQC library with dependencies..."
+        cargo build --verbose
+        
+    - name: Run Rust tests
+      working-directory: src/portal/mock-qynauth/src/rust_lib
+      run: |
+        echo "Running Rust tests..."
+        cargo test --verbose
+        
+    - name: Run Rust formatter check
+      working-directory: src/portal/mock-qynauth/src/rust_lib
+      run: |
+        echo "Checking Rust code formatting..."
+        cargo fmt -- --check
+        
+    - name: Run Clippy linting
+      working-directory: src/portal/mock-qynauth/src/rust_lib
+      run: |
+        echo "Running Clippy linting..."
+        cargo clippy -- -D warnings
+        
+    - name: Security audit of PQC dependencies
+      working-directory: src/portal/mock-qynauth/src/rust_lib
+      run: |
+        echo "Running security audit on PQC dependencies..."
+        cargo audit
+        
+    - name: Validate PQC dependency versions
+      working-directory: src/portal/mock-qynauth/src/rust_lib
+      run: |
+        echo "Validating NIST PQC dependency versions..."
+        cargo tree | grep -E "(pqcrypto-kyber|pqcrypto-dilithium|pqcrypto-traits)"
+        echo "Checking for known vulnerabilities in PQC crates..."
+        cargo audit --deny warnings
