@@ -269,8 +269,8 @@ jobs:
           trivy fs --format table --output trivy-report.txt --quiet .
           
           # Grype vulnerability scan
-          grype . --output json --file grype-report.json --quiet
-          grype . --output table --file grype-report.txt --quiet
+          grype . --fail-on critical --output json --file grype-report.json --quiet
+          grype . --fail-on critical --output table --file grype-report.txt --quiet
           
           # Check for HIGH/CRITICAL vulnerabilities
           CRITICAL_COUNT=$(cat trivy-report.json | jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length')
