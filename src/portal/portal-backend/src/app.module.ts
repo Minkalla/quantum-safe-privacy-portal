@@ -28,6 +28,7 @@ import { SecretsModule } from './secrets/secrets.module';
 import { ConsentModule } from './consent/consent.module';
 import { ConfigModule } from './config/config.module';
 import { PQCFeatureFlagsModule } from './pqc/pqc-feature-flags.module';
+import { ABTestingModule } from './pqc/ab-testing.module';
 
 // Removed: import * as AWSXRay from 'aws-xray-sdk'; // REMOVED as per plan
 
@@ -67,6 +68,7 @@ import { PQCFeatureFlagsModule } from './pqc/pqc-feature-flags.module';
     SecretsModule,
     ConsentModule,
     PQCFeatureFlagsModule,
+    ABTestingModule,
   ],
   controllers: [],
   providers: [],
