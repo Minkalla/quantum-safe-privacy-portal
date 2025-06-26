@@ -28,6 +28,6 @@
     "lib": ["es2021", "esnext"], // UPDATED: As per feedback, removed DOM for backend
     "types": ["jest", "node"] // UPDATED: Removed 'express' as NestJS manages it
   },
-  "include": ["src/**/*", "src/main.ts"], // UPDATED: As per feedback
-  "exclude": ["node_modules", "dist"] // UPDATED: As per feedback, simplified exclude
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "test", "**/*spec.ts"]
 }
