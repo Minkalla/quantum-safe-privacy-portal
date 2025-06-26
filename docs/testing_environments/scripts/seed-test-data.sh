@@ -7,12 +7,22 @@ seed_database() {
     local db_name=$1
     local user_count=$2
     
-    mongosh --eval "
-        use $db_name;
+    if [[ ! "$db_name" =~ ^[a-zA-Z0-9_]+$ ]]; then
+        echo "ERROR: Invalid database name '$db_name'. Only alphanumeric characters and underscores allowed."
+        return 1
+    fi
+    
+    if [[ ! "$user_count" =~ ^[0-9]+$ ]] || [ "$user_count" -le 0 ]; then
+        echo "ERROR: Invalid user count '$user_count'. Must be a positive integer."
+        return 1
+    fi
+    
+    mongosh "mongodb://localhost:27017/$db_name" --eval "
+        const userCount = $user_count;
         
         // Generate test users
         const users = [];
-        for (let i = 1; i <= $user_count; i++) {
+        for (let i = 1; i <= userCount; i++) {
             users.push({
                 email: \`testuser\${i}@example.com\`,
                 pqc_key_id: 'pqc_key_' + i,
@@ -22,7 +32,7 @@ seed_database() {
         }
         db.users.insertMany(users);
         
-        print('Database $db_name seeded successfully');
+        print('Database seeded successfully');
     "
 }
 
