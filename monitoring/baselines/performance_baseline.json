@@ -1,0 +1,8 @@
+{
+  "timestamp": "2025-06-26T08:07:53Z",
+  "metrics": {
+    "key_generation_ms": 0.1,
+    "signing_ms": 0.5,
+    "verification_ms": 0.1
+  }
+}
