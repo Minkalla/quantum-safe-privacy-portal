@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
-
 interface ValidationResult {
   passed: boolean;
   errors: string[];
@@ -13,7 +12,6 @@ interface ValidationResult {
 @Injectable()
 export class DocumentationValidatorService {
   private readonly logger = new Logger(DocumentationValidatorService.name);
-  
 
   async validateDocumentation(): Promise<ValidationResult> {
     const errors: string[] = [];
@@ -59,32 +57,32 @@ export class DocumentationValidatorService {
   private findServiceFiles(): string[] {
     const srcDir = join(process.cwd(), 'src');
     const serviceFiles: string[] = [];
-    
+
     try {
       const fs = require('fs');
       const path = require('path');
-      
-      function findFiles(dir: string) {
-        const files = fs.readdirSync(dir);
-        for (const file of files) {
-          const fullPath = path.join(dir, file);
-          const stat = fs.statSync(fullPath);
-          if (stat.isDirectory()) {
-            findFiles(fullPath);
-          } else if (file.endsWith('.service.ts')) {
-            serviceFiles.push(fullPath);
-          }
-        }
-      }
-      
+
       if (fs.existsSync(srcDir)) {
-        findFiles(srcDir);
+        this.findFilesRecursive(srcDir, serviceFiles, fs, path);
       }
     } catch (error) {
       this.logger.error('Failed to find service files', error);
     }
-    
+
     return serviceFiles;
+  }
+
+  private findFilesRecursive(dir: string, serviceFiles: string[], fs: any, path: any): void {
+    const files = fs.readdirSync(dir);
+    for (const file of files) {
+      const fullPath = path.join(dir, file);
+      const stat = fs.statSync(fullPath);
+      if (stat.isDirectory()) {
+        this.findFilesRecursive(fullPath, serviceFiles, fs, path);
+      } else if (file.endsWith('.service.ts')) {
+        serviceFiles.push(fullPath);
+      }
+    }
   }
 
   private async checkFileDocumentation(filePath: string): Promise<boolean> {
@@ -103,7 +101,7 @@ export class DocumentationValidatorService {
 
   async generateDocumentationReport(): Promise<string> {
     const result = await this.validateDocumentation();
-    
+
     let report = '# Documentation Validation Report\n\n';
     report += `**Coverage**: ${result.coverage.toFixed(1)}%\n`;
     report += `**Status**: ${result.passed ? '✅ PASSED' : '❌ FAILED'}\n\n`;
