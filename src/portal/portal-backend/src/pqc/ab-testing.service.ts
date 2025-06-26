@@ -68,7 +68,7 @@ export class ABTestingService {
       return 'control';
     }
 
-    const userHash = createHash('md5').update(`${userId}_${experimentId}`).digest('hex');
+    const userHash = createHash('sha256').update(`${userId}_${experimentId}`).digest('hex');
     const hashValue = parseInt(userHash.substring(0, 8), 16) % 100;
 
     const experiment = this.experiments.get(experimentId)!;

@@ -36,7 +36,41 @@ export class RollbackSystemService {
   constructor(
     private readonly abTestingService: ABTestingService,
     private readonly metricsCollector: MetricsCollectorService,
-  ) {}
+  ) {
+    this.validateRollbackTriggers();
+  }
+
+  private validateRollbackTriggers(): void {
+    for (const trigger of this.rollbackTriggers) {
+      if (!this.isValidRollbackTrigger(trigger)) {
+        throw new Error(`Invalid rollback trigger configuration: ${JSON.stringify(trigger)}`);
+      }
+    }
+  }
+
+  private isValidRollbackTrigger(trigger: RollbackTrigger): boolean {
+    if (!trigger.metricName || typeof trigger.metricName !== 'string') {
+      this.logger.error('Invalid metric name in rollback trigger');
+      return false;
+    }
+
+    if (typeof trigger.thresholdValue !== 'number' || trigger.thresholdValue < 0) {
+      this.logger.error('Invalid threshold value in rollback trigger');
+      return false;
+    }
+
+    if (!['gt', 'lt', 'gte', 'lte'].includes(trigger.comparisonOperator)) {
+      this.logger.error('Invalid comparison operator in rollback trigger');
+      return false;
+    }
+
+    if (typeof trigger.minSampleSize !== 'number' || trigger.minSampleSize < 1) {
+      this.logger.error('Invalid minimum sample size in rollback trigger');
+      return false;
+    }
+
+    return true;
+  }
 
   async monitorExperiments(): Promise<void> {
     try {

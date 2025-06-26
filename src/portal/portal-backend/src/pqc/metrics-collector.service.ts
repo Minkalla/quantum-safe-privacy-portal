@@ -22,6 +22,42 @@ export class MetricsCollectorService {
   private readonly logger = new Logger(MetricsCollectorService.name);
   private events: MetricEvent[] = [];
   private aggregatedMetrics: Map<string, AggregatedMetrics> = new Map();
+  private readonly maxEvents = 10000;
+  private readonly retentionDays = 30;
+  private cleanupInterval?: NodeJS.Timeout;
+
+  constructor() {
+    this.startAutomaticCleanup();
+  }
+
+  onModuleDestroy() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+    }
+  }
+
+  private startAutomaticCleanup(): void {
+    this.cleanupInterval = setInterval(() => {
+      this.performAutomaticCleanup();
+    }, 60 * 60 * 1000);
+  }
+
+  private performAutomaticCleanup(): void {
+    const initialCount = this.events.length;
+    
+    this.clearOldEvents(this.retentionDays);
+    
+    if (this.events.length > this.maxEvents) {
+      const excessEvents = this.events.length - this.maxEvents;
+      this.events.splice(0, excessEvents);
+      this.logger.warn(`Removed ${excessEvents} excess events to maintain max limit of ${this.maxEvents}`);
+    }
+
+    const removedCount = initialCount - this.events.length;
+    if (removedCount > 0) {
+      this.logger.debug(`Automatic cleanup removed ${removedCount} events`);
+    }
+  }
 
   recordEvent(
     userId: string,
@@ -41,6 +77,10 @@ export class MetricsCollectorService {
 
     this.events.push(event);
     this.updateAggregatedMetrics(event);
+
+    if (this.events.length > this.maxEvents * 1.1) {
+      this.performAutomaticCleanup();
+    }
 
     this.logger.debug(
       `Recorded metric: ${metricName}=${metricValue} for experiment ${experimentId}, variant ${variant}`,
