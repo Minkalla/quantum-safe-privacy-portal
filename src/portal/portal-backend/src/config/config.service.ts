@@ -52,43 +52,43 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsBoolean()
-  PQC_KEY_GENERATION_ENABLED?: boolean;
+    PQC_KEY_GENERATION_ENABLED?: boolean;
 
   @IsOptional()
   @IsNumber()
   @Min(0)
   @Max(100)
-  PQC_KEY_GENERATION_PERCENTAGE?: number;
+    PQC_KEY_GENERATION_PERCENTAGE?: number;
 
   @IsOptional()
   @IsBoolean()
-  PQC_USER_REGISTRATION_ENABLED?: boolean;
+    PQC_USER_REGISTRATION_ENABLED?: boolean;
 
   @IsOptional()
   @IsNumber()
   @Min(0)
   @Max(100)
-  PQC_USER_REGISTRATION_PERCENTAGE?: number;
+    PQC_USER_REGISTRATION_PERCENTAGE?: number;
 
   @IsOptional()
   @IsBoolean()
-  PQC_AUTHENTICATION_ENABLED?: boolean;
+    PQC_AUTHENTICATION_ENABLED?: boolean;
 
   @IsOptional()
   @IsNumber()
   @Min(0)
   @Max(100)
-  PQC_AUTHENTICATION_PERCENTAGE?: number;
+    PQC_AUTHENTICATION_PERCENTAGE?: number;
 
   @IsOptional()
   @IsBoolean()
-  PQC_JWT_SIGNING_ENABLED?: boolean;
+    PQC_JWT_SIGNING_ENABLED?: boolean;
 
   @IsOptional()
   @IsNumber()
   @Min(0)
   @Max(100)
-  PQC_JWT_SIGNING_PERCENTAGE?: number;
+    PQC_JWT_SIGNING_PERCENTAGE?: number;
 }
 
 @Injectable()

@@ -208,15 +208,15 @@ export class AuthController {
       /(\bINSERT\b|\bUPDATE\b|\bDELETE\b)/i,
       /(\bDROP\b|\bCREATE\b|\bALTER\b)/i,
       /(\/\*|\*\/)/i,
-      /(\bEXEC\b|\bEXECUTE\b)/i
+      /(\bEXEC\b|\bEXECUTE\b)/i,
     ];
-    
+
     const containsSqlInjection = (input: string) => {
       return sqlInjectionPatterns.some(pattern => pattern.test(input));
     };
-    
-    if (!emailRegex.test(loginDto.email) || 
-        containsSqlInjection(loginDto.email) || 
+
+    if (!emailRegex.test(loginDto.email) ||
+        containsSqlInjection(loginDto.email) ||
         containsSqlInjection(loginDto.password)) {
       throw new UnauthorizedException('Invalid credentials');
     }

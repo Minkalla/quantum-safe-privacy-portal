@@ -32,7 +32,7 @@ export class PQCMonitoringService {
       maxMemoryUsage: this.configService.get<number>('PQC_MAX_MEMORY_MB') || 50 * 1024 * 1024, // 50MB memory threshold
     };
     this.initializeBaselines();
-    
+
     try {
       require('aws-xray-sdk-core');
       this.logger.log('AWS X-Ray integration enabled for PQC monitoring');
@@ -50,7 +50,7 @@ export class PQCMonitoringService {
 
   async recordPQCKeyGeneration(userId: string, startTime: number, success: boolean): Promise<void> {
     const latency = Date.now() - startTime;
-    
+
     try {
       this.createXRaySegment('PQC_KeyGeneration', {
         userId,
@@ -58,13 +58,13 @@ export class PQCMonitoringService {
         success,
         algorithm: 'kyber768_dilithium3',
       });
-      
+
       await this.sendCloudWatchMetric('PQC/KeyGeneration/Latency', latency, 'Milliseconds');
       await this.sendCloudWatchMetric('PQC/KeyGeneration/Success', success ? 1 : 0, 'Count');
-      
+
       this.currentMetrics.set('keyGenerationLatency', latency);
       this.logger.log(`PQC key generation for user ${userId}: ${latency}ms, success: ${success}`);
-      
+
       await this.checkPerformanceThresholds('keyGeneration', latency);
     } catch (error: any) {
       this.logger.error(`Failed to record PQC key generation metrics: ${error.message}`);
@@ -73,7 +73,7 @@ export class PQCMonitoringService {
 
   async recordPQCJWTSigning(userId: string, startTime: number, success: boolean): Promise<void> {
     const latency = Date.now() - startTime;
-    
+
     try {
       this.createXRaySegment('PQC_JWTSigning', {
         userId,
@@ -81,13 +81,13 @@ export class PQCMonitoringService {
         success,
         algorithm: 'dilithium3',
       });
-      
+
       await this.sendCloudWatchMetric('PQC/JWT/SigningLatency', latency, 'Milliseconds');
       await this.sendCloudWatchMetric('PQC/JWT/SigningSuccess', success ? 1 : 0, 'Count');
-      
+
       this.currentMetrics.set('jwtSigningLatency', latency);
       this.logger.log(`PQC JWT signing for user ${userId}: ${latency}ms, success: ${success}`);
-      
+
       await this.checkPerformanceThresholds('jwtSigning', latency);
     } catch (error: any) {
       this.logger.error(`Failed to record PQC JWT signing metrics: ${error.message}`);
@@ -96,14 +96,14 @@ export class PQCMonitoringService {
 
   async recordPQCAuthentication(userId: string, startTime: number, success: boolean): Promise<void> {
     const latency = Date.now() - startTime;
-    
+
     try {
       await this.sendCloudWatchMetric('PQC/Authentication/Latency', latency, 'Milliseconds');
       await this.sendCloudWatchMetric('PQC/Authentication/Success', success ? 1 : 0, 'Count');
-      
+
       this.currentMetrics.set('authenticationLatency', latency);
       this.logger.log(`PQC authentication for user ${userId}: ${latency}ms, success: ${success}`);
-      
+
       await this.checkPerformanceThresholds('authentication', latency);
     } catch (error: any) {
       this.logger.error(`Failed to record PQC authentication metrics: ${error.message}`);
@@ -112,13 +112,13 @@ export class PQCMonitoringService {
 
   async recordErrorRate(operation: string, errorCount: number, totalCount: number): Promise<void> {
     const errorRate = totalCount > 0 ? errorCount / totalCount : 0;
-    
+
     try {
       await this.sendCloudWatchMetric(`PQC/${operation}/ErrorRate`, errorRate, 'Percent');
-      
+
       this.currentMetrics.set('errorRate', errorRate);
       this.logger.log(`PQC ${operation} error rate: ${(errorRate * 100).toFixed(2)}%`);
-      
+
       if (errorRate > this.alertThresholds.maxErrorRate) {
         await this.triggerRollbackAlert('HIGH_ERROR_RATE', {
           operation,
@@ -135,7 +135,7 @@ export class PQCMonitoringService {
     const baselineKey = `${operation}Latency`;
     const baseline = this.baselineMetrics.get(baselineKey) || 100;
     const latencyIncrease = currentLatency / baseline;
-    
+
     if (latencyIncrease > this.alertThresholds.maxLatencyIncrease) {
       await this.triggerRollbackAlert('PERFORMANCE_DEGRADATION', {
         operation,
@@ -156,7 +156,7 @@ export class PQCMonitoringService {
     };
 
     this.logger.error(`PQC Rollback Alert: ${JSON.stringify(alertMessage)}`);
-    
+
     await Promise.all([
       this.sendSlackNotification(alertMessage),
       this.sendEmailNotification(alertMessage),
@@ -189,15 +189,15 @@ export class PQCMonitoringService {
     try {
       const AWSXRay = require('aws-xray-sdk-core');
       const segment = new AWSXRay.Segment(name);
-      
+
       segment.addMetadata('pqc', metadata);
       segment.addAnnotation('operation', name);
       segment.addAnnotation('success', metadata.success);
-      
+
       if (metadata.latency) {
         segment.addAnnotation('latency_ms', metadata.latency);
       }
-      
+
       segment.close();
       this.logger.debug(`X-Ray segment created for ${name}`);
     } catch (error) {
@@ -220,17 +220,17 @@ export class PQCMonitoringService {
 
   async testRollbackTriggers(): Promise<{ success: boolean; triggeredAlerts: string[] }> {
     const triggeredAlerts: string[] = [];
-    
+
     try {
       await this.recordErrorRate('test', 6, 100);
       triggeredAlerts.push('HIGH_ERROR_RATE');
-      
+
       const startTime = Date.now() - 1000;
       await this.recordPQCKeyGeneration('test-user', startTime, true);
       triggeredAlerts.push('PERFORMANCE_DEGRADATION');
-      
+
       this.logger.log(`Rollback trigger test completed. Triggered alerts: ${triggeredAlerts.join(', ')}`);
-      
+
       return { success: true, triggeredAlerts };
     } catch (error: any) {
       this.logger.error(`Rollback trigger test failed: ${error.message}`);
