@@ -242,26 +242,35 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Security Scanning Tools
         run: |
-          sudo apt-get update
-          sudo apt-get install -y trivy
-          # Install additional security tools
-          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+          echo "🔧 Installing security scanning tools..."
+          
+          # Install Trivy using official installation script
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
+          
+          # Install Grype
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sudo sh -s -- -b /usr/local/bin
+          
           # Install OWASP ZAP for web application security testing
           wget -q https://github.com/zaproxy/zaproxy/releases/download/v2.14.0/ZAP_2.14.0_Linux.tar.gz
           tar -xzf ZAP_2.14.0_Linux.tar.gz
           sudo mv ZAP_2.14.0 /opt/zaproxy
           sudo ln -s /opt/zaproxy/zap.sh /usr/local/bin/zap.sh
+          
+          # Verify installations
+          trivy --version
+          grype version
+          echo "✅ Security tools installed successfully"
       - name: Comprehensive Vulnerability Scanning
         run: |
           echo "🔍 Running comprehensive security scans..."
           
           # Trivy filesystem scan with strict mode
-          trivy fs --format json --output trivy-report.json .
-          trivy fs --format table --output trivy-report.txt .
+          trivy fs --format json --output trivy-report.json --quiet .
+          trivy fs --format table --output trivy-report.txt --quiet .
           
           # Grype vulnerability scan
-          grype . --output json --file grype-report.json
-          grype . --output table --file grype-report.txt
+          grype . --output json --file grype-report.json --quiet
+          grype . --output table --file grype-report.txt --quiet
           
           # Check for HIGH/CRITICAL vulnerabilities
           CRITICAL_COUNT=$(cat trivy-report.json | jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length')
