@@ -33,9 +33,10 @@ jobs:
       - name: Install dependencies
         run: |
           cd src/portal/portal-backend && npm ci
+          cd ../../..
           mkdir -p src/portal/mock-qynauth/src/rust_lib
           cd src/portal/mock-qynauth && poetry init --no-interaction --name mock-qynauth --version 0.1.0 && poetry install --no-interaction
-          cd src/portal/mock-qynauth/src/rust_lib && cargo init --lib && cargo build --no-default-features
+          cd src/rust_lib && cargo init --lib && cargo build --no-default-features
       - name: Validate PQC test structure
         run: |
           mkdir -p src/portal/mock-qynauth/src/rust_lib/tests
