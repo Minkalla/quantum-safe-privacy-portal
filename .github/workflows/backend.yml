@@ -98,6 +98,10 @@ jobs:
         working-directory: src/portal/portal-backend
         run: npm run build
       
+      - name: Verify backend build output
+        working-directory: src/portal/portal-backend
+        run: test -f dist/main.js
+      
       - name: Start application
         working-directory: src/portal/portal-backend
         env:
