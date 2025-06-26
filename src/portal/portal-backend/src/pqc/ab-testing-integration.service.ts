@@ -15,15 +15,15 @@ export class ABTestingIntegrationService {
 
   shouldUsePQCForUser(userId: string, operation: string): boolean {
     const abTestResult = this.abTestingService.shouldUsePQC(userId);
-    
+
     if (abTestResult) {
       this.recordABTestingEvent(userId, 'pqc_assignment', 'treatment', 1);
-      
+
       const flagName = this.getFeatureFlagForOperation(operation);
       if (flagName) {
         return this.pqcFeatureFlags.isEnabled(flagName, userId);
       }
-      
+
       return true;
     } else {
       this.recordABTestingEvent(userId, 'pqc_assignment', 'control', 0);
@@ -34,7 +34,7 @@ export class ABTestingIntegrationService {
   recordOperationMetric(userId: string, operation: string, metricName: string, value: number): void {
     const variant = this.abTestingService.shouldUsePQC(userId) ? 'treatment' : 'control';
     const experimentId = this.getExperimentIdForOperation(operation);
-    
+
     if (experimentId) {
       this.metricsCollector.recordEvent(userId, experimentId, variant, metricName, value);
       this.logger.debug(`Recorded ${metricName}=${value} for ${operation} (${variant})`);
@@ -44,7 +44,7 @@ export class ABTestingIntegrationService {
   recordAuthenticationMetrics(userId: string, success: boolean, responseTimeMs: number): void {
     const variant = this.abTestingService.shouldUsePQC(userId) ? 'treatment' : 'control';
     const experimentId = 'pqc_kyber_rollout_v1';
-    
+
     this.metricsCollector.recordEvent(
       userId,
       experimentId,
@@ -52,7 +52,7 @@ export class ABTestingIntegrationService {
       'authentication_success_rate',
       success ? 1 : 0,
     );
-    
+
     this.metricsCollector.recordEvent(
       userId,
       experimentId,
@@ -60,7 +60,7 @@ export class ABTestingIntegrationService {
       'response_time_ms',
       responseTimeMs,
     );
-    
+
     if (!success) {
       this.metricsCollector.recordEvent(
         userId,
@@ -75,7 +75,7 @@ export class ABTestingIntegrationService {
   recordSignatureMetrics(userId: string, success: boolean, generationTimeMs: number): void {
     const variant = this.abTestingService.shouldUsePQC(userId) ? 'treatment' : 'control';
     const experimentId = 'pqc_dilithium_rollout_v1';
-    
+
     this.metricsCollector.recordEvent(
       userId,
       experimentId,
@@ -83,7 +83,7 @@ export class ABTestingIntegrationService {
       'signature_verification_success_rate',
       success ? 1 : 0,
     );
-    
+
     this.metricsCollector.recordEvent(
       userId,
       experimentId,
@@ -107,7 +107,7 @@ export class ABTestingIntegrationService {
       authentication: 'pqc_authentication',
       jwt_signing: 'pqc_jwt_signing',
     };
-    
+
     return flagMapping[operation] || null;
   }
 
@@ -119,7 +119,7 @@ export class ABTestingIntegrationService {
       jwt_signing: 'pqc_dilithium_rollout_v1',
       signature: 'pqc_dilithium_rollout_v1',
     };
-    
+
     return experimentMapping[operation] || null;
   }
 

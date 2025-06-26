@@ -29,6 +29,8 @@ import { ConsentModule } from './consent/consent.module';
 import { ConfigModule } from './config/config.module';
 import { PQCFeatureFlagsModule } from './pqc/pqc-feature-flags.module';
 import { ABTestingModule } from './pqc/ab-testing.module';
+import { MonitoringModule } from './monitoring/monitoring.module';
+import { QualityModule } from './quality/quality.module';
 
 // Removed: import * as AWSXRay from 'aws-xray-sdk'; // REMOVED as per plan
 
@@ -69,6 +71,8 @@ import { ABTestingModule } from './pqc/ab-testing.module';
     ConsentModule,
     PQCFeatureFlagsModule,
     ABTestingModule,
+    MonitoringModule,
+    QualityModule,
   ],
   controllers: [],
   providers: [],

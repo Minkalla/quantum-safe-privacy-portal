@@ -83,7 +83,7 @@ export class ABTestingService {
 
   shouldUsePQC(userId: string): boolean {
     const pqcExperiments = Array.from(this.experiments.values()).filter(
-      exp => exp.featureFlag === 'pqc_enabled' || exp.featureFlag.includes('pqc')
+      exp => exp.featureFlag === 'pqc_enabled' || exp.featureFlag.includes('pqc'),
     );
 
     for (const experiment of pqcExperiments) {

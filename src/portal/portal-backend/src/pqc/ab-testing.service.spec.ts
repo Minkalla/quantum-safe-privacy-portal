@@ -25,26 +25,26 @@ describe('ABTestingService', () => {
     it('should consistently assign same user to same variant', () => {
       const userId = 'test-user-123';
       const experimentId = 'pqc_kyber_rollout_v1';
-      
+
       const assignment1 = service.assignUserToVariant(userId, experimentId);
       const assignment2 = service.assignUserToVariant(userId, experimentId);
-      
+
       expect(assignment1).toBe(assignment2);
     });
 
     it('should assign users to control and treatment based on percentages', () => {
       const experimentId = 'pqc_kyber_rollout_v1';
       const assignments = new Map<string, number>();
-      
+
       for (let i = 0; i < 100; i++) {
         const userId = `user-${i}`;
         const variant = service.assignUserToVariant(userId, experimentId);
         assignments.set(variant, (assignments.get(variant) || 0) + 1);
       }
-      
+
       const controlCount = assignments.get('control') || 0;
       const treatmentCount = assignments.get('treatment') || 0;
-      
+
       expect(controlCount).toBeGreaterThan(80);
       expect(treatmentCount).toBeLessThan(20);
       expect(controlCount + treatmentCount).toBe(100);
@@ -57,14 +57,14 @@ describe('ABTestingService', () => {
       experiments.forEach(exp => {
         service.updateExperimentStatus(exp.experimentId, ExperimentStatus.COMPLETED);
       });
-      
+
       const result = service.shouldUsePQC('test-user');
       expect(result).toBe(false);
     });
 
     it('should return true for users in treatment group of PQC experiments', () => {
       let foundTreatmentUser = false;
-      
+
       for (let i = 0; i < 100; i++) {
         const userId = `user-${i}`;
         if (service.shouldUsePQC(userId)) {
@@ -72,7 +72,7 @@ describe('ABTestingService', () => {
           break;
         }
       }
-      
+
       expect(foundTreatmentUser).toBe(true);
     });
   });
@@ -92,7 +92,7 @@ describe('ABTestingService', () => {
     it('should update experiment status', () => {
       const experimentId = 'pqc_kyber_rollout_v1';
       service.updateExperimentStatus(experimentId, ExperimentStatus.COMPLETED);
-      
+
       const experiment = service.getExperiment(experimentId);
       expect(experiment?.status).toBe(ExperimentStatus.COMPLETED);
     });
