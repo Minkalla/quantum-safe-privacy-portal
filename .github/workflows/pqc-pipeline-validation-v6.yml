@@ -53,7 +53,7 @@ jobs:
           cd src/portal/mock-qynauth && poetry run pytest -v --no-cov || echo "Mock Python test expected to fail without PQC code"
           cd src/portal/portal-backend && npm run test:unit || echo "Mock Node.js test expected to fail without PQC code"
         env:
-          PQC_ENABLED: 'false'
+          PQC_ENABLED: 'false'  # Placeholder mode
 
   # Job 2: Security PQC Validation
   security-pqc-validation:
