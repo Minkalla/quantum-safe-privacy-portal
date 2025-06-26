@@ -36,7 +36,7 @@ rand = "0.8"
 getrandom = "0.2"
 
 # Encoding
-base64 = "0.21"
+base64 = "0.22"
 
 [features]
 default = ["kyber768", "dilithium3", "avx2"]
