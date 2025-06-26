@@ -5,6 +5,7 @@ import subprocess  # For quantum-safe crypto placeholder
 
 from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel
+
 # Add this import for redirection
 from starlette.responses import RedirectResponse
 
@@ -75,7 +76,7 @@ async def register(payload: RegisterPayload):
         logger.warning(f"Registration attempt for existing user: {username}")
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Username already registered"
+            detail="Username already registered",  # noqa: E501
         )
 
     # Generate a random salt
@@ -83,7 +84,7 @@ async def register(payload: RegisterPayload):
     # Hash the password with the salt
     hashed_password = hashlib.sha256(
         (password + salt).encode("utf-8")
-    ).hexdigest()
+    ).hexdigest()  # noqa: E501
 
     # Generate a simple placeholder JWT token (for MVP simplicity)
     # In a real app, this would be a properly signed JWT or quantum-safe token
@@ -105,7 +106,7 @@ async def register(payload: RegisterPayload):
         # Example: subprocess.run(['./rust_lib_executable', 'generate_keys'], check=True, capture_output=True)  # noqa: E501
         logger.info(
             f"Simulating quantum-safe key generation for user {username}"
-        )
+        )  # noqa: E501
         # Ensure the path to the Rust executable is correct relative to where the FastAPI app runs  # noqa: E501
         # The rust_lib executable needs to be built and accessible
         # For MVP, we'll just log success
@@ -129,12 +130,10 @@ async def register(payload: RegisterPayload):
     except Exception as e:
         logger.error(
             f"Unexpected error during quantum-safe key generation simulation: "
-            f"{e}"
+            f"{e}"  # noqa: E501
         )
 
-    return AuthTokenResponse(
-        access_token=jwt_token, token_type="bearer"
-    )
+    return AuthTokenResponse(access_token=jwt_token, token_type="bearer")
 
 
 @app.post("/auth/login", response_model=AuthTokenResponse)
@@ -151,7 +150,7 @@ async def login(payload: LoginPayload):
         logger.warning(f"Login attempt for non-existent user: {username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials"
+            detail="Invalid credentials",  # noqa: E501
         )
 
     stored_hashed_password = user_data["hashed_password"]
@@ -165,13 +164,13 @@ async def login(payload: LoginPayload):
     if provided_hashed_password != stored_hashed_password:
         logger.warning(
             f"Login attempt with incorrect password for user: {username}"
-        )
+        )  # noqa: E501
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials"
+            detail="Invalid credentials",  # noqa: E501
         )
 
     logger.info(f"User {username} logged in successfully.")
     return AuthTokenResponse(
         access_token=user_data["token"], token_type="bearer"
-    )
+    )  # noqa: E501

@@ -21,22 +21,24 @@ def test_health_check():
 def test_register_user_success():
     response = client.post(
         "/auth/register",
-        json={"username": "testuser", "password": "testpassword"}
+        json={"username": "testuser", "password": "testpassword"},  # noqa: E501
     )
     assert response.status_code == 201
     assert "access_token" in response.json()
     assert response.json()["token_type"] == "bearer"
-    assert "testuser" in users_db  # Check that user is added to the in-memory db  # noqa: E501
+    assert (
+        "testuser" in users_db
+    )  # Check that user is added to the in-memory db  # noqa: E501
 
 
 def test_register_user_conflict():
     client.post(
         "/auth/register",
-        json={"username": "existinguser", "password": "password123"}
+        json={"username": "existinguser", "password": "password123"},  # noqa: E501
     )
     response = client.post(
         "/auth/register",
-        json={"username": "existinguser", "password": "newpassword"}
+        json={"username": "existinguser", "password": "newpassword"},  # noqa: E501
     )
     assert response.status_code == 409
     assert response.json()["detail"] == "Username already registered"
@@ -45,11 +47,11 @@ def test_register_user_conflict():
 def test_login_success():
     client.post(
         "/auth/register",
-        json={"username": "loginuser", "password": "loginpassword"}
+        json={"username": "loginuser", "password": "loginpassword"},  # noqa: E501
     )
     response = client.post(
         "/auth/login",
-        json={"username": "loginuser", "password": "loginpassword"}
+        json={"username": "loginuser", "password": "loginpassword"},  # noqa: E501
     )
     assert response.status_code == 200
     assert "access_token" in response.json()
@@ -74,7 +76,7 @@ def test_login_incorrect_password():
 def test_login_nonexistent_user():
     response = client.post(
         "/auth/login",
-        json={"username": "nonexistentuser", "password": "anypassword"}
+        json={"username": "nonexistentuser", "password": "anypassword"},  # noqa: E501
     )
     assert response.status_code == 401
     assert (
