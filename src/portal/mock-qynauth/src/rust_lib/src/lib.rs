@@ -4,9 +4,9 @@ use std::ffi::CString;
 use std::os::raw::c_char; // Import c_char for C-compatible string pointers
 
 /// Performs a placeholder quantum-safe operation on input data.
-/// 
+///
 /// # Safety
-/// 
+///
 /// This function is unsafe because it dereferences raw pointers. The caller must ensure:
 /// - `input_ptr` is valid and points to at least `input_len` bytes of readable memory
 /// - `input_ptr` is not null
@@ -31,9 +31,9 @@ pub unsafe extern "C" fn perform_quantum_safe_operation_placeholder(
 }
 
 /// Frees a C string allocated by this library.
-/// 
+///
 /// # Safety
-/// 
+///
 /// This function is unsafe because it takes ownership of a raw pointer. The caller must ensure:
 /// - `ptr` was allocated by a previous call to `perform_quantum_safe_operation_placeholder`
 /// - `ptr` has not been freed before
