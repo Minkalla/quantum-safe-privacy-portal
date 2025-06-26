@@ -150,7 +150,7 @@ jobs:
         working-directory: src/portal/portal-backend
         run: |
           # Check for hardcoded secrets in A/B testing code
-          if grep -r "password\|secret\|key" src/pqc/ab-testing/ --include="*.ts" --include="*.js"; then
+          if grep -r "password\|secret\|key" src/pqc/ --include="*.ts" --include="*.js"; then
             echo "ERROR: Potential hardcoded secrets found in A/B testing code"
             exit 1
           fi
@@ -159,7 +159,7 @@ jobs:
         working-directory: src/portal/portal-backend
         run: |
           # Ensure user IDs are hashed in A/B testing
-          if ! grep -r "hashlib\|crypto" src/pqc/ab-testing/ --include="*.ts" --include="*.js"; then
+          if ! grep -r "hashlib\|crypto" src/pqc/ --include="*.ts" --include="*.js"; then
             echo "ERROR: User ID hashing not found in A/B testing code"
             exit 1
           fi
@@ -168,7 +168,7 @@ jobs:
         working-directory: src/portal/portal-backend
         run: |
           # Verify data retention policies are implemented
-          if ! grep -r "retention\|expire\|delete" src/pqc/ab-testing/ --include="*.ts" --include="*.js"; then
+          if ! grep -r "retention\|expire\|delete" src/pqc/ --include="*.ts" --include="*.js"; then
             echo "WARNING: Data retention policies should be implemented"
           fi
           
@@ -176,7 +176,7 @@ jobs:
         working-directory: src/portal/portal-backend
         run: |
           # Check for proper error handling in rollback system
-          if ! grep -r "try.*catch\|error" src/pqc/ab-testing/rollback* --include="*.ts" --include="*.js"; then
+          if ! grep -r "try.*catch\|error" src/pqc/rollback* --include="*.ts" --include="*.js"; then
             echo "ERROR: Proper error handling not found in rollback system"
             exit 1
           fi
