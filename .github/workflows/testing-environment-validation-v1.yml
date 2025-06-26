@@ -393,3 +393,5 @@ jobs:
 # Environment variables
 env:
   NODE_ENV: 'test'
+
+# Force CI refresh - June 26, 2025 14:59:17 UTC
