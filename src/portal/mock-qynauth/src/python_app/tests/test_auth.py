@@ -1,5 +1,5 @@
-from fastapi.testclient import TestClient
 from app.main import app, users_db  # Corrected import to users_db
+from fastapi.testclient import TestClient
 
 client = TestClient(app)
 
@@ -20,17 +20,19 @@ def test_health_check():
 
 def test_register_user_success():
     response = client.post(
-        "/auth/register", json={"username": "testuser", "password": "testpassword"}
+        "/auth/register",
+        json={"username": "testuser", "password": "testpassword"}
     )
     assert response.status_code == 201
     assert "access_token" in response.json()
     assert response.json()["token_type"] == "bearer"
-    assert "testuser" in users_db  # Check that user is added to the in-memory db
+    assert "testuser" in users_db  # Check that user is added to the in-memory db  # noqa: E501
 
 
 def test_register_user_conflict():
     client.post(
-        "/auth/register", json={"username": "existinguser", "password": "password123"}
+        "/auth/register",
+        json={"username": "existinguser", "password": "password123"}
     )
     response = client.post(
         "/auth/register",

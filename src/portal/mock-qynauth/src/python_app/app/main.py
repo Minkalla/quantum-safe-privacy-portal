@@ -1,11 +1,10 @@
+import hashlib
+import logging
+import secrets
+import subprocess  # For quantum-safe crypto placeholder
+
 from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel
-import secrets
-import hashlib
-import subprocess  # For quantum-safe crypto placeholder
-import json
-import logging
-
 # Add this import for redirection
 from starlette.responses import RedirectResponse
 
@@ -15,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="QynAuth MVP API",
-    description="Minimal Secure Classical Authentication with Quantum-Safe Crypto Placeholder",
+    description="Minimal Secure Classical Authentication with Quantum-Safe Crypto Placeholder",  # noqa: E501
     version="0.1.0",
 )
 
@@ -75,13 +74,16 @@ async def register(payload: RegisterPayload):
     if username in users_db:
         logger.warning(f"Registration attempt for existing user: {username}")
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="Username already registered"
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Username already registered"
         )
 
     # Generate a random salt
     salt = secrets.token_hex(16)
     # Hash the password with the salt
-    hashed_password = hashlib.sha256((password + salt).encode("utf-8")).hexdigest()
+    hashed_password = hashlib.sha256(
+        (password + salt).encode("utf-8")
+    ).hexdigest()
 
     # Generate a simple placeholder JWT token (for MVP simplicity)
     # In a real app, this would be a properly signed JWT or quantum-safe token
@@ -95,43 +97,50 @@ async def register(payload: RegisterPayload):
 
     logger.info(f"User {username} registered successfully.")
 
-    # Simulate quantum-safe key generation/exchange (placeholder call to Rust/external process)
+    # Simulate quantum-safe key generation/exchange (placeholder call to Rust/external process)  # noqa: E501
     try:
         # For MVP, simulate a successful call
-        # In real scenario, this would call out to Rust via FFI, e.g., using python-rust-fastapi binding or direct FFI
-        # As per handover, robust subprocess simulation in main.py for MVP
-        # Example: subprocess.run(['./rust_lib_executable', 'generate_keys'], check=True, capture_output=True)
-        logger.info(f"Simulating quantum-safe key generation for user {username}")
-        # Ensure the path to the Rust executable is correct relative to where the FastAPI app runs
+        # In real scenario, this would call out to Rust via FFI, e.g., using python-rust-fastapi binding or direct FFI  # noqa: E501
+        # As per handover, robust subprocess simulation in main.py for MVP  # noqa: E501
+        # Example: subprocess.run(['./rust_lib_executable', 'generate_keys'], check=True, capture_output=True)  # noqa: E501
+        logger.info(
+            f"Simulating quantum-safe key generation for user {username}"
+        )
+        # Ensure the path to the Rust executable is correct relative to where the FastAPI app runs  # noqa: E501
         # The rust_lib executable needs to be built and accessible
         # For MVP, we'll just log success
 
         # Placeholder for future quantum-safe crypto bridge
         # Example using a subprocess call:
-        # rust_exec_path = "../rust_lib/target/debug/rust_lib" # Adjust path based on your build output
-        # result = subprocess.run([rust_exec_path, "generate_keys", username], capture_output=True, text=True, check=True)
-        # logger.info(f"Quantum-safe key generation simulation result: {result.stdout.strip()}")
+        # rust_exec_path = "../rust_lib/target/debug/rust_lib" # Adjust path based on your build output  # noqa: E501
+        # result = subprocess.run([rust_exec_path, "generate_keys", username], capture_output=True, text=True, check=True)  # noqa: E501
+        # logger.info(f"Quantum-safe key generation simulation result: {result.stdout.strip()}")  # noqa: E501
         pass  # Placeholder for actual subprocess call
     except FileNotFoundError:
         logger.error(
-            "Rust executable not found for quantum-safe key generation. Ensure it's built and path is correct."
+            "Rust executable not found for quantum-safe key generation. "
+            "Ensure it's built and path is correct."
         )
     except subprocess.CalledProcessError as e:
         logger.error(
-            f"Error during quantum-safe key generation simulation: {e.stderr.strip()}"
+            f"Error during quantum-safe key generation simulation: "
+            f"{e.stderr.strip()}"
         )
     except Exception as e:
         logger.error(
-            f"Unexpected error during quantum-safe key generation simulation: {e}"
+            f"Unexpected error during quantum-safe key generation simulation: "
+            f"{e}"
         )
 
-    return AuthTokenResponse(access_token=jwt_token, token_type="bearer")
+    return AuthTokenResponse(
+        access_token=jwt_token, token_type="bearer"
+    )
 
 
 @app.post("/auth/login", response_model=AuthTokenResponse)
 async def login(payload: LoginPayload):
     """
-    Authenticates a user and returns a JWT token (placeholder for quantum-safe token).
+    Authenticates a user and returns a JWT token (placeholder for quantum-safe token).  # noqa: E501
     """
     username = payload.username
     password = payload.password
@@ -141,7 +150,8 @@ async def login(payload: LoginPayload):
     if not user_data:
         logger.warning(f"Login attempt for non-existent user: {username}")
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials"
         )
 
     stored_hashed_password = user_data["hashed_password"]
@@ -153,10 +163,15 @@ async def login(payload: LoginPayload):
     ).hexdigest()
 
     if provided_hashed_password != stored_hashed_password:
-        logger.warning(f"Login attempt with incorrect password for user: {username}")
+        logger.warning(
+            f"Login attempt with incorrect password for user: {username}"
+        )
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials"
         )
 
     logger.info(f"User {username} logged in successfully.")
-    return AuthTokenResponse(access_token=user_data["token"], token_type="bearer")
+    return AuthTokenResponse(
+        access_token=user_data["token"], token_type="bearer"
+    )
