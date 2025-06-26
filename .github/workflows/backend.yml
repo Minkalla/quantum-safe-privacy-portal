@@ -60,6 +60,9 @@ jobs:
           NODE_ENV: 'test'
           MONGODB_URI: 'mongodb://localhost:27017/e2e_test_db'
           SKIP_SECRETS_MANAGER: 'true'
+          JWT_ACCESS_SECRET_ID: 'test-access-secret'
+          JWT_REFRESH_SECRET_ID: 'test-refresh-secret'
+          AWS_REGION: 'us-east-1'
         run: npm run test:e2e
 
   cypress-e2e-tests:
@@ -166,6 +169,9 @@ jobs:
           PQC_ENABLED: 'true'
           NODE_ENV: 'test'
           SKIP_SECRETS_MANAGER: 'true'
+          JWT_ACCESS_SECRET_ID: 'test-access-secret'
+          JWT_REFRESH_SECRET_ID: 'test-refresh-secret'
+          AWS_REGION: 'us-east-1'
         run: npm run test:e2e:pqc-integration
       
       - name: Validate PQC feature flags

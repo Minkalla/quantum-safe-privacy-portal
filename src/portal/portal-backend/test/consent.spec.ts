@@ -18,7 +18,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConsentModule } from '../src/consent/consent.module';
-import { ConsentService } from '../src/consent/consent.service';
+// import { ConsentService } from '../src/consent/consent.service';
 import { JwtService } from '../src/jwt/jwt.service';
 import { PQCFeatureFlagsService } from '../src/pqc/pqc-feature-flags.service';
 import { PQCMonitoringService } from '../src/pqc/pqc-monitoring.service';

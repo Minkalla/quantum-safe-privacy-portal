@@ -10,7 +10,7 @@ import { PQCFeatureFlagsService } from '../../src/pqc/pqc-feature-flags.service'
 import { PQCMonitoringService } from '../../src/pqc/pqc-monitoring.service';
 import { ConsentType } from '../../src/consent/dto/create-consent.dto';
 import { JwtService } from '../../src/jwt/jwt.service';
-import { AuthService } from '../../src/auth/auth.service';
+// import { AuthService } from '../../src/auth/auth.service';
 
 describe('E2E Consent Flow Tests', () => {
   let app: INestApplication;
