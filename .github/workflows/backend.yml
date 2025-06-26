@@ -104,6 +104,9 @@ jobs:
           NODE_ENV: 'development'
           MONGODB_URI: 'mongodb://localhost:27017/cypress_test_db'
           SKIP_SECRETS_MANAGER: 'true'
+          JWT_ACCESS_SECRET_ID: 'test-access-secret'
+          JWT_REFRESH_SECRET_ID: 'test-refresh-secret'
+          AWS_REGION: 'us-east-1'
         run: |
           npm run start:dev &
           sleep 30
