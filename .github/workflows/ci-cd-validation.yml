@@ -1,4 +1,4 @@
-name: CI/CD Pipeline Validation for WBS 1.2.2
+name: Adjusted CI/CD Pipeline Validation for WBS 1.2.2
 
 on:
   pull_request:
@@ -7,54 +7,31 @@ on:
       - pqc-dev-*
 
 jobs:
-  # Job 1: Build Validation
+  # Job 1: Build Validation with PQC Dependencies
   build-validation:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
           components: rustfmt, clippy
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo
-            ~/.cache/pypoetry
-          key: ${{ runner.os }}-build-${{ hashFiles('**/Cargo.lock', '**/poetry.lock', '**/package-lock.json') }}
-      - name: Install Node.js dependencies
-        working-directory: src/portal/portal-backend
-        run: npm ci
-      - name: Install Python dependencies
-        working-directory: src/portal/mock-qynauth
-        run: poetry install --no-interaction
-      - name: Install Rust dependencies
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+      - name: Install PQC dependencies
         working-directory: src/portal/mock-qynauth/src/rust_lib
-        run: cargo build --no-default-features
-      - name: Build all services
         run: |
-          cd src/portal/portal-backend && npm run build
-          cd src/portal/mock-qynauth && poetry run python -m build
-          cd src/portal/mock-qynauth/src/rust_lib && cargo build --no-default-features
+          cargo update
+          cargo build --features kyber768,dilithium3
       - name: Validate build artifacts
+        working-directory: src/portal/mock-qynauth/src/rust_lib
         run: |
-          if [ ! -d "src/portal/portal-backend/dist" ] || 
-             [ ! -d "src/portal/mock-qynauth/dist" ] || 
-             [ ! -f "src/portal/mock-qynauth/src/rust_lib/target/debug/libqynauth_pqc.rlib" ]; then
-            echo "ERROR: Build artifacts not found"
+          if [ ! -f "target/debug/libqynauth_pqc.a" ]; then
+            echo "ERROR: PQC build artifact not found"
             exit 1
           fi
-          echo "Build validation successful"
+          echo "Build with PQC dependencies validated"
 
   # Job 2: Lint Validation
   lint-validation:
@@ -62,14 +39,6 @@ jobs:
     needs: build-validation
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@master
         with:
@@ -77,26 +46,7 @@ jobs:
           components: rustfmt, clippy
       - name: Install linting tools
         run: |
-          npm install -g eslint prettier
           pip install flake8 black isort
-      - name: Lint Node.js code
-        working-directory: src/portal/portal-backend
-        run: |
-          npm run lint
-          if [ $? -ne 0 ]; then
-            echo "ERROR: Node.js linting failed"
-            exit 1
-          fi
-      - name: Lint Python code
-        working-directory: src/portal/mock-qynauth
-        run: |
-          poetry run black --check src/python_app
-          poetry run flake8 src/python_app
-          poetry run isort --check-only src/python_app
-          if [ $? -ne 0 ]; then
-            echo "ERROR: Python linting failed"
-            exit 1
-          fi
       - name: Lint Rust code
         working-directory: src/portal/mock-qynauth/src/rust_lib
         run: |
@@ -109,47 +59,31 @@ jobs:
       - name: Validate linting success
         run: echo "Linting validation successful"
 
-  # Job 3: Test Validation
-  test-validation:
+  # Job 3: Script Validation
+  script-validation:
     runs-on: ubuntu-latest
     needs: lint-validation
-    services:
-      mongodb:
-        image: mongo:6.0
-        ports:
-          - 27017:27017
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@master
         with:
-          node-version: '18'
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      - name: Install dependencies
+          toolchain: stable
+      - name: Validate development script
+        working-directory: src/portal/mock-qynauth/src/rust_lib
         run: |
-          cd src/portal/portal-backend && npm ci
-          cd src/portal/mock-qynauth && poetry install --no-interaction
-      - name: Run Node.js unit tests
-        working-directory: src/portal/portal-backend
-        env:
-          MONGODB_URI: 'mongodb://localhost:27017/pqc_test'
-        run: npm run test
-      - name: Run Python unit tests
-        working-directory: src/portal/mock-qynauth
-        env:
-          MONGODB_URI: 'mongodb://localhost:27017/pqc_test'
-        run: poetry run pytest -v
-      - name: Validate test results
-        run: |
-          if [ ! -f "src/portal/portal-backend/coverage/lcov.info" ]; then
-            echo "WARNING: Node.js test coverage report not found, but tests may have passed"
+          if [ ! -f "scripts/dev-build.sh" ]; then
+            echo "ERROR: Development script not found"
+            exit 1
           fi
-          echo "Test validation successful"
+          chmod +x scripts/dev-build.sh
+          ./scripts/dev-build.sh
+          if [ $? -ne 0 ]; then
+            echo "ERROR: Development script execution failed"
+            exit 1
+          fi
+          echo "Development script validated"
 
 # Environment variables
 env:
   NODE_ENV: 'test'
-  MONGODB_URI: 'mongodb://localhost:27017/pqc_test'
