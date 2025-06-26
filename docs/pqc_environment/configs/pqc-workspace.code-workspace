@@ -1,0 +1,16 @@
+{
+  "folders": [
+    {
+      "name": "QynAuth PQC",
+      "path": "./src/portal/mock-qynauth"
+    },
+    {
+      "name": "Portal Backend",
+      "path": "./src/portal/portal-backend"
+    }
+  ],
+  "settings": {
+    "rust-analyzer.cargo.features": ["pqc-kyber", "pqc-dilithium"],
+    "rust-analyzer.checkOnSave.command": "clippy"
+  }
+}
