@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel
 import secrets
 import hashlib
-import subprocess # For quantum-safe crypto placeholder
+import subprocess  # For quantum-safe crypto placeholder
 import json
 import logging
 
@@ -21,25 +21,32 @@ app = FastAPI(
 
 # In-memory user store for MVP simplicity (replace with DB later)
 # Store hashed passwords and associated JWT tokens
-users_db = {} # { "username": {"hashed_password": "...", "salt": "...", "token": "..."} }
+users_db = (
+    {}
+)  # { "username": {"hashed_password": "...", "salt": "...", "token": "..."} }
+
 
 # Pydantic models for request/response bodies
 class RegisterPayload(BaseModel):
     username: str
     password: str
 
+
 class LoginPayload(BaseModel):
     username: str
     password: str
+
 
 class AuthTokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
+
 # New route to redirect from root to /docs
 @app.get("/")
 async def redirect_to_docs():
     return RedirectResponse(url="/docs")
+
 
 @app.get("/health", response_model=dict)
 async def health_check():
@@ -51,7 +58,12 @@ async def health_check():
     logger.info("Health check requested.")
     return {"status": "ok", "message": "QynAuth API is running!"}
 
-@app.post("/auth/register", response_model=AuthTokenResponse, status_code=status.HTTP_201_CREATED)
+
+@app.post(
+    "/auth/register",
+    response_model=AuthTokenResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def register(payload: RegisterPayload):
     """
     Registers a new user with a username and password.
@@ -63,14 +75,13 @@ async def register(payload: RegisterPayload):
     if username in users_db:
         logger.warning(f"Registration attempt for existing user: {username}")
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Username already registered"
+            status_code=status.HTTP_409_CONFLICT, detail="Username already registered"
         )
 
     # Generate a random salt
     salt = secrets.token_hex(16)
     # Hash the password with the salt
-    hashed_password = hashlib.sha256((password + salt).encode('utf-8')).hexdigest()
+    hashed_password = hashlib.sha256((password + salt).encode("utf-8")).hexdigest()
 
     # Generate a simple placeholder JWT token (for MVP simplicity)
     # In a real app, this would be a properly signed JWT or quantum-safe token
@@ -79,7 +90,7 @@ async def register(payload: RegisterPayload):
     users_db[username] = {
         "hashed_password": hashed_password,
         "salt": salt,
-        "token": jwt_token
+        "token": jwt_token,
     }
 
     logger.info(f"User {username} registered successfully.")
@@ -100,15 +111,22 @@ async def register(payload: RegisterPayload):
         # rust_exec_path = "../rust_lib/target/debug/rust_lib" # Adjust path based on your build output
         # result = subprocess.run([rust_exec_path, "generate_keys", username], capture_output=True, text=True, check=True)
         # logger.info(f"Quantum-safe key generation simulation result: {result.stdout.strip()}")
-        pass # Placeholder for actual subprocess call
+        pass  # Placeholder for actual subprocess call
     except FileNotFoundError:
-        logger.error("Rust executable not found for quantum-safe key generation. Ensure it's built and path is correct.")
+        logger.error(
+            "Rust executable not found for quantum-safe key generation. Ensure it's built and path is correct."
+        )
     except subprocess.CalledProcessError as e:
-        logger.error(f"Error during quantum-safe key generation simulation: {e.stderr.strip()}")
+        logger.error(
+            f"Error during quantum-safe key generation simulation: {e.stderr.strip()}"
+        )
     except Exception as e:
-        logger.error(f"Unexpected error during quantum-safe key generation simulation: {e}")
+        logger.error(
+            f"Unexpected error during quantum-safe key generation simulation: {e}"
+        )
 
     return AuthTokenResponse(access_token=jwt_token, token_type="bearer")
+
 
 @app.post("/auth/login", response_model=AuthTokenResponse)
 async def login(payload: LoginPayload):
@@ -123,21 +141,21 @@ async def login(payload: LoginPayload):
     if not user_data:
         logger.warning(f"Login attempt for non-existent user: {username}")
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
         )
 
     stored_hashed_password = user_data["hashed_password"]
     stored_salt = user_data["salt"]
 
     # Hash the provided password with the stored salt for comparison
-    provided_hashed_password = hashlib.sha256((password + stored_salt).encode('utf-8')).hexdigest()
+    provided_hashed_password = hashlib.sha256(
+        (password + stored_salt).encode("utf-8")
+    ).hexdigest()
 
     if provided_hashed_password != stored_hashed_password:
         logger.warning(f"Login attempt with incorrect password for user: {username}")
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
         )
 
     logger.info(f"User {username} logged in successfully.")
