@@ -90,7 +90,7 @@ async function bootstrap() {
     disableErrorMessages: nodeEnv === 'production',
     exceptionFactory: (errors) => {
       const errorMessages: string[] = [];
-      
+
       const processError = (error: any, parentPath = '') => {
         if (error.constraints) {
           const constraintMessages = Object.values(error.constraints);
@@ -98,7 +98,7 @@ async function bootstrap() {
             errorMessages.push(constraintMessages[0] as string);
           }
         }
-        
+
         if (error.children && error.children.length > 0) {
           error.children.forEach((child: any) => {
             const childPath = parentPath ? `${parentPath}.${error.property}` : error.property;
@@ -106,9 +106,9 @@ async function bootstrap() {
           });
         }
       };
-      
+
       errors.forEach(error => processError(error));
-      
+
       return new BadRequestException({
         statusCode: 400,
         message: errorMessages.length === 1 ? errorMessages[0] : errorMessages,

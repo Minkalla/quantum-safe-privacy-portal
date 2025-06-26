@@ -160,7 +160,7 @@ export class PQCFeatureFlagsService {
     flags: PQCFeatureFlagsConfig;
     rolloutPercentages: PQCRolloutPercentages;
     algorithmPreferences: Record<string, string>;
-  } {
+    } {
     return {
       flags: { ...this.flags },
       rolloutPercentages: { ...this.rolloutPercentages },

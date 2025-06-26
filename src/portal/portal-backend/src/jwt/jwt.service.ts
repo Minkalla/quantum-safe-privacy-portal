@@ -81,7 +81,7 @@ export class JwtService {
     }
 
     const usePQC = this.pqcFeatureFlags.isEnabled('pqc_jwt_signing', payload.userId);
-    
+
     if (usePQC) {
       this.logger.debug(`Using PQC JWT signing for user ${payload.userId}`);
       return this.generatePQCTokens(payload, rememberMe);
@@ -110,7 +110,7 @@ export class JwtService {
   ): { accessToken: string; refreshToken: string } {
     const startTime = Date.now();
     let success = false;
-    
+
     try {
       const pqcPayload = { ...payload, pqc: 'dilithium-3' };
       const accessToken = jwt.sign(pqcPayload, this.jwtAccessSecret, { expiresIn: '15m' });
@@ -127,11 +127,11 @@ export class JwtService {
       return { accessToken, refreshToken };
     } catch (error) {
       this.logger.error(`Failed to generate PQC tokens for user ${payload.email}:`, error);
-      
+
       this.pqcMonitoring.recordPQCJWTSigning(payload.userId, startTime, success).catch(metricError => {
         this.logger.warn(`Failed to record PQC JWT failure metrics: ${metricError.message}`);
       });
-      
+
       throw error;
     }
   }
