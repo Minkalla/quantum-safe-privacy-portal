@@ -44,9 +44,9 @@ export class MetricsCollectorService {
 
   private performAutomaticCleanup(): void {
     const initialCount = this.events.length;
-    
+
     this.clearOldEvents(this.retentionDays);
-    
+
     if (this.events.length > this.maxEvents) {
       const excessEvents = this.events.length - this.maxEvents;
       this.events.splice(0, excessEvents);

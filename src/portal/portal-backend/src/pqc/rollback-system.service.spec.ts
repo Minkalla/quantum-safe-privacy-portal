@@ -38,9 +38,9 @@ describe('RollbackSystemService', () => {
   describe('monitorExperiments', () => {
     it('should monitor running experiments', async () => {
       const spy = jest.spyOn(service as any, 'checkRollbackConditions').mockResolvedValue(undefined);
-      
+
       await service.monitorExperiments();
-      
+
       expect(spy).toHaveBeenCalled();
     });
 
@@ -49,11 +49,11 @@ describe('RollbackSystemService', () => {
       experiments.forEach(exp => {
         abTestingService.updateExperimentStatus(exp.experimentId, ExperimentStatus.COMPLETED);
       });
-      
+
       const spy = jest.spyOn(service as any, 'checkRollbackConditions').mockResolvedValue(undefined);
-      
+
       await service.monitorExperiments();
-      
+
       expect(spy).not.toHaveBeenCalled();
     });
   });
@@ -61,54 +61,53 @@ describe('RollbackSystemService', () => {
   describe('rollback triggers', () => {
     it('should trigger rollback when error rate exceeds threshold', async () => {
       const experimentId = 'pqc_kyber_rollout_v1';
-      
+
       for (let i = 0; i < 100; i++) {
         metricsCollector.recordEvent(`user${i}`, experimentId, 'treatment', 'error_rate', 0.1);
       }
-      
-      
+
       await service.monitorExperiments();
-      
+
       const experiment = abTestingService.getExperiment(experimentId);
       expect(experiment?.status).toBe(ExperimentStatus.FAILED);
     });
 
     it('should trigger rollback when response time exceeds threshold', async () => {
       const experimentId = 'pqc_kyber_rollout_v1';
-      
+
       for (let i = 0; i < 60; i++) {
         metricsCollector.recordEvent(`user${i}`, experimentId, 'treatment', 'response_time_ms', 3000);
       }
-      
+
       await service.monitorExperiments();
-      
+
       const experiment = abTestingService.getExperiment(experimentId);
       expect(experiment?.status).toBe(ExperimentStatus.FAILED);
     });
 
     it('should not trigger rollback with insufficient sample size', async () => {
       const experimentId = 'pqc_kyber_rollout_v1';
-      
+
       for (let i = 0; i < 10; i++) {
         metricsCollector.recordEvent(`user${i}`, experimentId, 'treatment', 'error_rate', 0.1);
       }
-      
+
       await service.monitorExperiments();
-      
+
       const experiment = abTestingService.getExperiment(experimentId);
       expect(experiment?.status).toBe(ExperimentStatus.RUNNING);
     });
 
     it('should not trigger rollback when metrics are within thresholds', async () => {
       const experimentId = 'pqc_kyber_rollout_v1';
-      
+
       for (let i = 0; i < 100; i++) {
         metricsCollector.recordEvent(`user${i}`, experimentId, 'treatment', 'error_rate', 0.01);
         metricsCollector.recordEvent(`user${i}`, experimentId, 'treatment', 'response_time_ms', 500);
       }
-      
+
       await service.monitorExperiments();
-      
+
       const experiment = abTestingService.getExperiment(experimentId);
       expect(experiment?.status).toBe(ExperimentStatus.RUNNING);
     });
@@ -123,9 +122,9 @@ describe('RollbackSystemService', () => {
         comparisonOperator: 'gt' as const,
         minSampleSize: 100,
       };
-      
+
       await (service as any).executeRollback(experimentId, trigger);
-      
+
       const experiment = abTestingService.getExperiment(experimentId);
       expect(experiment?.status).toBe(ExperimentStatus.FAILED);
     });
@@ -139,9 +138,9 @@ describe('RollbackSystemService', () => {
         comparisonOperator: 'gt' as const,
         minSampleSize: 50,
       };
-      
+
       service.addCustomTrigger(customTrigger);
-      
+
       const triggers = service.getRollbackTriggers();
       expect(triggers).toContainEqual(customTrigger);
     });

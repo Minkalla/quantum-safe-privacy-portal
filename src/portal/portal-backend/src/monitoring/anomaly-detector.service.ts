@@ -25,7 +25,7 @@ export class AnomalyDetectorService {
 
       if (anomalyResult.hasAnomalies) {
         this.logger.warn(`Anomalies detected: ${anomalyResult.anomalies.join(', ')}`);
-        
+
         await this.alerting.sendAlert({
           severity: anomalyResult.shouldRollback ? 'CRITICAL' : 'WARNING',
           title: 'Performance Anomaly Detected',
@@ -35,7 +35,7 @@ export class AnomalyDetectorService {
 
         if (anomalyResult.shouldRollback) {
           await this.baselineManager.triggerRollback(
-            `Performance anomalies detected: ${anomalyResult.anomalies.join(', ')}`
+            `Performance anomalies detected: ${anomalyResult.anomalies.join(', ')}`,
           );
         }
       }

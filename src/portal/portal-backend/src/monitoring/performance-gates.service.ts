@@ -18,7 +18,7 @@ interface PerformanceMetrics {
 @Injectable()
 export class PerformanceGatesService {
   private readonly logger = new Logger(PerformanceGatesService.name);
-  
+
   private readonly thresholds: PerformanceThresholds = {
     authenticationLatency: 200,
     keyGenerationTime: 5000,

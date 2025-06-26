@@ -75,7 +75,7 @@ export class RollbackSystemService {
   async monitorExperiments(): Promise<void> {
     try {
       const experiments = this.abTestingService.getAllExperiments();
-      
+
       for (const experiment of experiments) {
         if (experiment.status === ExperimentStatus.RUNNING) {
           await this.checkRollbackConditions(experiment.experimentId);
@@ -95,7 +95,7 @@ export class RollbackSystemService {
 
       for (const trigger of this.rollbackTriggers) {
         this.logger.debug(`Checking trigger: ${trigger.metricName} with threshold ${trigger.thresholdValue}`);
-        
+
         if (treatmentMetrics[trigger.metricName]) {
           const metricData = treatmentMetrics[trigger.metricName];
           this.logger.debug(`Metric data for ${trigger.metricName}:`, JSON.stringify(metricData));
@@ -122,16 +122,16 @@ export class RollbackSystemService {
 
   private shouldTriggerRollback(currentValue: number, trigger: RollbackTrigger): boolean {
     switch (trigger.comparisonOperator) {
-      case 'gt':
-        return currentValue > trigger.thresholdValue;
-      case 'lt':
-        return currentValue < trigger.thresholdValue;
-      case 'gte':
-        return currentValue >= trigger.thresholdValue;
-      case 'lte':
-        return currentValue <= trigger.thresholdValue;
-      default:
-        return false;
+    case 'gt':
+      return currentValue > trigger.thresholdValue;
+    case 'lt':
+      return currentValue < trigger.thresholdValue;
+    case 'gte':
+      return currentValue >= trigger.thresholdValue;
+    case 'lte':
+      return currentValue <= trigger.thresholdValue;
+    default:
+      return false;
     }
   }
 

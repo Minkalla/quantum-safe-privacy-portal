@@ -208,7 +208,7 @@ export class PQCMonitoringService {
   async getMetricsSummary(): Promise<PQCMetrics> {
     const successMetrics = this.calculateSuccessRates();
     const rolloutPercentage = await this.getRolloutPercentage();
-    
+
     return {
       keyGenerationLatency: this.currentMetrics.get('keyGenerationLatency') || 0,
       keyGenerationSuccess: successMetrics.keyGeneration,
@@ -224,7 +224,7 @@ export class PQCMonitoringService {
   private calculateSuccessRates(): { keyGeneration: boolean; jwtSigning: boolean; authentication: boolean } {
     const errorRate = this.currentMetrics.get('errorRate') || 0;
     const successThreshold = 0.95;
-    
+
     return {
       keyGeneration: (1 - errorRate) >= successThreshold,
       jwtSigning: (1 - errorRate) >= successThreshold,

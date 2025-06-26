@@ -27,7 +27,7 @@ export class BaselineManagerService {
   private readonly logger = new Logger(BaselineManagerService.name);
   private readonly baselineDir = join(process.cwd(), 'monitoring', 'baselines');
   private readonly auditDir = join(process.cwd(), 'monitoring', 'audit');
-  
+
   private readonly anomalyThresholds: AnomalyThresholds = {
     latencyIncrease: 0.30,
     memoryIncrease: 0.50,
@@ -64,7 +64,7 @@ export class BaselineManagerService {
 
     this.saveBaseline(baseline);
     this.auditEvent('baseline_collected', baseline);
-    
+
     return baseline;
   }
 
@@ -87,16 +87,16 @@ export class BaselineManagerService {
   private saveBaseline(baseline: PerformanceBaseline): void {
     const filename = join(this.baselineDir, `baseline-${Date.now()}.json`);
     writeFileSync(filename, JSON.stringify(baseline, null, 2));
-    
+
     const latestFilename = join(this.baselineDir, 'latest-baseline.json');
     writeFileSync(latestFilename, JSON.stringify(baseline, null, 2));
-    
+
     this.logger.log(`Baseline saved: ${filename}`);
   }
 
   getLatestBaseline(): PerformanceBaseline | null {
     const latestFile = join(this.baselineDir, 'latest-baseline.json');
-    
+
     if (!existsSync(latestFile)) {
       this.logger.warn('No baseline found, collecting initial baseline');
       return null;
@@ -168,7 +168,7 @@ export class BaselineManagerService {
 
     const auditFile = join(this.auditDir, `audit-${new Date().toISOString().split('T')[0]}.jsonl`);
     const auditLine = JSON.stringify(auditEntry) + '\n';
-    
+
     try {
       writeFileSync(auditFile, auditLine, { flag: 'a' });
     } catch (error) {
@@ -178,9 +178,9 @@ export class BaselineManagerService {
 
   async triggerRollback(reason: string): Promise<void> {
     this.logger.error(`ROLLBACK TRIGGERED: ${reason}`);
-    
+
     this.auditEvent('rollback_triggered', { reason, timestamp: new Date().toISOString() });
-    
+
     this.logger.error('Automated rollback would be executed here in production environment');
   }
 }
