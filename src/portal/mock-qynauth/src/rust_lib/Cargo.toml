@@ -27,7 +27,7 @@ subtle = "2.5"
 secrecy = "0.8"
 
 # Error Handling and Logging
-thiserror = "1.0"
+thiserror = "2.0"
 anyhow = "1.0"
 log = "0.4"
 
