@@ -1,0 +1,73 @@
+id	name	threshold	ignore	scanner	tags
+10003	Sensitive Information in URL	MEDIUM	false	pscanrules	OWASP_2021_A01,OWASP_2017_A03,WSTG-v42-ATHN-01
+10009	In Page Banner Information Leak	LOW	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-INFO-08
+10010	Cookie No HttpOnly Flag	LOW	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-SESS-02
+10011	Cookie Without Secure Flag	LOW	false	pscanrules	OWASP_2021_A02,OWASP_2017_A06,WSTG-v42-SESS-02
+10015	Incomplete or No Cache-control Header Set	LOW	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-ATHN-06
+10016	Web Browser XSS Protection Not Enabled	LOW	false	pscanrules	OWASP_2021_A03,OWASP_2017_A07,WSTG-v42-CLNT-03
+10017	Cross-Domain JavaScript Source File Inclusion	LOW	false	pscanrules	OWASP_2021_A06,OWASP_2017_A09,WSTG-v42-CLNT-13
+10019	Content-Type Header Missing	LOW	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-CONF-03
+10020	Anti-clickjacking Header	LOW	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-CLNT-09
+10021	X-Content-Type-Options Header Missing	LOW	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-CONF-03
+10023	Information Disclosure - Debug Error Messages	LOW	false	pscanrules	OWASP_2021_A05,OWASP_2017_A03,WSTG-v42-ERRH-01
+10024	Information Disclosure - Sensitive Information in HTTP Referrer Header	LOW	false	pscanrules	OWASP_2021_A01,OWASP_2017_A03,WSTG-v42-ATHN-03
+10025	Information Disclosure - Sensitive Information in URL	LOW	false	pscanrules	OWASP_2021_A01,OWASP_2017_A03,WSTG-v42-ATHN-01
+10026	HTTP Parameter Override	MEDIUM	false	pscanrules	OWASP_2021_A03,OWASP_2017_A01,WSTG-v42-INPV-04
+10027	Information Disclosure - Suspicious Comments	LOW	false	pscanrules	OWASP_2021_A05,OWASP_2017_A03,WSTG-v42-INFO-05
+10028	Open Redirect	HIGH	false	pscanrules	OWASP_2021_A03,OWASP_2017_A01,WSTG-v42-CLNT-04
+10029	Cookie Poisoning	LOW	false	pscanrules	OWASP_2021_A03,OWASP_2017_A01,WSTG-v42-SESS-03
+10030	User Controllable Charset	LOW	false	pscanrules	OWASP_2021_A03,OWASP_2017_A01,WSTG-v42-INPV-12
+10031	User Controllable HTML Element Attribute (Potential XSS)	LOW	false	pscanrules	OWASP_2021_A03,OWASP_2017_A07,WSTG-v42-INPV-01
+10032	Viewstate	LOW	false	pscanrules	OWASP_2021_A04,OWASP_2017_A02,WSTG-v42-SESS-09
+10033	Directory Browsing	MEDIUM	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-CONF-04
+10034	Heartbleed OpenSSL Vulnerability (Indicative)	HIGH	false	pscanrules	OWASP_2021_A06,OWASP_2017_A09,WSTG-v42-CRYP-01
+10035	Strict-Transport-Security Header	LOW	false	pscanrules	OWASP_2021_A02,OWASP_2017_A06,WSTG-v42-CRYP-03
+10036	Server Leaks Version Information via "Server" HTTP Response Header Field	LOW	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-INFO-02
+10037	Server Leaks Information via "X-Powered-By" HTTP Response Header Field(s)	LOW	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-INFO-08
+10038	Content Security Policy (CSP) Header Not Set	MEDIUM	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-CLNT-03
+10040	Secure Pages Include Mixed Content	MEDIUM	false	pscanrules	OWASP_2021_A02,OWASP_2017_A06,WSTG-v42-CRYP-03
+10041	HTTP to HTTPS Insecure Transition in Form Post	MEDIUM	false	pscanrules	OWASP_2021_A02,OWASP_2017_A06,WSTG-v42-CRYP-03
+10042	HTTPS to HTTP Insecure Transition in Form Post	MEDIUM	false	pscanrules	OWASP_2021_A02,OWASP_2017_A06,WSTG-v42-CRYP-03
+10043	User Controllable JavaScript Event (XSS)	LOW	false	pscanrules	OWASP_2021_A03,OWASP_2017_A07,WSTG-v42-CLNT-03
+10044	Big Redirect Detected (Potential Sensitive Information Leak)	LOW	false	pscanrules	OWASP_2021_A01,OWASP_2017_A03,WSTG-v42-ATHN-03
+10045	Source Code Disclosure - /WEB-INF folder	HIGH	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-CONF-04
+10047	HTTPS Content Available via HTTP	HIGH	false	pscanrules	OWASP_2021_A02,OWASP_2017_A06,WSTG-v42-CRYP-03
+10048	ShellShock CVE-2014-6271	HIGH	false	pscanrules	OWASP_2021_A06,OWASP_2017_A09,WSTG-v42-INPV-12
+10049	Content Cacheability	LOW	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-ATHN-06
+10050	Retrieved from Cache	LOW	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-ATHN-06
+10051	Relative Path Confusion	MEDIUM	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-CONF-02
+10052	X-ChromeLogger-Data (XCOLD) Header Information Leak	MEDIUM	false	pscanrules	OWASP_2021_A05,OWASP_2017_A03,WSTG-v42-INFO-05
+10054	Cookie without SameSite Attribute	LOW	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-SESS-02
+10055	CSP	MEDIUM	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-CLNT-03
+10056	X-Debug-Token Information Leak	MEDIUM	false	pscanrules	OWASP_2021_A05,OWASP_2017_A03,WSTG-v42-INFO-05
+10057	Username Hash Found	LOW	false	pscanrules	OWASP_2021_A01,OWASP_2017_A02,WSTG-v42-ATHN-03
+10061	X-AspNet-Version Response Header	LOW	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-INFO-08
+10062	PII Disclosure	HIGH	false	pscanrules	OWASP_2021_A01,OWASP_2017_A03,WSTG-v42-ATHN-01
+10063	Permissions Policy Header Not Set	LOW	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-CONF-12
+10096	Timestamp Disclosure	LOW	false	pscanrules	OWASP_2021_A05,OWASP_2017_A03,WSTG-v42-INFO-05
+10097	Hash Disclosure	LOW	false	pscanrules	OWASP_2021_A01,OWASP_2017_A03,WSTG-v42-CRYP-04
+10098	Cross-Domain Misconfiguration	MEDIUM	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-CONF-07
+10104	User Agent Fuzzer	LOW	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-INFO-01
+10105	Weak Authentication Method	MEDIUM	false	pscanrules	OWASP_2021_A07,OWASP_2017_A02,WSTG-v42-ATHN-01
+10106	HTTP Only Site	MEDIUM	false	pscanrules	OWASP_2021_A02,OWASP_2017_A06,WSTG-v42-CRYP-03
+10107	Httpoxy - Proxy Header Misuse	MEDIUM	false	pscanrules	OWASP_2021_A06,OWASP_2017_A09,WSTG-v42-INPV-19
+10108	Reverse Tabnabbing	MEDIUM	false	pscanrules	OWASP_2021_A03,OWASP_2017_A01,WSTG-v42-CLNT-04
+10109	Modern Web Application	LOW	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-INFO-10
+10110	Dangerous JS Functions	LOW	false	pscanrules	OWASP_2021_A03,OWASP_2017_A07,WSTG-v42-CLNT-03
+10202	Absence of Anti-CSRF Tokens	LOW	false	pscanrules	OWASP_2021_A01,OWASP_2017_A05,WSTG-v42-SESS-05
+90001	Insecure JSF ViewState	MEDIUM	false	pscanrules	OWASP_2021_A04,OWASP_2017_A02,WSTG-v42-SESS-09
+90011	Charset Mismatch	LOW	false	pscanrules	OWASP_2021_A03,OWASP_2017_A01,WSTG-v42-INPV-12
+90017	XSLT Injection	MEDIUM	false	pscanrules	OWASP_2021_A03,OWASP_2017_A01,WSTG-v42-INPV-07
+90019	Server Side Code Injection	HIGH	false	pscanrules	OWASP_2021_A03,OWASP_2017_A01,WSTG-v42-INPV-11
+90020	Remote OS Command Injection	HIGH	false	pscanrules	OWASP_2021_A03,OWASP_2017_A01,WSTG-v42-INPV-12
+90021	XPath Injection	HIGH	false	pscanrules	OWASP_2021_A03,OWASP_2017_A01,WSTG-v42-INPV-09
+90022	Application Error Disclosure	MEDIUM	false	pscanrules	OWASP_2021_A05,OWASP_2017_A03,WSTG-v42-ERRH-01
+90023	XML External Entity Attack	HIGH	false	pscanrules	OWASP_2021_A05,OWASP_2017_A04,WSTG-v42-INPV-07
+90024	Generic Padding Oracle	HIGH	false	pscanrules	OWASP_2021_A02,OWASP_2017_A06,WSTG-v42-CRYP-02
+90025	Expression Language Injection	HIGH	false	pscanrules	OWASP_2021_A03,OWASP_2017_A01,WSTG-v42-INPV-11
+90026	SOAP Action Spoofing	MEDIUM	false	pscanrules	OWASP_2021_A03,OWASP_2017_A01,WSTG-v42-INPV-12
+90027	Cookie Slack Detector	LOW	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-SESS-02
+90028	Insecure HTTP Method	MEDIUM	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-CONF-06
+90029	LDAP Injection	HIGH	false	pscanrules	OWASP_2021_A03,OWASP_2017_A01,WSTG-v42-INPV-06
+90030	WSDL File Detection	LOW	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-INFO-08
+90033	Loosely Scoped Cookie	LOW	false	pscanrules	OWASP_2021_A05,OWASP_2017_A06,WSTG-v42-SESS-02

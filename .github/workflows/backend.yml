@@ -1,0 +1,244 @@
+name: Backend CI/CD Pipeline with PQC Integration
+
+on:
+  push:
+    branches: [ main, pqc-implementation-main, pqc-dev-* ]
+  pull_request:
+    branches: [ main, pqc-implementation-main ]
+
+jobs:
+  build-and-test-backend:
+    runs-on: ubuntu-latest
+    
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ping: 1})'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: src/portal/portal-backend/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: src/portal/portal-backend
+        run: npm ci
+      
+      - name: Run linting
+        working-directory: src/portal/portal-backend
+        run: npm run lint
+      
+      - name: Run type checking
+        working-directory: src/portal/portal-backend
+        run: npm run typecheck
+      
+      - name: Build application
+        working-directory: src/portal/portal-backend
+        run: npm run build
+      
+      - name: Run unit tests
+        working-directory: src/portal/portal-backend
+        env:
+          NODE_ENV: 'test'
+          MONGODB_URI: 'mongodb://localhost:27017/test_db'
+        run: npm test
+      
+      - name: Run E2E tests
+        working-directory: src/portal/portal-backend
+        env:
+          NODE_ENV: 'test'
+          MONGODB_URI: 'mongodb://localhost:27017/e2e_test_db'
+          SKIP_SECRETS_MANAGER: 'true'
+        run: npm run test:e2e
+
+  cypress-e2e-tests:
+    runs-on: ubuntu-latest
+    needs: build-and-test-backend
+    
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ping: 1})'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: src/portal/portal-backend/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: src/portal/portal-backend
+        run: npm ci
+      
+      - name: Build application
+        working-directory: src/portal/portal-backend
+        run: npm run build
+      
+      - name: Start application
+        working-directory: src/portal/portal-backend
+        env:
+          NODE_ENV: 'development'
+          MONGODB_URI: 'mongodb://localhost:27017/cypress_test_db'
+          SKIP_SECRETS_MANAGER: 'true'
+        run: |
+          npm run start:dev &
+          sleep 30
+          curl -f http://localhost:8080/portal/health || exit 1
+      
+      - name: Run Cypress E2E tests
+        working-directory: src/portal/portal-backend
+        run: npx cypress run --headless
+      
+      - name: Upload Cypress screenshots
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: cypress-screenshots
+          path: src/portal/portal-backend/cypress/screenshots
+
+  pqc-compatibility-check:
+    runs-on: ubuntu-latest
+    needs: [build-and-test-backend, cypress-e2e-tests]
+    if: contains(github.head_ref, 'pqc') || contains(github.base_ref, 'pqc')
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+      
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src/portal/mock-qynauth/src/rust_lib
+      
+      - name: Build PQC QynAuth service
+        working-directory: src/portal/mock-qynauth/src/rust_lib
+        run: cargo build --release --features kyber768,dilithium3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: src/portal/portal-backend/package-lock.json
+      
+      - name: Install backend dependencies
+        working-directory: src/portal/portal-backend
+        run: npm ci
+      
+      - name: Build backend
+        working-directory: src/portal/portal-backend
+        run: npm run build
+      
+      - name: Set up MongoDB for PQC testing
+        run: |
+          sudo systemctl start mongod || echo "MongoDB service not available, using container"
+          
+      - name: Run PQC integration tests
+        working-directory: src/portal/portal-backend
+        env:
+          MONGODB_URI: 'mongodb://localhost:27017/pqc_integration_test'
+          PQC_ENABLED: 'true'
+          NODE_ENV: 'test'
+          SKIP_SECRETS_MANAGER: 'true'
+        run: npm run test:e2e:pqc-integration
+      
+      - name: Validate PQC feature flags
+        working-directory: src/portal/portal-backend
+        run: |
+          # Check if PQC services are properly integrated
+          if [ ! -f "src/pqc/pqc-feature-flags.service.ts" ] || [ ! -f "src/pqc/pqc-monitoring.service.ts" ]; then
+            echo "ERROR: PQC services not found"
+            exit 1
+          fi
+          
+          # Validate PQC configuration
+          node -e "
+            const config = require('./dist/pqc/pqc-feature-flags.service.js');
+            console.log('PQC feature flags service validated');
+          " || echo "WARNING: PQC feature flags validation failed - may need build"
+
+  dast-scan-backend:
+    runs-on: ubuntu-latest
+    needs: pqc-compatibility-check
+    
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ping: 1})'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: src/portal/portal-backend/package-lock.json
+      
+      - name: Install dependencies and build
+        working-directory: src/portal/portal-backend
+        run: |
+          npm ci
+          npm run build
+      
+      - name: Start application for DAST
+        working-directory: src/portal/portal-backend
+        env:
+          NODE_ENV: 'development'
+          MONGODB_URI: 'mongodb://localhost:27017/dast_test_db'
+          SKIP_SECRETS_MANAGER: 'true'
+        run: |
+          npm run start:dev &
+          sleep 30
+          curl -f http://localhost:8080/portal/health || exit 1
+      
+      - name: Run OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: 'http://localhost:8080'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a'
+      
+      - name: Upload ZAP scan results
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-scan-results
+          path: report_html.html
+
+# Environment variables
+env:
+  NODE_ENV: 'test'
+  CI: 'true'
