@@ -32,8 +32,9 @@ jobs:
           node-version: '18'
       - name: Install dependencies
         run: |
+          mkdir -p src/portal/mock-qynauth/src/rust_lib
           cd src/portal/portal-backend && npm ci
-          cd ../../mock-qynauth && poetry install --no-interaction
+          cd ../mock-qynauth && poetry install --no-interaction
           cd src/rust_lib
           if [ ! -f "Cargo.toml" ]; then
             cargo init --lib
