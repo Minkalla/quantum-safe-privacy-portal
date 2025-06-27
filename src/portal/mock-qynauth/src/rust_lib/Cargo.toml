@@ -33,6 +33,11 @@ secrecy = "0.8"
 thiserror = "1.0"
 anyhow = "1.0"
 log = "0.4"
+tracing = "0.1"
+
+# Parallel Processing and System Info
+rayon = "1.10"
+num_cpus = "1.16"
 
 # Cryptographic Utilities
 rand = "0.8"
