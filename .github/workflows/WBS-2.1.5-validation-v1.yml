@@ -16,9 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
+      build-cache-key: ${{ steps.cache-setup.outputs.cache-primary-key }}
       rust-version: ${{ steps.rust-setup.outputs.rustc-version }}
       node-version: ${{ steps.node-setup.outputs.node-version }}
-      build-cache-key: ${{ steps.cache-setup.outputs.cache-key }}
     
     steps:
       - name: "📥 Checkout Repository"
@@ -158,8 +158,9 @@ jobs:
             ~/.cargo/git
             target/
             node_modules/
-          key: ${{ needs.environment-orchestration.outputs.build-cache-key }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') || 'nocargo' }}-node-${{ hashFiles('**/package-lock.json') || 'nopackage' }}-v2
           restore-keys: |
+            ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-
             ${{ runner.os }}-cargo-
 
       - name: "🔧 Enhanced Dependency Monitoring Integration"
@@ -263,7 +264,10 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target/
-          key: ${{ needs.environment-orchestration.outputs.build-cache-key }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') || 'nocargo' }}-node-${{ hashFiles('**/package-lock.json') || 'nopackage' }}-v2
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-
+            ${{ runner.os }}-cargo-
 
       - name: "🔍 Comprehensive Vulnerability Assessment"
         working-directory: src/portal/mock-qynauth/src/rust_lib
