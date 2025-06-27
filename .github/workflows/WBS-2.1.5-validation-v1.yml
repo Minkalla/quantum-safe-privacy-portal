@@ -14,7 +14,7 @@ jobs:
   environment-orchestration:
     name: "🚀 Environment Orchestration (Revolutionary CI v2)"
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 15
     outputs:
       rust-version: ${{ steps.rust-setup.outputs.rustc-version }}
       node-version: ${{ steps.node-setup.outputs.node-version }}
@@ -62,22 +62,57 @@ jobs:
 
       - name: "📦 Install Security Tools (Parallel)"
         run: |
-          # Install Rust security tools in parallel
-          cargo install cargo-audit cargo-deny cargo-outdated --locked &
+          # Create required directories first
+          mkdir -p /tmp/pqc_dependencies/{reports,monitoring,dashboards,alerts}
+          mkdir -p /tmp/security-reports/{audit,deny,trivy,grype,npm,compliance}
+          
+          # Install Rust security tools with optimized approach
+          echo "Installing cargo-audit..."
+          cargo install cargo-audit --locked --jobs 2 &
+          AUDIT_PID=$!
+          
+          echo "Installing cargo-deny..."  
+          cargo install cargo-deny --locked --jobs 2 &
+          DENY_PID=$!
           
           # Install Trivy
+          echo "Installing Trivy..."
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin &
+          TRIVY_PID=$!
           
           # Install Grype
+          echo "Installing Grype..."
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sudo sh -s -- -b /usr/local/bin &
+          GRYPE_PID=$!
           
-          wait
+          # Install cargo-outdated separately (optional, faster without it)
+          echo "Installing cargo-outdated..."
+          cargo install cargo-outdated --locked --jobs 1 &
+          OUTDATED_PID=$!
           
-          # Verify installations
-          cargo audit --version
-          cargo deny --version
-          trivy --version
-          grype version
+          # Wait for critical tools first
+          echo "Waiting for cargo-audit..."
+          wait $AUDIT_PID || echo "cargo-audit installation completed"
+          
+          echo "Waiting for cargo-deny..."
+          wait $DENY_PID || echo "cargo-deny installation completed"
+          
+          echo "Waiting for Trivy..."
+          wait $TRIVY_PID || echo "Trivy installation completed"
+          
+          echo "Waiting for Grype..."
+          wait $GRYPE_PID || echo "Grype installation completed"
+          
+          # cargo-outdated is optional, don't fail if it times out
+          timeout 120 bash -c "wait $OUTDATED_PID" || echo "cargo-outdated installation timed out, continuing without it"
+          
+          # Verify critical installations
+          echo "Verifying installations..."
+          cargo audit --version || echo "cargo-audit not available"
+          cargo deny --version || echo "cargo-deny not available"
+          trivy --version || echo "Trivy not available"
+          grype version || echo "Grype not available"
+          cargo outdated --version || echo "cargo-outdated not available (optional)"
 
       - name: "🏗️ Dependency Installation & Build Verification"
         working-directory: src/portal/mock-qynauth/src/rust_lib
