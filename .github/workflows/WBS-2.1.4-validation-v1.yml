@@ -42,7 +42,7 @@ jobs:
           toolchain: stable
           override: true
           components: rustfmt, clippy, rust-src
-
+bout this
       - name: Install additional Rust targets for cross-compilation
         run: |
           rustup target add x86_64-unknown-linux-musl
@@ -92,10 +92,10 @@ jobs:
           cat > /tmp/pqc_dependencies/monitoring_config.md << 'EOF'
           # WBS 2.1.4: Dependency Monitoring Configuration
 
-          **Artifact ID**: WBS-2.1.4-MONITORING-CONFIG  
-          **Version ID**: v1.0  
-          **Date**: June 26, 2025  
-          **Handoff Target**: WBS 2.1.5 Dependency Monitoring Setup  
+          **Artifact ID**: WBS-2.1.4-MONITORING-CONFIG
+          **Version ID**: v1.0
+          **Date**: June 26, 2025
+          **Handoff Target**: WBS 2.1.5 Dependency Monitoring Setup
           **Status**: READY FOR WBS 2.1.5 IMPLEMENTATION
 
           ## Overview
@@ -123,7 +123,7 @@ jobs:
 
           ### Primary PQC Dependencies
           - `pqcrypto-mlkem = "0.1.0"` - ML-KEM-768 implementation
-          - `pqcrypto-mldsa = "0.1.0"` - ML-DSA-65 implementation  
+          - `pqcrypto-mldsa = "0.1.0"` - ML-DSA-65 implementation
           - `pqcrypto-traits = "0.3.5"` - Common traits and interfaces
 
           ### Security Dependencies
@@ -135,7 +135,7 @@ jobs:
 
           ### Current Vulnerability Status
           - **CRITICAL**: 0 vulnerabilities
-          - **HIGH**: 0 vulnerabilities  
+          - **HIGH**: 0 vulnerabilities
           - **MEDIUM**: 0 vulnerabilities
           - **LOW**: 1 advisory (RUSTSEC-2024-0436 - unmaintained paste crate, ignored)
 
@@ -161,8 +161,8 @@ jobs:
 
           ---
 
-          **Prepared by**: WBS 2.1.4 Build System Integration  
-          **Ready for**: WBS 2.1.5 Dependency Monitoring Implementation  
+          **Prepared by**: WBS 2.1.4 Build System Integration
+          **Ready for**: WBS 2.1.5 Dependency Monitoring Implementation
           **Next Action**: Begin WBS 2.1.5 automated security scanning setup
           EOF
 
@@ -175,7 +175,7 @@ jobs:
         working-directory: src/portal/mock-qynauth/src/rust_lib
         run: |
           echo "🔧 Validating build system infrastructure with CTO-level rigor..."
-          
+
           # Critical infrastructure files
           REQUIRED_FILES=(
             "scripts/production-build.sh"
@@ -187,7 +187,7 @@ jobs:
             "deny.toml"
             "build.rs"
           )
-          
+
           for file in "${REQUIRED_FILES[@]}"; do
             if [ ! -f "$file" ]; then
               echo "❌ CRITICAL: Missing required file: $file"
@@ -195,13 +195,13 @@ jobs:
             fi
             echo "✅ Found: $file"
           done
-          
+
           # Validate monitoring configuration handoff
           if [ ! -f "/tmp/pqc_dependencies/monitoring_config.md" ]; then
             echo "❌ CRITICAL: Missing monitoring configuration for WBS 2.1.5 handoff"
             exit 1
           fi
-          
+
           # Validate script permissions and syntax
           chmod +x scripts/*.sh
           for script in scripts/*.sh; do
@@ -211,38 +211,38 @@ jobs:
             fi
             echo "✅ Validated: $script"
           done
-          
+
           # Validate Cargo.toml structure
           if ! cargo metadata --format-version 1 > /dev/null; then
             echo "❌ CRITICAL: Invalid Cargo.toml structure"
             exit 1
           fi
-          
+
           # Validate deny.toml configuration
           if ! cargo deny check --config deny.toml licenses > /dev/null; then
             echo "❌ CRITICAL: Invalid deny.toml configuration"
             exit 1
           fi
-          
+
           echo "✅ Build system infrastructure validated with unicorn standards"
 
       - name: Pre-flight dependency analysis
         working-directory: src/portal/mock-qynauth/src/rust_lib
         run: |
           echo "📊 Pre-flight dependency analysis..."
-          
+
           # Generate dependency tree
           cargo tree --format "{p} {l}" > /tmp/dependency-tree.txt
-          
+
           # Check for outdated dependencies
           cargo outdated --format json > /tmp/outdated-deps.json || echo "Outdated check completed"
-          
+
           # Check for unused dependencies
           cargo machete > /tmp/unused-deps.txt || echo "Unused deps check completed"
-          
+
           # Validate dependency licenses
           cargo deny check licenses
-          
+
           echo "✅ Pre-flight dependency analysis completed"
 
   integration-test:
@@ -259,7 +259,7 @@ jobs:
           - rust-version: stable
             build-type: release
             run-benchmarks: true
-    
+
     services:
       mongo:
         image: mongo:6.0
@@ -311,48 +311,48 @@ jobs:
         working-directory: src/portal/mock-qynauth/src/rust_lib
         run: |
           echo "🏭 Testing production build system with ${{ matrix.build-type }} configuration..."
-          
+
           chmod +x scripts/*.sh
-          
+
           # Test production build with timing
           time ./scripts/production-build.sh
-          
+
           # Validate all expected artifacts exist
           REQUIRED_ARTIFACTS=(
             "target/release/libqynauth_pqc.so"
             "target/release/libqynauth_pqc.a"
             "target/release/libqynauth_pqc.rlib"
           )
-          
+
           for artifact in "${REQUIRED_ARTIFACTS[@]}"; do
             if [ ! -f "$artifact" ]; then
               echo "❌ CRITICAL: Missing build artifact: $artifact"
               exit 1
             fi
-            
+
             # Validate artifact properties
             file_size=$(stat -c%s "$artifact")
             if [ "$file_size" -eq 0 ]; then
               echo "❌ CRITICAL: Empty build artifact: $artifact"
               exit 1
             fi
-            
+
             echo "✅ Validated artifact: $artifact (${file_size} bytes)"
           done
-          
+
           # Validate shared library can be loaded
           if ! ldd target/release/libqynauth_pqc.so; then
             echo "❌ CRITICAL: Shared library has unresolved dependencies"
             exit 1
           fi
-          
+
           echo "✅ Production build system validated with unicorn standards"
 
       - name: Comprehensive build variants testing
         working-directory: src/portal/mock-qynauth/src/rust_lib
         run: |
           echo "🔧 Testing all build variants with comprehensive validation..."
-          
+
           # Test each feature combination individually
           FEATURE_COMBINATIONS=(
             "default"
@@ -366,10 +366,10 @@ jobs:
             "all-features"
             "no-default-features"
           )
-          
+
           for features in "${FEATURE_COMBINATIONS[@]}"; do
             echo "Testing feature combination: $features"
-            
+
             if [ "$features" = "default" ]; then
               cargo build --release
             elif [ "$features" = "all-features" ]; then
@@ -379,49 +379,49 @@ jobs:
             else
               cargo build --release --features "$features"
             fi
-            
+
             echo "✅ Feature combination '$features' builds successfully"
           done
-          
+
           # Run comprehensive build variants script
           ./scripts/build-all-variants.sh
-          
+
           echo "✅ All build variants tested with unicorn standards"
 
       - name: Cross-compilation validation
         working-directory: src/portal/mock-qynauth/src/rust_lib
         run: |
           echo "🌐 Testing cross-compilation targets..."
-          
+
           # Test ARM64 target
           cargo check --target aarch64-unknown-linux-gnu --features kyber768,dilithium3 || echo "ARM64 cross-compilation not available in CI"
-          
+
           # Test musl target for static linking
           cargo check --target x86_64-unknown-linux-musl --features kyber768,dilithium3 || echo "MUSL target not available"
-          
+
           echo "✅ Cross-compilation validation completed"
 
       - name: Cargo aliases and shortcuts validation
         working-directory: src/portal/mock-qynauth/src/rust_lib
         run: |
           echo "📋 Testing cargo aliases with comprehensive validation..."
-          
+
           # Test each alias individually with validation
           echo "Testing build-pqc alias..."
           cargo build-pqc
-          
+
           echo "Testing build-all alias..."
           cargo build-all
-          
+
           echo "Testing bench-pqc alias..."
           cargo bench-pqc --no-run  # Don't run benchmarks, just compile
-          
+
           echo "Testing check-security alias..."
           cargo check-security
-          
+
           echo "Testing audit-deps alias..."
           cargo audit-deps || echo "Audit completed with warnings"
-          
+
           echo "✅ All cargo aliases validated with unicorn standards"
 
       - name: Performance benchmarking (release builds only)
@@ -429,45 +429,45 @@ jobs:
         working-directory: src/portal/mock-qynauth/src/rust_lib
         run: |
           echo "📊 Running performance benchmarks..."
-          
+
           # Run benchmarks with JSON output for analysis
           cargo bench --features kyber768,dilithium3,avx2 -- --output-format json > /tmp/benchmark-results.json || echo "Benchmarks completed"
-          
+
           # Generate performance report
           cat > /tmp/performance-report.md << 'EOF'
           # WBS 2.1.4 Performance Validation Report
-          
+
           ## Benchmark Results
-          
+
           Performance benchmarks executed successfully with the following configuration:
           - Features: kyber768, dilithium3, avx2
           - Build Type: Release with optimizations
           - Target: x86_64-unknown-linux-gnu
-          
+
           ## Performance Targets Met
           - ✅ Build time < 5 minutes
           - ✅ Shared library size < 1MB
           - ✅ Static library size < 50MB
           - ✅ All PQC operations complete within target latency
-          
+
           EOF
-          
+
           echo "✅ Performance benchmarking completed"
 
       - name: Code quality and formatting validation
         working-directory: src/portal/mock-qynauth/src/rust_lib
         run: |
           echo "🎯 Validating code quality with unicorn standards..."
-          
+
           # Check formatting
           cargo fmt -- --check
-          
+
           # Run clippy with strict linting
           cargo clippy --all-targets --all-features -- -D warnings
-          
+
           # Check for common issues
           cargo check --all-targets --all-features
-          
+
           echo "✅ Code quality validation passed with unicorn standards"
 
   security-environment:
@@ -494,11 +494,11 @@ jobs:
           cargo install cargo-deny --locked --force
           cargo install cargo-geiger --locked --force
           cargo install cargo-outdated --locked --force
-          
+
           # Additional security scanners
           wget -qO- https://github.com/mozilla/sccache/releases/download/v0.7.4/sccache-v0.7.4-x86_64-unknown-linux-musl.tar.gz | tar xz
           sudo mv sccache-*/sccache /usr/local/bin/
-          
+
           echo "✅ Comprehensive security toolchain installed"
 
       - name: Create comprehensive monitoring and security directories
@@ -512,51 +512,51 @@ jobs:
         working-directory: src/portal/mock-qynauth/src/rust_lib
         run: |
           echo "🔍 Running comprehensive vulnerability scanning..."
-          
+
           # Detailed audit with JSON output
           cargo audit --format json > /tmp/security-reports/audit-report.json || echo "Audit completed with findings"
           cargo audit --format human > /tmp/security-reports/audit-report.txt || echo "Audit completed with findings"
-          
+
           # Check for any CRITICAL or HIGH vulnerabilities
           if cargo audit --format json | jq -e '.vulnerabilities.list[] | select(.advisory.severity == "critical" or .advisory.severity == "high")' > /dev/null 2>&1; then
             echo "❌ CRITICAL: High or Critical vulnerabilities found - BLOCKING DEPLOYMENT"
             cargo audit
             exit 1
           fi
-          
+
           echo "✅ Vulnerability scanning passed - Zero critical/high vulnerabilities"
 
       - name: Comprehensive dependency policy enforcement
         working-directory: src/portal/mock-qynauth/src/rust_lib
         run: |
           echo "📋 Enforcing dependency policies with zero-tolerance..."
-          
+
           # License compliance check
           cargo deny check licenses --format json > /tmp/security-reports/license-report.json
-          
+
           # Security advisory check
           cargo deny check advisories --format json > /tmp/security-reports/advisories-report.json
-          
+
           # Banned dependencies check
           cargo deny check bans --format json > /tmp/security-reports/bans-report.json
-          
+
           # Sources check
           cargo deny check sources --format json > /tmp/security-reports/sources-report.json
-          
+
           # Comprehensive policy check
           cargo deny check --format human > /tmp/security-reports/deny-comprehensive.txt
-          
+
           echo "✅ All dependency policies enforced successfully"
 
       - name: Unsafe code analysis
         working-directory: src/portal/mock-qynauth/src/rust_lib
         run: |
           echo "⚠️  Analyzing unsafe code usage..."
-          
+
           # Generate unsafe code report
           cargo geiger --format json > /tmp/security-reports/unsafe-code-report.json || echo "Geiger analysis completed"
           cargo geiger > /tmp/security-reports/unsafe-code-summary.txt || echo "Geiger analysis completed"
-          
+
           # Check for excessive unsafe code
           unsafe_count=$(cargo geiger --format json | jq -r '.packages[].unsafeInfo.used.functions // 0' | awk '{sum += $1} END {print sum}')
           if [ "$unsafe_count" -gt 10 ]; then
@@ -569,13 +569,13 @@ jobs:
         working-directory: src/portal/mock-qynauth/src/rust_lib
         run: |
           echo "🔗 Validating supply chain security..."
-          
+
           # Check for outdated dependencies
           cargo outdated --format json > /tmp/security-reports/outdated-deps.json || echo "Outdated check completed"
-          
+
           # Validate dependency sources
           cargo metadata --format-version 1 | jq '.packages[] | {name: .name, version: .version, source: .source}' > /tmp/security-reports/dependency-sources.json
-          
+
           # Check for dependencies from non-official sources
           non_crates_io=$(cargo metadata --format-version 1 | jq -r '.packages[] | select(.source != null and (.source | contains("registry+https://github.com/rust-lang/crates.io-index") | not)) | .name' | wc -l)
           if [ "$non_crates_io" -gt 0 ]; then
@@ -697,11 +697,11 @@ jobs:
 
           ---
 
-          **Integration Date**: 2025-06-26T23:50:00Z  
-          **Validation Level**: Unicorn Standard (Top 1% Quality)  
-          **Next WBS**: WBS 2.1.5 Dependency Monitoring Setup  
-          **Security Status**: Zero critical/high vulnerabilities  
-          **Performance Status**: All targets exceeded  
+          **Integration Date**: 2025-06-26T23:50:00Z
+          **Validation Level**: Unicorn Standard (Top 1% Quality)
+          **Next WBS**: WBS 2.1.5 Dependency Monitoring Setup
+          **Security Status**: Zero critical/high vulnerabilities
+          **Performance Status**: All targets exceeded
           **Quality Status**: Zero technical debt achieved
           EOF
 
@@ -710,26 +710,26 @@ jobs:
       - name: Validate WBS 2.1.5 dependency monitoring handoff
         run: |
           echo "🔄 Validating comprehensive dependency monitoring handoff..."
-          
+
           # Validate monitoring configuration exists
           if [ ! -f "/tmp/pqc_dependencies/monitoring_config.md" ]; then
             echo "❌ CRITICAL: Missing monitoring configuration for WBS 2.1.5"
             exit 1
           fi
-          
+
           # Validate build system integration documentation
           if [ ! -f "/tmp/pqc_dependencies/build_system_integration_documentation.md" ]; then
             echo "❌ CRITICAL: Missing build system integration documentation"
             exit 1
           fi
-          
+
           # Validate security reports are comprehensive
           required_reports=(
             "/tmp/security-reports/audit-report.json"
             "/tmp/security-reports/license-report.json"
             "/tmp/security-reports/unsafe-code-report.json"
           )
-          
+
           for report in "${required_reports[@]}"; do
             if [ ! -f "$report" ]; then
               echo "❌ WARNING: Missing security report: $report"
@@ -737,7 +737,7 @@ jobs:
               echo "✅ Security report validated: $report"
             fi
           done
-          
+
           echo "✅ Comprehensive dependency monitoring handoff validated to unicorn standards"
 
       - name: Setup Node.js for backend quality gates
@@ -755,19 +755,19 @@ jobs:
       - name: Comprehensive quality gates validation
         run: |
           cd src/portal/portal-backend
-          
+
           echo "🎯 Running comprehensive quality gates validation..."
-          
+
           # Check for technical debt
           npm run quality:check-debt || echo "Technical debt check completed"
-          
+
           # Run quality gates
           npm run quality:gates || echo "Quality gates validation completed"
-          
+
           # Additional quality checks
           npm run lint || echo "Linting completed"
           npm run typecheck || echo "Type checking completed"
-          
+
           echo "✅ Comprehensive quality gates validation completed to unicorn standards"
 
       - name: Final validation summary
