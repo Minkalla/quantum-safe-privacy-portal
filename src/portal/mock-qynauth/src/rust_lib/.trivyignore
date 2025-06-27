@@ -1,0 +1,14 @@
+# Trivy ignore file for PQC-specific security scanning
+# Based on Security-First Approach from NEW_ENGINEER_ONBOARDING_MESSAGE.md
+
+# Ignore low-severity vulnerabilities in development dependencies
+# Only CRITICAL and HIGH vulnerabilities will block deployment
+
+# Development-only dependencies (not in production)
+CVE-2023-XXXXX # Example: Development tool vulnerability
+
+# Known false positives for PQC libraries
+# (Add specific CVEs here if needed after security review)
+
+# Note: This file should be minimal - most vulnerabilities should be fixed
+# rather than ignored. Only add entries after security team approval.
