@@ -7,18 +7,18 @@
 ## 🎯 **New Engineer Session - NIST PQC Implementation**
 
 **Repository**: `Minkalla/quantum-safe-privacy-portal`  
-**Current Status**: WBS 2.1.3 completed, ready for WBS 2.1.4 Dependency Integration  
-**Framework**: Top 1% Quality with Zero Technical Debt
+**Current Status**: WBS 2.2.5-6 completed, focusing on development velocity  
+**Framework**: Minimal CI with Development-First Approach
 
-### **MANDATORY FRAMEWORK COMPLIANCE**
+### **DEVELOPMENT-FOCUSED FRAMEWORK COMPLIANCE**
 
-You MUST follow these established frameworks for all WBS implementations:
+You MUST follow these streamlined frameworks prioritizing development velocity:
 
-#### **1. Mandatory CI Testing Strategy** ✅
-- **Requirement**: Create WBS-specific CI pipeline for each task
-- **Process**: Request user approval BEFORE PR submission
-- **Template**: Use `docs/CI_TESTING_STRATEGY.md` as foundation
-- **Pattern**: Three-job structure (environment-setup, integration-test, security-environment)
+#### **1. Minimal CI Testing Strategy** ✅
+- **Requirement**: Create lightweight CI pipeline for each task
+- **Process**: Optional user notification for complex tasks only
+- **Template**: Use `docs/CI_TESTING_STRATEGY.md` minimal approach
+- **Pattern**: Two-job structure (typecheck-lint, build-test) - ~10 minutes total
 
 #### **2. Comprehensive Documentation Templates** ✅
 - **Requirement**: Use `docs/WBS_DOCUMENTATION_TEMPLATE.md` for ALL WBS tasks
@@ -26,17 +26,17 @@ You MUST follow these established frameworks for all WBS implementations:
 - **Standard**: Zero technical debt, 100% documentation coverage
 - **Quality**: Every component must be documented with examples
 
-#### **3. Security-First Approach** ✅
-- **Requirement**: Automated vulnerability scanning in ALL pipelines
-- **Tools**: Trivy, Grype, NPM audit integrated
-- **Policy**: Block deployment for ANY critical vulnerabilities
-- **Framework**: Follow security patterns in existing CI workflows
+#### **3. Development-First Approach** ✅
+- **Requirement**: Focus on functional correctness during development
+- **Tools**: Basic compilation checks, essential unit tests
+- **Policy**: Security scanning deferred until feature completion
+- **Framework**: Prioritize working code over perfect CI
 
-#### **4. Performance Monitoring with Automated Rollbacks** ✅
-- **Requirement**: Implement real-time performance regression detection
-- **Framework**: Use `docs/AUTOMATED_ROLLBACK_FRAMEWORK.md`
-- **Triggers**: Error rate >5%, latency increase >30%, memory >50MB increase
-- **Integration**: Automated rollback capabilities required
+#### **4. Velocity-Focused Development** ✅
+- **Requirement**: Prioritize development speed and iteration
+- **Framework**: Minimal CI, fast feedback loops
+- **Triggers**: CI should complete in <10 minutes
+- **Integration**: Performance monitoring added after core functionality works
 
 ### **POST-PR APPROVAL MANDATORY TASKS**
 
@@ -48,14 +48,14 @@ After your PR is approved, you MUST complete these tasks:
 - Achieve zero technical debt
 - Request user review before marking complete
 
-#### **Task 2: Top 1% Quality Framework** (6.5 hours)
-- Follow `docs/TOP_1_PERCENT_QUALITY_FRAMEWORK.md`
-- Execute all 3 priorities:
-  - Priority 1: Zero Technical Debt (30 minutes)
-  - Priority 2: Automated Quality Gates (2 hours)  
-  - Priority 3: Real-Time Monitoring (4 hours)
-- Complete step-by-step implementation guides
-- Verify all success criteria met
+#### **Task 2: Development Velocity Framework** (2 hours)
+- Focus on functional delivery over extensive quality gates
+- Execute development priorities:
+  - Priority 1: Core Functionality Works (1 hour)
+  - Priority 2: Basic CI Pipeline (30 minutes)  
+  - Priority 3: Essential Documentation (30 minutes)
+- Defer comprehensive quality framework until production phase
+- Verify core user flows work correctly
 
 ### **CURRENT PROJECT STATE**
 
@@ -124,13 +124,21 @@ docs/
 4. **Review WBS 2.1.3 Deliverables**: Check performance benchmarks and quality framework results
 5. **Follow Established Patterns**: Use WBS 2.1.1-2.1.3 validation and documentation patterns
 
-### **QUALITY STANDARDS**
+### **DEVELOPMENT PHASE STANDARDS**
 
-- **Zero Technical Debt**: No TODO/FIXME/HACK comments allowed
-- **Security First**: All vulnerabilities addressed before deployment
-- **Performance Monitoring**: Real-time regression detection required
-- **Documentation Excellence**: 100% coverage with working examples
-- **CI/CD Excellence**: All pipelines must pass with user approval
+- **Functional Correctness**: Core functionality works as expected
+- **Basic Quality**: Code compiles, essential tests pass
+- **Development Velocity**: Fast iteration and feedback loops
+- **Working Code First**: Ship functional features, optimize later
+- **Minimal CI**: Essential validation only, comprehensive testing deferred
+
+### **PRODUCTION PHASE STANDARDS** (Future)
+
+- **Zero Technical Debt**: Added after core functionality stabilizes
+- **Security Scanning**: Added before production deployment
+- **Performance Monitoring**: Added during optimization phase
+- **Documentation Excellence**: Added after API finalization
+- **Comprehensive CI**: Added when development velocity stabilizes
 
 ### **CONTACT & ESCALATION**
 
