@@ -1,13 +1,18 @@
 import hashlib
 import logging
 import secrets
-import subprocess  # For quantum-safe crypto placeholder
+import sys
+import os
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel
 
 # Add this import for redirection
 from starlette.responses import RedirectResponse
+
+sys.path.append(str(Path(__file__).parent.parent))
+from pqc_ffi import PQCLibrary, PQCLibraryError
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -20,10 +25,24 @@ app = FastAPI(
 )
 
 # In-memory user store for MVP simplicity (replace with DB later)
-# Store hashed passwords and associated JWT tokens
+# Store hashed passwords, JWT tokens, and PQC keys
 users_db = (
     {}
-)  # { "username": {"hashed_password": "...", "salt": "...", "token": "..."} }
+)  # { "username": {"hashed_password": "...", "salt": "...", "token": "...", "pqc_keys": {...}} }
+
+pqc_lib = None
+
+def get_pqc_library():
+    """Get or initialize the PQC library instance."""
+    global pqc_lib
+    if pqc_lib is None:
+        try:
+            pqc_lib = PQCLibrary()
+            logger.info("PQC library initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize PQC library: {e}")
+            pqc_lib = None
+    return pqc_lib
 
 
 # Pydantic models for request/response bodies
@@ -96,42 +115,51 @@ async def register(payload: RegisterPayload):
         "token": jwt_token,
     }
 
-    logger.info(f"User {username} registered successfully.")
-
-    # Simulate quantum-safe key generation/exchange (placeholder call to Rust/external process)  # noqa: E501
+    # Generate quantum-safe keys using FFI interface
+    pqc_keys = {}
     try:
-        # For MVP, simulate a successful call
-        # In real scenario, this would call out to Rust via FFI, e.g., using python-rust-fastapi binding or direct FFI  # noqa: E501
-        # As per handover, robust subprocess simulation in main.py for MVP  # noqa: E501
-        # Example: subprocess.run(['./rust_lib_executable', 'generate_keys'], check=True, capture_output=True)  # noqa: E501
-        logger.info(
-            f"Simulating quantum-safe key generation for user {username}"
-        )  # noqa: E501
-        # Ensure the path to the Rust executable is correct relative to where the FastAPI app runs  # noqa: E501
-        # The rust_lib executable needs to be built and accessible
-        # For MVP, we'll just log success
-
-        # Placeholder for future quantum-safe crypto bridge
-        # Example using a subprocess call:
-        # rust_exec_path = "../rust_lib/target/debug/rust_lib" # Adjust path based on your build output  # noqa: E501
-        # result = subprocess.run([rust_exec_path, "generate_keys", username], capture_output=True, text=True, check=True)  # noqa: E501
-        # logger.info(f"Quantum-safe key generation simulation result: {result.stdout.strip()}")  # noqa: E501
-        pass  # Placeholder for actual subprocess call
-    except FileNotFoundError:
-        logger.error(
-            "Rust executable not found for quantum-safe key generation. "
-            "Ensure it's built and path is correct."
-        )
-    except subprocess.CalledProcessError as e:
-        logger.error(
-            f"Error during quantum-safe key generation simulation: "
-            f"{e.stderr.strip()}"
-        )
+        pqc_library = get_pqc_library()
+        if pqc_library is None:
+            logger.warning(f"PQC library not available, skipping key generation for user {username}")
+        else:
+            logger.info(f"Generating quantum-safe keys for user {username}")
+            
+            # Generate ML-KEM keypair for key encapsulation
+            kem_public, kem_private = pqc_library.generate_ml_kem_keypair()
+            logger.info(f"Generated ML-KEM-768 keypair for user {username}: pub_key={len(kem_public)} bytes")
+            
+            # Generate ML-DSA keypair for digital signatures
+            dsa_public, dsa_private = pqc_library.generate_ml_dsa_keypair()
+            logger.info(f"Generated ML-DSA-65 keypair for user {username}: pub_key={len(dsa_public)} bytes")
+            
+            pqc_keys = {
+                "ml_kem": {
+                    "public_key": kem_public.hex(),
+                    "private_key": kem_private.hex(),
+                    "algorithm": "ML-KEM-768"
+                },
+                "ml_dsa": {
+                    "public_key": dsa_public.hex(),
+                    "private_key": dsa_private.hex(),
+                    "algorithm": "ML-DSA-65"
+                }
+            }
+            
+            logger.info(f"Successfully generated and stored PQC keys for user {username}")
+            
+    except PQCLibraryError as e:
+        logger.error(f"PQC library error during key generation for user {username}: {e}")
     except Exception as e:
-        logger.error(
-            f"Unexpected error during quantum-safe key generation simulation: "
-            f"{e}"  # noqa: E501
-        )
+        logger.error(f"Unexpected error during PQC key generation for user {username}: {e}")
+
+    users_db[username] = {
+        "hashed_password": hashed_password,
+        "salt": salt,
+        "token": jwt_token,
+        "pqc_keys": pqc_keys
+    }
+
+    logger.info(f"User {username} registered successfully with PQC keys.")
 
     return AuthTokenResponse(access_token=jwt_token, token_type="bearer")
 
