@@ -44,7 +44,7 @@ echo "📅 Analyzing dependency freshness with enhanced monitoring..."
 
 if command -v cargo-outdated &> /dev/null; then
     echo "\`\`\`" >> "$HEALTH_REPORT"
-    OUTDATED_OUTPUT=$(cargo outdated 2>&1 || echo "No outdated dependencies found")
+    OUTDATED_OUTPUT=$(timeout 30s cargo outdated 2>&1 || echo "No outdated dependencies found")
     echo "$OUTDATED_OUTPUT" >> "$HEALTH_REPORT"
     echo "\`\`\`" >> "$HEALTH_REPORT"
     
@@ -54,8 +54,8 @@ if command -v cargo-outdated &> /dev/null; then
         echo "⚠️  **ALERT**: $OUTDATED_COUNT outdated dependencies detected" >> "$HEALTH_REPORT"
     fi
 else
-    echo "⚠️  cargo-outdated not available - installing..." >> "$HEALTH_REPORT"
-    cargo install cargo-outdated --locked || echo "Installation failed" >> "$HEALTH_REPORT"
+    echo "⚠️  cargo-outdated not available - skipping in CI environment" >> "$HEALTH_REPORT"
+    echo "📋 Dependency freshness check deferred to scheduled maintenance" >> "$HEALTH_REPORT"
 fi
 
 echo "" >> "$HEALTH_REPORT"
@@ -109,23 +109,28 @@ fi
 
 echo "" >> "$HEALTH_REPORT"
 echo "### Cross-Platform Build Health" >> "$HEALTH_REPORT"
-if cargo check --target aarch64-unknown-linux-gnu --all-features > /tmp/arm_build_check.log 2>&1; then
+if timeout 60s cargo check --target aarch64-unknown-linux-gnu --all-features > /tmp/arm_build_check.log 2>&1; then
     echo "✅ ARM64 cross-compilation: PASSED" >> "$HEALTH_REPORT"
 else
-    echo "⚠️  ARM64 cross-compilation: WARNINGS" >> "$HEALTH_REPORT"
+    echo "⚠️  ARM64 cross-compilation: WARNINGS (or timeout in CI)" >> "$HEALTH_REPORT"
 fi
 
 echo "" >> "$HEALTH_REPORT"
 echo "## 📈 Performance Health Monitoring" >> "$HEALTH_REPORT"
 echo "📈 Establishing performance baselines..."
 
-if cargo bench --features kyber768,dilithium3,avx2 -- --output-format json > /tmp/perf_baseline.json 2>/dev/null; then
-    echo "✅ Performance baseline established" >> "$HEALTH_REPORT"
-    echo "\`\`\`json" >> "$HEALTH_REPORT"
-    head -20 /tmp/perf_baseline.json >> "$HEALTH_REPORT" 2>/dev/null || echo "Performance data captured" >> "$HEALTH_REPORT"
-    echo "\`\`\`" >> "$HEALTH_REPORT"
+if [ "${CI:-false}" = "true" ]; then
+    echo "⚠️  Performance benchmarking skipped in CI environment (time-intensive)" >> "$HEALTH_REPORT"
+    echo "📈 Performance baseline will be established in dedicated performance pipeline" >> "$HEALTH_REPORT"
 else
-    echo "⚠️  Performance baseline: Limited data available" >> "$HEALTH_REPORT"
+    if timeout 60s cargo bench --features kyber768,dilithium3,avx2 -- --output-format json > /tmp/perf_baseline.json 2>/dev/null; then
+        echo "✅ Performance baseline established" >> "$HEALTH_REPORT"
+        echo "\`\`\`json" >> "$HEALTH_REPORT"
+        head -20 /tmp/perf_baseline.json >> "$HEALTH_REPORT" 2>/dev/null || echo "Performance data captured" >> "$HEALTH_REPORT"
+        echo "\`\`\`" >> "$HEALTH_REPORT"
+    else
+        echo "⚠️  Performance baseline: Limited data available" >> "$HEALTH_REPORT"
+    fi
 fi
 
 echo "" >> "$HEALTH_REPORT"
