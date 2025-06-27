@@ -44,6 +44,7 @@ pub enum PQCError {
 pub type PQCResult<T> = Result<T, PQCError>;
 
 pub mod key_management;
+pub mod ffi;
 pub use key_management::{SecureKeyManager, KeyMetadata, KeyStatus, HSMConfig, KeyStatistics};
 
 pub struct PQCKeyPair {
