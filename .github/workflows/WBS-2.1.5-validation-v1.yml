@@ -50,7 +50,7 @@ jobs:
             ~/.cargo/git
             target/
             node_modules/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-node-${{ hashFiles('**/package-lock.json') }}-v2
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') || 'nocargo' }}-node-${{ hashFiles('**/package-lock.json') || 'nopackage' }}-v2
           restore-keys: |
             ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-
             ${{ runner.os }}-cargo-
