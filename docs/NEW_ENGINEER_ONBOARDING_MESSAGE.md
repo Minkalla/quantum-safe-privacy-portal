@@ -118,7 +118,7 @@ docs/
 
 ### **IMMEDIATE NEXT STEPS**
 
-1. **🚨 MANDATORY: Locate and Review Handover Summary**: FIRST ACTION - Read `docs/HANDOVER_SUMMARY.md` for complete project context and current status
+1. **🚨 MANDATORY: Review Session Handoff Documents**: FIRST ACTION - Read `docs/HANDOVER_SUMMARY.md` AND `docs/NEXT_SESSION_HANDOFF_RECOMMENDATIONS.md` for complete project context, current status, and strategic alignment
 2. **Acknowledge Framework Compliance**: Confirm you understand all 4 mandatory frameworks
 3. **Begin WBS 2.1.4 Implementation**: Start with build system integration
 4. **Review WBS 2.1.3 Deliverables**: Check performance benchmarks and quality framework results
