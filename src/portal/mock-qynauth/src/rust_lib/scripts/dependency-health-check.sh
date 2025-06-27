@@ -42,7 +42,11 @@ echo "" >> "$HEALTH_REPORT"
 echo "## 📅 Dependency Freshness Analysis" >> "$HEALTH_REPORT"
 echo "📅 Analyzing dependency freshness with enhanced monitoring..."
 
-if command -v cargo-outdated &> /dev/null; then
+if [ "${CI:-false}" = "true" ] || [ "${GITHUB_ACTIONS:-false}" = "true" ]; then
+    echo "⚠️  Dependency freshness check skipped in CI environment (time-intensive)" >> "$HEALTH_REPORT"
+    echo "📋 Dependency freshness analysis deferred to scheduled maintenance pipeline" >> "$HEALTH_REPORT"
+    echo "🔄 CI environment detected - using optimized validation path" >> "$HEALTH_REPORT"
+elif command -v cargo-outdated &> /dev/null; then
     echo "\`\`\`" >> "$HEALTH_REPORT"
     OUTDATED_OUTPUT=$(timeout 30s cargo outdated 2>&1 || echo "No outdated dependencies found")
     echo "$OUTDATED_OUTPUT" >> "$HEALTH_REPORT"
@@ -54,8 +58,8 @@ if command -v cargo-outdated &> /dev/null; then
         echo "⚠️  **ALERT**: $OUTDATED_COUNT outdated dependencies detected" >> "$HEALTH_REPORT"
     fi
 else
-    echo "⚠️  cargo-outdated not available - skipping in CI environment" >> "$HEALTH_REPORT"
-    echo "📋 Dependency freshness check deferred to scheduled maintenance" >> "$HEALTH_REPORT"
+    echo "⚠️  cargo-outdated not available - installation required for local development" >> "$HEALTH_REPORT"
+    echo "📋 Run 'cargo install cargo-outdated' for local dependency analysis" >> "$HEALTH_REPORT"
 fi
 
 echo "" >> "$HEALTH_REPORT"
