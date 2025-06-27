@@ -177,12 +177,26 @@ jobs:
           chmod +x scripts/monitoring-dashboard.sh
           ./scripts/monitoring-dashboard.sh
 
-      - name: "🔍 Multi-Tool Security Integration"
+      - name: "🔍 Fast Security Scan with Pre-built Actions"
         working-directory: src/portal/mock-qynauth/src/rust_lib
         run: |
-          echo "🛡️ Running Enhanced Security Scan..."
+          echo "🛡️ Running essential security checks (cargo-audit + cargo-deny)..."
           chmod +x scripts/security-scan.sh
           ./scripts/security-scan.sh
+
+      - name: "🔍 Trivy Scan (Pre-cached)"
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: 'src/portal/mock-qynauth/src/rust_lib'
+          format: 'table'
+          exit-code: '0'
+
+      - name: "🔍 Grype Scan (Pre-cached)" 
+        uses: anchore/scan-action@v3
+        with:
+          path: "src/portal/mock-qynauth/src/rust_lib"
+          fail-build: false
 
       - name: "🏗️ Cross-Platform Build Integration"
         working-directory: src/portal/mock-qynauth/src/rust_lib
@@ -285,14 +299,26 @@ jobs:
             exit 1
           fi
 
-      - name: "🔒 Advanced Security Scanning"
+      - name: "🔍 Advanced Security Scanning (Pre-built Actions)"
         run: |
-          echo "🔍 Trivy filesystem security scan..."
-          trivy fs --format json --output /tmp/trivy-results.json --quiet .
-          trivy fs --format table --quiet .
-          
-          echo "🔍 Grype vulnerability scan..."
-          grype . --fail-on critical --output json --file /tmp/grype-results.json --quiet || echo "Grype scan completed"
+          echo "🔍 Using pre-built security actions to prevent timeouts..."
+          echo "✅ Trivy and Grype scans handled by dedicated GitHub Actions"
+
+      - name: "🔍 Trivy Security Scan (Advanced)"
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'json'
+          output: '/tmp/trivy-results.json'
+          exit-code: '0'
+
+      - name: "🔍 Grype Vulnerability Scan (Advanced)"
+        uses: anchore/scan-action@v3
+        with:
+          path: "."
+          fail-build: false
+          output-format: "json"
 
       - name: "📋 License Compliance Validation"
         working-directory: src/portal/mock-qynauth/src/rust_lib
