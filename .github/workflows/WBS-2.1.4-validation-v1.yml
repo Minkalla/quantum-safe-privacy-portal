@@ -42,7 +42,6 @@ jobs:
           toolchain: stable
           override: true
           components: rustfmt, clippy, rust-src
-          targets: x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu
 
       - name: Install additional Rust targets for cross-compilation
         run: |
@@ -74,8 +73,8 @@ jobs:
       - name: Capture Rust environment info
         id: rust-info
         run: |
-          echo "version=$(rustc --version)" >> $GITHUB_OUTPUT
-          echo "cargo-version=$(cargo --version)" >> $GITHUB_OUTPUT
+          echo "version=$(rustc --version)" >> "$GITHUB_OUTPUT"
+          echo "cargo-version=$(cargo --version)" >> "$GITHUB_OUTPUT"
           rustc --version
           cargo --version
 
@@ -91,7 +90,7 @@ jobs:
       - name: Generate build matrix for cross-platform testing
         id: build-matrix
         run: |
-          echo 'matrix={"target":["x86_64-unknown-linux-gnu","aarch64-unknown-linux-gnu","x86_64-unknown-linux-musl"],"features":["default","kyber768","dilithium3","avx2","all-features","no-default-features"]}' >> $GITHUB_OUTPUT
+          echo 'matrix={"target":["x86_64-unknown-linux-gnu","aarch64-unknown-linux-gnu","x86_64-unknown-linux-musl"],"features":["default","kyber768","dilithium3","avx2","all-features","no-default-features"]}' >> "$GITHUB_OUTPUT"
 
       - name: Validate build system infrastructure (CTO-level checks)
         working-directory: src/portal/mock-qynauth/src/rust_lib
