@@ -2,6 +2,9 @@
 name = "qynauth_pqc"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "Post-Quantum Cryptography implementation for quantum-safe authentication"
+authors = ["Quantum Safe Privacy Portal Team"]
 
 [lib]
 name = "qynauth_pqc"
