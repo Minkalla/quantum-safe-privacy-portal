@@ -678,6 +678,7 @@ mod security_hardening_tests {
     }
 }
 
+#[allow(dead_code)]
 fn validate_public_key(key: &[u8]) -> PQCResult<()> {
     if key.is_empty() {
         return Err(PQCError::InvalidPublicKey("Empty key data".to_string()));
@@ -690,6 +691,7 @@ fn validate_public_key(key: &[u8]) -> PQCResult<()> {
     Ok(())
 }
 
+#[allow(dead_code)]
 fn pqc_sign_with_key(key: &[u8], _message: &[u8]) -> PQCResult<Vec<u8>> {
     if key.len() < 32 {
         return Err(PQCError::InvalidPrivateKey("Invalid input length".to_string()));
