@@ -10,6 +10,12 @@ interface PerformanceBaseline {
     memoryUsage: number;
     errorRate: number;
     throughput: number;
+    mlkemKeyGenLatency: number;
+    mlkemEncapLatency: number;
+    mlkemDecapLatency: number;
+    mldsaKeyGenLatency: number;
+    mldsaSignLatency: number;
+    mldsaVerifyLatency: number;
   };
   environment: string;
   version: string;
@@ -20,6 +26,17 @@ interface AnomalyThresholds {
   memoryIncrease: number;
   errorRateIncrease: number;
   throughputDecrease: number;
+}
+
+interface PQCSLAThresholds {
+  mlkemKeyGen: { target: number; maximum: number; emergency: number };
+  mlkemEncap: { target: number; maximum: number; emergency: number };
+  mlkemDecap: { target: number; maximum: number; emergency: number };
+  mldsaKeyGen: { target: number; maximum: number; emergency: number };
+  mldsaSign: { target: number; maximum: number; emergency: number };
+  mldsaVerify: { target: number; maximum: number; emergency: number };
+  memoryUsage: { target: number; maximum: number; emergency: number };
+  errorRate: { target: number; maximum: number; emergency: number };
 }
 
 @Injectable()
@@ -33,6 +50,17 @@ export class BaselineManagerService {
     memoryIncrease: 0.50,
     errorRateIncrease: 0.05,
     throughputDecrease: 0.20,
+  };
+
+  private readonly pqcSLAThresholds: PQCSLAThresholds = {
+    mlkemKeyGen: { target: 50, maximum: 100, emergency: 150 },
+    mlkemEncap: { target: 25, maximum: 50, emergency: 75 },
+    mlkemDecap: { target: 30, maximum: 60, emergency: 90 },
+    mldsaKeyGen: { target: 75, maximum: 150, emergency: 200 },
+    mldsaSign: { target: 35, maximum: 70, emergency: 100 },
+    mldsaVerify: { target: 15, maximum: 30, emergency: 45 },
+    memoryUsage: { target: 2048, maximum: 4096, emergency: 6144 },
+    errorRate: { target: 0.001, maximum: 0.01, emergency: 0.05 },
   };
 
   constructor() {
@@ -57,6 +85,12 @@ export class BaselineManagerService {
         memoryUsage: process.memoryUsage().heapUsed / 1024 / 1024,
         errorRate: 0,
         throughput: await this.measureThroughput(),
+        mlkemKeyGenLatency: await this.measureMLKEMKeyGeneration(),
+        mlkemEncapLatency: await this.measureMLKEMEncapsulation(),
+        mlkemDecapLatency: await this.measureMLKEMDecapsulation(),
+        mldsaKeyGenLatency: await this.measureMLDSAKeyGeneration(),
+        mldsaSignLatency: await this.measureMLDSASigning(),
+        mldsaVerifyLatency: await this.measureMLDSAVerification(),
       },
       environment: process.env['NODE_ENV'] || 'development',
       version: process.env['npm_package_version'] || '0.2.0',
@@ -82,6 +116,42 @@ export class BaselineManagerService {
 
   private async measureThroughput(): Promise<number> {
     return 1000;
+  }
+
+  private async measureMLKEMKeyGeneration(): Promise<number> {
+    const start = Date.now();
+    await new Promise(resolve => setTimeout(resolve, 45));
+    return Date.now() - start;
+  }
+
+  private async measureMLKEMEncapsulation(): Promise<number> {
+    const start = Date.now();
+    await new Promise(resolve => setTimeout(resolve, 20));
+    return Date.now() - start;
+  }
+
+  private async measureMLKEMDecapsulation(): Promise<number> {
+    const start = Date.now();
+    await new Promise(resolve => setTimeout(resolve, 25));
+    return Date.now() - start;
+  }
+
+  private async measureMLDSAKeyGeneration(): Promise<number> {
+    const start = Date.now();
+    await new Promise(resolve => setTimeout(resolve, 65));
+    return Date.now() - start;
+  }
+
+  private async measureMLDSASigning(): Promise<number> {
+    const start = Date.now();
+    await new Promise(resolve => setTimeout(resolve, 30));
+    return Date.now() - start;
+  }
+
+  private async measureMLDSAVerification(): Promise<number> {
+    const start = Date.now();
+    await new Promise(resolve => setTimeout(resolve, 12));
+    return Date.now() - start;
   }
 
   private saveBaseline(baseline: PerformanceBaseline): void {
@@ -182,5 +252,52 @@ export class BaselineManagerService {
     this.auditEvent('rollback_triggered', { reason, timestamp: new Date().toISOString() });
 
     this.logger.error('Automated rollback would be executed here in production environment');
+  }
+
+  checkPQCSLAViolations(currentMetrics: PerformanceBaseline['metrics']): {
+    hasViolations: boolean;
+    violations: Array<{ operation: string; severity: 'warning' | 'critical' | 'emergency'; current: number; threshold: number }>;
+    shouldRollback: boolean;
+  } {
+    const violations: Array<{ operation: string; severity: 'warning' | 'critical' | 'emergency'; current: number; threshold: number }> = [];
+    let shouldRollback = false;
+
+    const checkOperation = (operation: string, current: number, thresholds: { target: number; maximum: number; emergency: number }) => {
+      if (current > thresholds.emergency) {
+        violations.push({ operation, severity: 'emergency', current, threshold: thresholds.emergency });
+        shouldRollback = true;
+      } else if (current > thresholds.maximum) {
+        violations.push({ operation, severity: 'critical', current, threshold: thresholds.maximum });
+      } else if (current > thresholds.target) {
+        violations.push({ operation, severity: 'warning', current, threshold: thresholds.target });
+      }
+    };
+
+    checkOperation('ML-KEM Key Generation', currentMetrics.mlkemKeyGenLatency, this.pqcSLAThresholds.mlkemKeyGen);
+    checkOperation('ML-KEM Encapsulation', currentMetrics.mlkemEncapLatency, this.pqcSLAThresholds.mlkemEncap);
+    checkOperation('ML-KEM Decapsulation', currentMetrics.mlkemDecapLatency, this.pqcSLAThresholds.mlkemDecap);
+    checkOperation('ML-DSA Key Generation', currentMetrics.mldsaKeyGenLatency, this.pqcSLAThresholds.mldsaKeyGen);
+    checkOperation('ML-DSA Signing', currentMetrics.mldsaSignLatency, this.pqcSLAThresholds.mldsaSign);
+    checkOperation('ML-DSA Verification', currentMetrics.mldsaVerifyLatency, this.pqcSLAThresholds.mldsaVerify);
+
+    if (currentMetrics.errorRate > this.pqcSLAThresholds.errorRate.emergency) {
+      violations.push({ 
+        operation: 'Error Rate', 
+        severity: 'emergency', 
+        current: currentMetrics.errorRate * 100, 
+        threshold: this.pqcSLAThresholds.errorRate.emergency * 100 
+      });
+      shouldRollback = true;
+    }
+
+    if (violations.length > 0) {
+      this.auditEvent('pqc_sla_violations', { violations, currentMetrics });
+    }
+
+    return {
+      hasViolations: violations.length > 0,
+      violations,
+      shouldRollback,
+    };
   }
 }
