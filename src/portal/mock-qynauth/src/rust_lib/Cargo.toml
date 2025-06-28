@@ -57,6 +57,10 @@ criterion = { version = "0.5", features = ["html_reports"] }
 name = "pqc_benchmarks"
 harness = false
 
+[[bench]]
+name = "pqc_performance"
+harness = false
+
 [features]
 default = ["kyber768", "dilithium3", "avx2"]
 kyber768 = []

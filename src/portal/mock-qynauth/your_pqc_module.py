@@ -77,3 +77,19 @@ class PQCAuth:
             raise AccessDeniedError("Admin privileges required")
         
         return True
+    
+    def mock_call_rust_function(self, data):
+        """Mock FFI call to Rust function"""
+        return f"processed_{data}"
+    
+    def mock_register_user(self, username, password):
+        """Mock user registration"""
+        return True
+    
+    def mock_verify_signature(self, message, signature):
+        """Mock signature verification"""
+        return True
+    
+    def mock_process_large_data(self, data):
+        """Mock large data processing"""
+        return data[:100]  # Return first 100 chars as processed data
