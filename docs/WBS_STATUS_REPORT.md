@@ -309,7 +309,7 @@ Successfully completed comprehensive NIST Post-Quantum Cryptography implementati
 3. Await USER assignment for next WBS task
 
 ### Long-term Roadmap
-1. WBS 2.2: Core PQC Algorithm Implementation
+1. WBS 2.4: Security and Performance Optimization
 2. Production deployment with monitoring
 3. Performance optimization
 4. Full migration from placeholder implementation
