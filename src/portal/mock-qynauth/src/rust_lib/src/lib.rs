@@ -303,6 +303,7 @@ pub extern "C" fn pqc_ml_kem_768_keygen() -> *mut c_char {
 
 
 
+
 #[no_mangle]
 pub unsafe extern "C" fn pqc_ml_kem_768_encaps(
     public_key: *const u8,
@@ -358,6 +359,7 @@ pub unsafe extern "C" fn pqc_ml_kem_768_decaps(
     
     let secret_key_slice = std::slice::from_raw_parts(secret_key, secret_key_len);
     let ciphertext_slice = std::slice::from_raw_parts(ciphertext, ciphertext_len);
+
     
     match mlkem_decapsulate(secret_key_slice, ciphertext_slice) {
         Ok(shared_secret) => {
@@ -432,6 +434,7 @@ pub unsafe extern "C" fn pqc_ml_dsa_65_sign(
     
     let message_slice = std::slice::from_raw_parts(message, message_len);
     let private_key_slice = std::slice::from_raw_parts(private_key, private_key_len);
+
     
     match mldsa_sign(private_key_slice, message_slice) {
         Ok(signature_result) => {
@@ -476,6 +479,7 @@ pub unsafe extern "C" fn pqc_ml_dsa_65_verify(
         return false;
     }
     
+
     let signature_slice = std::slice::from_raw_parts(signature, signature_len);
     let message_slice = std::slice::from_raw_parts(message, message_len);
     let public_key_slice = std::slice::from_raw_parts(public_key, public_key_len);
@@ -514,6 +518,7 @@ pub unsafe extern "C" fn pqc_key_manager_generate_key(
     let manager = &mut *(manager_ptr as *mut key_management::SecureKeyManager);
     let user_id_cstring = CString::from_raw(user_id as *mut c_char);
     let user_id_str = match user_id_cstring.to_str() {
+
         Ok(s) => s,
         Err(_) => return std::ptr::null_mut(),
     };
@@ -565,6 +570,7 @@ pub unsafe extern "C" fn pqc_key_manager_rotate_key(
     let key_id_cstring = CString::from_raw(key_id as *mut c_char);
     let key_id_str = match key_id_cstring.to_str() {
         Ok(s) => s,
+
         Err(_) => return std::ptr::null_mut(),
     };
     
@@ -609,8 +615,10 @@ pub unsafe extern "C" fn perform_quantum_safe_operation_placeholder(
         "Rust PQC Real Implementation: Received '{input_str}' ({input_len} bytes). ML-KEM-768 + ML-DSA-65 Ready!"
     );
     let c_string = CString::new(mock_result).expect("CString::new failed");
+
     c_string.into_raw() as *mut c_char
 }
+
 
 
 #[no_mangle]
