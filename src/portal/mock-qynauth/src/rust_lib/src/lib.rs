@@ -4,6 +4,7 @@
 #![allow(clippy::unwrap_or_default)]
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 #![allow(clippy::manual_unwrap_or_default)]
+#![allow(clippy::manual_unwrap_or)]
 
 use pqcrypto_mldsa::mldsa65;
 use pqcrypto_mlkem::mlkem768;
