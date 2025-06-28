@@ -157,7 +157,7 @@ mod ffi_tests {
         let result = validate_buffer_params(ptr::null(), 100);
         assert!(result.is_err());
         
-        let dummy_ptr = 0x1 as *const u8;
+        let dummy_ptr = std::ptr::dangling::<u8>();
         let result = validate_buffer_params(dummy_ptr, 0);
         assert!(result.is_err());
     }

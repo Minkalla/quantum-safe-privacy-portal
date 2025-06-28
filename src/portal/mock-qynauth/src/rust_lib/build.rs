@@ -20,7 +20,7 @@ fn main() {
             }
         }
         _ => {
-            println!("cargo:warning=No hardware acceleration available for {}", target_arch);
+            println!("cargo:warning=No hardware acceleration available for {target_arch}");
         }
     }
     

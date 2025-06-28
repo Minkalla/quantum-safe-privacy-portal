@@ -473,10 +473,7 @@ pub unsafe extern "C" fn pqc_ml_dsa_65_verify(
     let message_slice = std::slice::from_raw_parts(message, message_len);
     let public_key_slice = std::slice::from_raw_parts(public_key, public_key_len);
     
-    match mldsa_verify(public_key_slice, message_slice, signature_slice) {
-        Ok(is_valid) => is_valid,
-        Err(_) => false,
-    }
+    mldsa_verify(public_key_slice, message_slice, signature_slice).unwrap_or_default()
 }
 
 #[no_mangle]
@@ -596,8 +593,7 @@ pub unsafe extern "C" fn perform_quantum_safe_operation_placeholder(
     let input_str = String::from_utf8_lossy(input_slice);
 
     let mock_result = format!(
-        "Rust PQC Real Implementation: Received '{}' ({} bytes). ML-KEM-768 + ML-DSA-65 Ready!",
-        input_str, input_len
+        "Rust PQC Real Implementation: Received '{input_str}' ({input_len} bytes). ML-KEM-768 + ML-DSA-65 Ready!"
     );
     let c_string = CString::new(mock_result).expect("CString::new failed");
     c_string.into_raw() as *mut c_char
