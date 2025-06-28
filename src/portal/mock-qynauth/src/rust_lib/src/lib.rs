@@ -7,6 +7,8 @@ use pqcrypto_traits::sign::{PublicKey as SignPublicKey, SecretKey as SignSecretK
 use secrecy::{Secret, ExposeSecret};
 use thiserror::Error;
 
+pub mod ffi;
+
 #[derive(Error, Debug)]
 pub enum PQCError {
     #[error("Invalid public key format: {0}")]
