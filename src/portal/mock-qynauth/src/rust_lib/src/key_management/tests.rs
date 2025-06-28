@@ -340,8 +340,8 @@ mod key_management_tests {
     #[test]
     fn test_key_id_uniqueness() {
         let mut manager = create_test_manager();
-            assert!(!key_ids.contains(&key_id), "Duplicate key ID generated: {key_id}");
         let mut key_ids = std::collections::HashSet::new();
+        let user_id = "test_user_uniqueness";
 
         for i in 0..10 {
             let algorithm = if i % 2 == 0 {
