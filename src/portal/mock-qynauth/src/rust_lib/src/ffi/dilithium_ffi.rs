@@ -101,6 +101,11 @@ pub extern "C" fn dilithium_keypair_generate() -> *mut CDilithiumKeyPair {
     keypair_ptr
 }
 
+
+
+
+
+
 #[no_mangle]
 pub unsafe extern "C" fn dilithium_sign(
     secret_key_ptr: *const u8,
@@ -253,14 +258,15 @@ pub extern "C" fn dilithium_verify(
     }
 }
 
+
+
 #[no_mangle]
 pub unsafe extern "C" fn dilithium_keypair_free(keypair: *mut CDilithiumKeyPair) {
     if keypair.is_null() {
         return;
     }
 
-    unsafe {
-        let keypair_ref = &*keypair;
+    let keypair_ref = &*keypair;
 
         if !keypair_ref.public_key_ptr.is_null() {
             secure_deallocate(keypair_ref.public_key_ptr, keypair_ref.public_key_len);
@@ -271,8 +277,9 @@ pub unsafe extern "C" fn dilithium_keypair_free(keypair: *mut CDilithiumKeyPair)
         }
 
         secure_deallocate(keypair as *mut u8, std::mem::size_of::<CDilithiumKeyPair>());
-    }
 }
+
+
 
 #[no_mangle]
 pub unsafe extern "C" fn dilithium_signature_free(signature: *mut CDilithiumSignature) {
@@ -280,18 +287,19 @@ pub unsafe extern "C" fn dilithium_signature_free(signature: *mut CDilithiumSign
         return;
     }
 
-    unsafe {
-        let signature_ref = &*signature;
+    let signature_ref = &*signature;
 
         if !signature_ref.signature_ptr.is_null() {
             secure_deallocate(signature_ref.signature_ptr, signature_ref.signature_len);
+
+
+
         }
 
         secure_deallocate(
             signature as *mut u8,
             std::mem::size_of::<CDilithiumSignature>(),
         );
-    }
 }
 
 #[no_mangle]
