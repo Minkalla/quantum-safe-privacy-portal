@@ -1,10 +1,12 @@
+use pqcrypto_mldsa::mldsa65;
+use pqcrypto_mlkem::mlkem768;
+use pqcrypto_traits::kem::{Ciphertext, PublicKey, SecretKey, SharedSecret};
+use pqcrypto_traits::sign::{
+    PublicKey as SignPublicKey, SecretKey as SignSecretKey, SignedMessage,
+};
+use secrecy::{ExposeSecret, Secret};
 use std::ffi::CString;
 use std::os::raw::c_char;
-use pqcrypto_mlkem::mlkem768;
-use pqcrypto_mldsa::mldsa65;
-use pqcrypto_traits::kem::{PublicKey, SecretKey, Ciphertext, SharedSecret};
-use pqcrypto_traits::sign::{PublicKey as SignPublicKey, SecretKey as SignSecretKey, SignedMessage};
-use secrecy::{Secret, ExposeSecret};
 use thiserror::Error;
 
 pub mod ffi;
@@ -46,7 +48,7 @@ pub enum PQCError {
 pub type PQCResult<T> = Result<T, PQCError>;
 
 pub mod key_management;
-pub use key_management::{SecureKeyManager, KeyMetadata, KeyStatus, HSMConfig, KeyStatistics};
+pub use key_management::{HSMConfig, KeyMetadata, KeyStatistics, KeyStatus, SecureKeyManager};
 
 pub struct PQCKeyPair {
     pub public_key: Vec<u8>,
@@ -73,7 +75,10 @@ impl Clone for PQCKeyPair {
 impl std::fmt::Debug for PQCKeyPair {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("PQCKeyPair")
-            .field("public_key", &format!("[{} bytes]", self.public_key.len()))
+            .field("public_key", &{
+                let len = self.public_key.len();
+                format!("[{len} bytes]")
+            })
             .field("private_key", &"[REDACTED]")
             .field("algorithm", &self.algorithm)
             .field("key_size", &self.key_size)
@@ -149,7 +154,7 @@ pub fn generate_mlkem_keypair() -> PQCResult<PQCKeyPair> {
         .duration_since(std::time::UNIX_EPOCH)
         .map_err(|_| PQCError::KeyGenerationFailed("System time error".to_string()))?
         .as_secs();
-    
+
     let (pk, sk) = mlkem768::keypair();
     Ok(PQCKeyPair {
         public_key: pk.as_bytes().to_vec(),
@@ -166,7 +171,7 @@ pub fn generate_mldsa_keypair() -> PQCResult<PQCKeyPair> {
         .duration_since(std::time::UNIX_EPOCH)
         .map_err(|_| PQCError::KeyGenerationFailed("System time error".to_string()))?
         .as_secs();
-    
+
     let (pk, sk) = mldsa65::keypair();
     Ok(PQCKeyPair {
         public_key: pk.as_bytes().to_vec(),
@@ -183,7 +188,7 @@ pub fn mlkem_encapsulate(public_key: &[u8], _message: &[u8]) -> PQCResult<PQCEnc
         .duration_since(std::time::UNIX_EPOCH)
         .map_err(|_| PQCError::EncapsulationFailed("System time error".to_string()))?
         .as_secs();
-    
+
     let pk = mlkem768::PublicKey::from_bytes(public_key)
         .map_err(|_| PQCError::InvalidPublicKey("Failed to parse ML-KEM public key".to_string()))?;
     let (ss, ct) = mlkem768::encapsulate(&pk);
@@ -197,10 +202,12 @@ pub fn mlkem_encapsulate(public_key: &[u8], _message: &[u8]) -> PQCResult<PQCEnc
 }
 
 pub fn mlkem_decapsulate(private_key: &[u8], ciphertext: &[u8]) -> PQCResult<Secret<Vec<u8>>> {
-    let sk = mlkem768::SecretKey::from_bytes(private_key)
-        .map_err(|_| PQCError::InvalidPrivateKey("Failed to parse ML-KEM private key".to_string()))?;
-    let ct = mlkem768::Ciphertext::from_bytes(ciphertext)
-        .map_err(|_| PQCError::InvalidCiphertext("Failed to parse ML-KEM ciphertext".to_string()))?;
+    let sk = mlkem768::SecretKey::from_bytes(private_key).map_err(|_| {
+        PQCError::InvalidPrivateKey("Failed to parse ML-KEM private key".to_string())
+    })?;
+    let ct = mlkem768::Ciphertext::from_bytes(ciphertext).map_err(|_| {
+        PQCError::InvalidCiphertext("Failed to parse ML-KEM ciphertext".to_string())
+    })?;
     let ss = mlkem768::decapsulate(&ct, &sk);
     Ok(Secret::new(ss.as_bytes().to_vec()))
 }
@@ -210,9 +217,10 @@ pub fn mldsa_sign(private_key: &[u8], message: &[u8]) -> PQCResult<PQCSignature>
         .duration_since(std::time::UNIX_EPOCH)
         .map_err(|_| PQCError::SigningFailed("System time error".to_string()))?
         .as_secs();
-    
-    let sk = mldsa65::SecretKey::from_bytes(private_key)
-        .map_err(|_| PQCError::InvalidPrivateKey("Failed to parse ML-DSA private key".to_string()))?;
+
+    let sk = mldsa65::SecretKey::from_bytes(private_key).map_err(|_| {
+        PQCError::InvalidPrivateKey("Failed to parse ML-DSA private key".to_string())
+    })?;
     let signed_msg = mldsa65::sign(message, &sk);
     Ok(PQCSignature {
         signature: Secret::new(signed_msg.as_bytes().to_vec()),
@@ -227,7 +235,7 @@ pub fn mldsa_verify(public_key: &[u8], message: &[u8], signature: &[u8]) -> PQCR
         .map_err(|_| PQCError::InvalidPublicKey("Failed to parse ML-DSA public key".to_string()))?;
     let signed_msg = mldsa65::SignedMessage::from_bytes(signature)
         .map_err(|_| PQCError::InvalidSignature("Failed to parse ML-DSA signature".to_string()))?;
-    
+
     match mldsa65::open(&signed_msg, &pk) {
         Ok(opened) => Ok(opened == message),
         Err(_) => Ok(false),
@@ -244,7 +252,10 @@ pub mod mlkem {
 
     pub fn encapsulate(public_key: &[u8], message: &[u8]) -> PQCResult<(Vec<u8>, Vec<u8>)> {
         let result = super::mlkem_encapsulate(public_key, message)?;
-        Ok((result.ciphertext, result.shared_secret.expose_secret().clone()))
+        Ok((
+            result.ciphertext,
+            result.shared_secret.expose_secret().clone(),
+        ))
     }
 
     pub fn decapsulate(private_key: &[u8], ciphertext: &[u8]) -> PQCResult<Vec<u8>> {
@@ -288,7 +299,7 @@ pub extern "C" fn pqc_ml_kem_768_keygen() -> *mut c_char {
                 Ok(c_string) => c_string.into_raw(),
                 Err(_) => std::ptr::null_mut(),
             }
-        },
+        }
         Err(e) => {
             let error_result = serde_json::json!({
                 "success": false,
@@ -311,10 +322,10 @@ pub unsafe extern "C" fn pqc_ml_kem_768_encaps(
     if public_key.is_null() {
         return std::ptr::null_mut();
     }
-    
+
     let public_key_slice = std::slice::from_raw_parts(public_key, public_key_len);
     let dummy_message = b"";
-    
+
     match mlkem_encapsulate(public_key_slice, dummy_message) {
         Ok(result) => {
             let json_result = serde_json::json!({
@@ -328,7 +339,7 @@ pub unsafe extern "C" fn pqc_ml_kem_768_encaps(
                 Ok(c_string) => c_string.into_raw(),
                 Err(_) => std::ptr::null_mut(),
             }
-        },
+        }
         Err(e) => {
             let error_result = serde_json::json!({
                 "success": false,
@@ -353,10 +364,10 @@ pub unsafe extern "C" fn pqc_ml_kem_768_decaps(
     if secret_key.is_null() || ciphertext.is_null() {
         return std::ptr::null_mut();
     }
-    
+
     let secret_key_slice = std::slice::from_raw_parts(secret_key, secret_key_len);
     let ciphertext_slice = std::slice::from_raw_parts(ciphertext, ciphertext_len);
-    
+
     match mlkem_decapsulate(secret_key_slice, ciphertext_slice) {
         Ok(shared_secret) => {
             let json_result = serde_json::json!({
@@ -368,7 +379,7 @@ pub unsafe extern "C" fn pqc_ml_kem_768_decaps(
                 Ok(c_string) => c_string.into_raw(),
                 Err(_) => std::ptr::null_mut(),
             }
-        },
+        }
         Err(e) => {
             let error_result = serde_json::json!({
                 "success": false,
@@ -400,7 +411,7 @@ pub extern "C" fn pqc_ml_dsa_65_keygen() -> *mut c_char {
                 Ok(c_string) => c_string.into_raw(),
                 Err(_) => std::ptr::null_mut(),
             }
-        },
+        }
         Err(e) => {
             let error_result = serde_json::json!({
                 "success": false,
@@ -425,10 +436,10 @@ pub unsafe extern "C" fn pqc_ml_dsa_65_sign(
     if message.is_null() || private_key.is_null() {
         return std::ptr::null_mut();
     }
-    
+
     let message_slice = std::slice::from_raw_parts(message, message_len);
     let private_key_slice = std::slice::from_raw_parts(private_key, private_key_len);
-    
+
     match mldsa_sign(private_key_slice, message_slice) {
         Ok(signature_result) => {
             let json_result = serde_json::json!({
@@ -442,7 +453,7 @@ pub unsafe extern "C" fn pqc_ml_dsa_65_sign(
                 Ok(c_string) => c_string.into_raw(),
                 Err(_) => std::ptr::null_mut(),
             }
-        },
+        }
         Err(e) => {
             let error_result = serde_json::json!({
                 "success": false,
@@ -469,11 +480,11 @@ pub unsafe extern "C" fn pqc_ml_dsa_65_verify(
     if signature.is_null() || message.is_null() || public_key.is_null() {
         return false;
     }
-    
+
     let signature_slice = std::slice::from_raw_parts(signature, signature_len);
     let message_slice = std::slice::from_raw_parts(message, message_len);
     let public_key_slice = std::slice::from_raw_parts(public_key, public_key_len);
-    
+
     match mldsa_verify(public_key_slice, message_slice, signature_slice) {
         Ok(is_valid) => is_valid,
         Err(_) => false,
@@ -484,7 +495,7 @@ pub unsafe extern "C" fn pqc_ml_dsa_65_verify(
 pub extern "C" fn pqc_key_manager_create() -> *mut c_char {
     let manager = key_management::create_default_key_manager();
     let manager_ptr = Box::into_raw(Box::new(manager));
-    
+
     let result = serde_json::json!({
         "success": true,
         "manager_ptr": manager_ptr as usize
@@ -505,20 +516,20 @@ pub unsafe extern "C" fn pqc_key_manager_generate_key(
     if user_id.is_null() || algorithm.is_null() {
         return std::ptr::null_mut();
     }
-    
+
     let manager = &mut *(manager_ptr as *mut key_management::SecureKeyManager);
     let user_id_cstring = CString::from_raw(user_id as *mut c_char);
     let user_id_str = match user_id_cstring.to_str() {
         Ok(s) => s,
         Err(_) => return std::ptr::null_mut(),
     };
-    
+
     let algorithm_cstring = CString::from_raw(algorithm as *mut c_char);
     let algorithm_str = match algorithm_cstring.to_str() {
         Ok(s) => s,
         Err(_) => return std::ptr::null_mut(),
     };
-    
+
     match manager.generate_and_store_key(user_id_str, algorithm_str) {
         Ok(key_id) => {
             let result = serde_json::json!({
@@ -530,7 +541,7 @@ pub unsafe extern "C" fn pqc_key_manager_generate_key(
                 Ok(c_string) => c_string.into_raw(),
                 Err(_) => std::ptr::null_mut(),
             }
-        },
+        }
         Err(e) => {
             let error_result = serde_json::json!({
                 "success": false,
@@ -553,14 +564,14 @@ pub unsafe extern "C" fn pqc_key_manager_rotate_key(
     if key_id.is_null() {
         return std::ptr::null_mut();
     }
-    
+
     let manager = &mut *(manager_ptr as *mut key_management::SecureKeyManager);
     let key_id_cstring = CString::from_raw(key_id as *mut c_char);
     let key_id_str = match key_id_cstring.to_str() {
         Ok(s) => s,
         Err(_) => return std::ptr::null_mut(),
     };
-    
+
     match manager.rotate_key(key_id_str) {
         Ok(new_key_id) => {
             let result = serde_json::json!({
@@ -572,7 +583,7 @@ pub unsafe extern "C" fn pqc_key_manager_rotate_key(
                 Ok(c_string) => c_string.into_raw(),
                 Err(_) => std::ptr::null_mut(),
             }
-        },
+        }
         Err(e) => {
             let error_result = serde_json::json!({
                 "success": false,
