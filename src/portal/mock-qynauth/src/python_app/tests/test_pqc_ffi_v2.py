@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
-    from pqc_bindings_v2 import PQCLibraryV2, MLKEMKeyPair, MLDSAKeyPair, PerformanceMonitor, PQCError, FFIErrorCode
+    from pqc_bindings import PQCLibraryV2, KyberKeyPair, DilithiumKeyPair, PerformanceMonitor, PQCError, FFIErrorCode
 except ImportError:
     pytest.skip("PQC Library V2 not available - Rust library may not be built", allow_module_level=True)
 
@@ -23,7 +23,7 @@ class TestPQCFFIV2:
         assert pqc_lib.lib is not None
     
     def test_mlkem_keypair_generation(self, pqc_lib):
-        keypair = MLKEMKeyPair(pqc_lib)
+        keypair = KyberKeyPair(pqc_lib)
         assert keypair is not None
         
         public_key = keypair.get_public_key()
@@ -31,7 +31,7 @@ class TestPQCFFIV2:
         assert len(public_key) > 0
     
     def test_mlkem_encapsulation_decapsulation(self, pqc_lib):
-        keypair = MLKEMKeyPair(pqc_lib)
+        keypair = KyberKeyPair(pqc_lib)
         
         ciphertext, shared_secret = keypair.encapsulate()
         assert isinstance(ciphertext, bytes)
@@ -44,7 +44,7 @@ class TestPQCFFIV2:
         assert shared_secret == decap_shared_secret
     
     def test_mldsa_keypair_generation(self, pqc_lib):
-        keypair = MLDSAKeyPair(pqc_lib)
+        keypair = DilithiumKeyPair(pqc_lib)
         assert keypair is not None
         
         public_key = keypair.get_public_key()
@@ -52,7 +52,7 @@ class TestPQCFFIV2:
         assert len(public_key) > 0
     
     def test_mldsa_sign_verify(self, pqc_lib):
-        keypair = MLDSAKeyPair(pqc_lib)
+        keypair = DilithiumKeyPair(pqc_lib)
         message = b"Test message for signing"
         
         signature = keypair.sign(message)
@@ -68,8 +68,8 @@ class TestPQCFFIV2:
     def test_performance_monitoring(self, pqc_lib):
         monitor = PerformanceMonitor(pqc_lib)
         
-        mlkem_keypair = MLKEMKeyPair(pqc_lib)
-        mldsa_keypair = MLDSAKeyPair(pqc_lib)
+        mlkem_keypair = KyberKeyPair(pqc_lib)
+        mldsa_keypair = DilithiumKeyPair(pqc_lib)
         
         message = b"Performance test message"
         signature = mldsa_keypair.sign(message)
@@ -91,18 +91,18 @@ class TestPQCFFIV2:
     
     def test_multiple_operations(self, pqc_lib):
         for i in range(3):
-            mlkem_keypair = MLKEMKeyPair(pqc_lib)
+            mlkem_keypair = KyberKeyPair(pqc_lib)
             ciphertext, shared_secret = mlkem_keypair.encapsulate()
             decap_shared_secret = mlkem_keypair.decapsulate(ciphertext)
             assert shared_secret == decap_shared_secret
             
-            mldsa_keypair = MLDSAKeyPair(pqc_lib)
+            mldsa_keypair = DilithiumKeyPair(pqc_lib)
             message = f"Test message {i}".encode()
             signature = mldsa_keypair.sign(message)
             assert mldsa_keypair.verify(message, signature)
     
     def test_error_handling(self, pqc_lib):
-        keypair = MLKEMKeyPair(pqc_lib)
+        keypair = KyberKeyPair(pqc_lib)
         
         with pytest.raises(PQCError):
             keypair.decapsulate(b"invalid_ciphertext")
@@ -110,8 +110,8 @@ class TestPQCFFIV2:
     def test_memory_cleanup(self, pqc_lib):
         keypairs = []
         for i in range(10):
-            mlkem_keypair = MLKEMKeyPair(pqc_lib)
-            mldsa_keypair = MLDSAKeyPair(pqc_lib)
+            mlkem_keypair = KyberKeyPair(pqc_lib)
+            mldsa_keypair = DilithiumKeyPair(pqc_lib)
             keypairs.append((mlkem_keypair, mldsa_keypair))
         
         del keypairs

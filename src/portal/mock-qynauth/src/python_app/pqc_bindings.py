@@ -19,7 +19,7 @@ class PQCError(Exception):
     """Base exception for PQC operations"""
     pass
 
-class CMLKEMKeyPair(Structure):
+class CKyberKeyPair(Structure):
     _fields_ = [
         ("public_key_ptr", POINTER(ctypes.c_uint8)),
         ("public_key_len", c_size_t),
@@ -27,7 +27,7 @@ class CMLKEMKeyPair(Structure):
         ("secret_key_len", c_size_t),
     ]
 
-class CMLDSAKeyPair(Structure):
+class CDilithiumKeyPair(Structure):
     _fields_ = [
         ("public_key_ptr", POINTER(ctypes.c_uint8)),
         ("public_key_len", c_size_t),
@@ -73,7 +73,7 @@ class PQCLibraryV2:
     
     def _setup_function_signatures(self):
         self.lib.mlkem_keypair_generate.argtypes = []
-        self.lib.mlkem_keypair_generate.restype = POINTER(CMLKEMKeyPair)
+        self.lib.mlkem_keypair_generate.restype = POINTER(CKyberKeyPair)
         
         self.lib.mlkem_encapsulate.argtypes = [
             POINTER(ctypes.c_uint8), c_size_t,
@@ -89,11 +89,11 @@ class PQCLibraryV2:
         ]
         self.lib.mlkem_decapsulate.restype = c_int
         
-        self.lib.mlkem_keypair_free.argtypes = [POINTER(CMLKEMKeyPair)]
+        self.lib.mlkem_keypair_free.argtypes = [POINTER(CKyberKeyPair)]
         self.lib.mlkem_keypair_free.restype = None
         
         self.lib.mldsa_keypair_generate.argtypes = []
-        self.lib.mldsa_keypair_generate.restype = POINTER(CMLDSAKeyPair)
+        self.lib.mldsa_keypair_generate.restype = POINTER(CDilithiumKeyPair)
         
         self.lib.mldsa_sign.argtypes = [
             POINTER(ctypes.c_uint8), c_size_t,
@@ -109,7 +109,7 @@ class PQCLibraryV2:
         ]
         self.lib.mldsa_verify.restype = c_int
         
-        self.lib.mldsa_keypair_free.argtypes = [POINTER(CMLDSAKeyPair)]
+        self.lib.mldsa_keypair_free.argtypes = [POINTER(CDilithiumKeyPair)]
         self.lib.mldsa_keypair_free.restype = None
         
         self.lib.ffi_buffer_free.argtypes = [POINTER(ctypes.c_uint8), c_size_t]
@@ -125,7 +125,7 @@ class PQCLibraryV2:
         ]
         self.lib.ffi_get_avg_operation_times.restype = c_int
 
-class MLKEMKeyPair:
+class KyberKeyPair:
     def __init__(self, lib: PQCLibraryV2):
         self.lib = lib
         self._keypair_ptr = lib.lib.mlkem_keypair_generate()
@@ -201,7 +201,7 @@ class MLKEMKeyPair:
         finally:
             self.lib.lib.ffi_buffer_free(shared_secret_ptr, shared_secret_len)
 
-class MLDSAKeyPair:
+class DilithiumKeyPair:
     def __init__(self, lib: PQCLibraryV2):
         self.lib = lib
         self._keypair_ptr = lib.lib.mldsa_keypair_generate()
@@ -325,7 +325,7 @@ if __name__ == "__main__":
         print("PQC Library V2 loaded successfully")
         
         print("\n=== ML-KEM-768 Test ===")
-        mlkem_keypair = MLKEMKeyPair(lib)
+        mlkem_keypair = KyberKeyPair(lib)
         print(f"Generated ML-KEM keypair, public key size: {len(mlkem_keypair.get_public_key())} bytes")
         
         ciphertext, shared_secret = mlkem_keypair.encapsulate()
@@ -335,7 +335,7 @@ if __name__ == "__main__":
         print(f"Decapsulation successful: {shared_secret == decap_shared_secret}")
         
         print("\n=== ML-DSA-65 Test ===")
-        mldsa_keypair = MLDSAKeyPair(lib)
+        mldsa_keypair = DilithiumKeyPair(lib)
         print(f"Generated ML-DSA keypair, public key size: {len(mldsa_keypair.get_public_key())} bytes")
         
         message = b"Hello, Post-Quantum World!"

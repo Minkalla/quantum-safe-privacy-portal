@@ -1,8 +1,7 @@
-use std::ffi::{CStr, CString};
-use std::os::raw::{c_char, c_int};
+use std::os::raw::c_int;
 use libc::size_t;
-use crate::{generate_mlkem_keypair, mlkem_encapsulate, mlkem_decapsulate, PQCResult};
-use crate::ffi::memory::{FFIBuffer, FFIErrorCode, validate_buffer_params, safe_slice_from_raw, set_last_error};
+use crate::{generate_mlkem_keypair, mlkem_encapsulate as core_mlkem_encapsulate, mlkem_decapsulate as core_mlkem_decapsulate};
+use crate::ffi::memory::{FFIBuffer, FFIErrorCode, safe_slice_from_raw, set_last_error};
 use crate::ffi::monitoring::record_operation_time;
 use secrecy::ExposeSecret;
 
@@ -25,7 +24,7 @@ pub extern "C" fn mlkem_keypair_generate() -> *mut CMLKEMKeyPair {
                 let mut public_buffer = match FFIBuffer::new(public_key.len()) {
                     Ok(buf) => buf,
                     Err(e) => {
-                        set_last_error(&format!("Failed to allocate public key buffer: {}", e));
+                        set_last_error(&format!("Failed to allocate public key buffer: {e}"));
                         return std::ptr::null_mut();
                     }
                 };
@@ -33,7 +32,7 @@ pub extern "C" fn mlkem_keypair_generate() -> *mut CMLKEMKeyPair {
                 let mut secret_buffer = match FFIBuffer::new(secret_key.len()) {
                     Ok(buf) => buf,
                     Err(e) => {
-                        set_last_error(&format!("Failed to allocate secret key buffer: {}", e));
+                        set_last_error(&format!("Failed to allocate secret key buffer: {e}"));
                         return std::ptr::null_mut();
                     }
                 };
@@ -61,7 +60,7 @@ pub extern "C" fn mlkem_keypair_generate() -> *mut CMLKEMKeyPair {
                 Box::into_raw(keypair)
             },
             Err(e) => {
-                set_last_error(&format!("ML-KEM keypair generation failed: {}", e));
+                set_last_error(&format!("ML-KEM keypair generation failed: {e}"));
                 std::ptr::null_mut()
             }
         }
@@ -86,12 +85,13 @@ pub extern "C" fn mlkem_encapsulate(
     let public_key_slice = match safe_slice_from_raw(public_key_ptr, public_key_len) {
         Ok(slice) => slice,
         Err(e) => {
-            set_last_error(&format!("Invalid public key buffer: {}", e));
+            set_last_error(&format!("Invalid public key buffer: {e}"));
             return FFIErrorCode::InvalidInput as c_int;
         }
     };
     
-    match crate::mlkem_encapsulate(public_key_slice, b"") {
+    record_operation_time("mlkem_encap", || {
+        match core_mlkem_encapsulate(public_key_slice, b"") {
         Ok(result) => {
             let shared_secret = result.shared_secret.expose_secret();
             let ciphertext = result.ciphertext;
@@ -99,7 +99,7 @@ pub extern "C" fn mlkem_encapsulate(
             let mut ss_buffer = match FFIBuffer::new(shared_secret.len()) {
                 Ok(buf) => buf,
                 Err(e) => {
-                    set_last_error(&format!("Failed to allocate shared secret buffer: {}", e));
+                    set_last_error(&format!("Failed to allocate shared secret buffer: {e}"));
                     return FFIErrorCode::AllocationFailed as c_int;
                 }
             };
@@ -107,7 +107,7 @@ pub extern "C" fn mlkem_encapsulate(
             let mut ct_buffer = match FFIBuffer::new(ciphertext.len()) {
                 Ok(buf) => buf,
                 Err(e) => {
-                    set_last_error(&format!("Failed to allocate ciphertext buffer: {}", e));
+                    set_last_error(&format!("Failed to allocate ciphertext buffer: {e}"));
                     return FFIErrorCode::AllocationFailed as c_int;
                 }
             };
@@ -133,10 +133,11 @@ pub extern "C" fn mlkem_encapsulate(
             FFIErrorCode::Success as c_int
         },
         Err(e) => {
-            set_last_error(&format!("ML-KEM encapsulation failed: {}", e));
+            set_last_error(&format!("ML-KEM encapsulation failed: {e}"));
             FFIErrorCode::CryptoError as c_int
         }
-    }
+        }
+    })
 }
 
 #[no_mangle]
@@ -156,7 +157,7 @@ pub extern "C" fn mlkem_decapsulate(
     let secret_key_slice = match safe_slice_from_raw(secret_key_ptr, secret_key_len) {
         Ok(slice) => slice,
         Err(e) => {
-            set_last_error(&format!("Invalid secret key buffer: {}", e));
+            set_last_error(&format!("Invalid secret key buffer: {e}"));
             return FFIErrorCode::InvalidInput as c_int;
         }
     };
@@ -164,19 +165,20 @@ pub extern "C" fn mlkem_decapsulate(
     let ciphertext_slice = match safe_slice_from_raw(ciphertext_ptr, ciphertext_len) {
         Ok(slice) => slice,
         Err(e) => {
-            set_last_error(&format!("Invalid ciphertext buffer: {}", e));
+            set_last_error(&format!("Invalid ciphertext buffer: {e}"));
             return FFIErrorCode::InvalidInput as c_int;
         }
     };
     
-    match crate::mlkem_decapsulate(secret_key_slice, ciphertext_slice) {
+    record_operation_time("mlkem_decap", || {
+        match core_mlkem_decapsulate(secret_key_slice, ciphertext_slice) {
         Ok(shared_secret) => {
             let shared_secret_bytes = shared_secret.expose_secret();
             
             let mut ss_buffer = match FFIBuffer::new(shared_secret_bytes.len()) {
                 Ok(buf) => buf,
                 Err(e) => {
-                    set_last_error(&format!("Failed to allocate shared secret buffer: {}", e));
+                    set_last_error(&format!("Failed to allocate shared secret buffer: {e}"));
                     return FFIErrorCode::AllocationFailed as c_int;
                 }
             };
@@ -195,10 +197,11 @@ pub extern "C" fn mlkem_decapsulate(
             FFIErrorCode::Success as c_int
         },
         Err(e) => {
-            set_last_error(&format!("ML-KEM decapsulation failed: {}", e));
+            set_last_error(&format!("ML-KEM decapsulation failed: {e}"));
             FFIErrorCode::CryptoError as c_int
         }
-    }
+        }
+    })
 }
 
 #[no_mangle]

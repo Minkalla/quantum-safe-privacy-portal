@@ -4,73 +4,139 @@ use std::os::raw::c_int;
 use once_cell::sync::Lazy;
 
 pub struct FFIMetrics {
-    pub mlkem_keygen_count: AtomicU64,
-    pub mlkem_keygen_total_time: AtomicU64,
-    pub mldsa_sign_count: AtomicU64,
-    pub mldsa_sign_total_time: AtomicU64,
-    pub mldsa_verify_count: AtomicU64,
-    pub mldsa_verify_total_time: AtomicU64,
+    pub kyber_keygen_count: AtomicU64,
+    pub kyber_keygen_total_time: AtomicU64,
+    pub kyber_encap_count: AtomicU64,
+    pub kyber_encap_total_time: AtomicU64,
+    pub kyber_decap_count: AtomicU64,
+    pub kyber_decap_total_time: AtomicU64,
+    pub dilithium_sign_count: AtomicU64,
+    pub dilithium_sign_total_time: AtomicU64,
+    pub dilithium_verify_count: AtomicU64,
+    pub dilithium_verify_total_time: AtomicU64,
+}
+
+impl Default for FFIMetrics {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl FFIMetrics {
     pub fn new() -> Self {
         Self {
-            mlkem_keygen_count: AtomicU64::new(0),
-            mlkem_keygen_total_time: AtomicU64::new(0),
-            mldsa_sign_count: AtomicU64::new(0),
-            mldsa_sign_total_time: AtomicU64::new(0),
-            mldsa_verify_count: AtomicU64::new(0),
-            mldsa_verify_total_time: AtomicU64::new(0),
+            kyber_keygen_count: AtomicU64::new(0),
+            kyber_keygen_total_time: AtomicU64::new(0),
+            kyber_encap_count: AtomicU64::new(0),
+            kyber_encap_total_time: AtomicU64::new(0),
+            kyber_decap_count: AtomicU64::new(0),
+            kyber_decap_total_time: AtomicU64::new(0),
+            dilithium_sign_count: AtomicU64::new(0),
+            dilithium_sign_total_time: AtomicU64::new(0),
+            dilithium_verify_count: AtomicU64::new(0),
+            dilithium_verify_total_time: AtomicU64::new(0),
         }
     }
     
-    pub fn record_mlkem_keygen(&self, duration: Duration) {
-        self.mlkem_keygen_count.fetch_add(1, Ordering::Relaxed);
-        self.mlkem_keygen_total_time.fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
+    pub fn record_kyber_keygen(&self, duration: Duration) {
+        self.kyber_keygen_count.fetch_add(1, Ordering::Relaxed);
+        self.kyber_keygen_total_time.fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
     }
-    
-    pub fn record_mldsa_sign(&self, duration: Duration) {
-        self.mldsa_sign_count.fetch_add(1, Ordering::Relaxed);
-        self.mldsa_sign_total_time.fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
-    }
-    
-    pub fn record_mldsa_verify(&self, duration: Duration) {
-        self.mldsa_verify_count.fetch_add(1, Ordering::Relaxed);
-        self.mldsa_verify_total_time.fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
-    }
-    
-    pub fn get_mlkem_keygen_avg_time(&self) -> Duration {
-        let count = self.mlkem_keygen_count.load(Ordering::Relaxed);
-        let total = self.mlkem_keygen_total_time.load(Ordering::Relaxed);
-        
-        if count > 0 {
-            Duration::from_nanos(total / count)
-        } else {
-            Duration::from_nanos(0)
+
+    pub fn get_kyber_keygen_avg_time(&self) -> Duration {
+        let count = self.kyber_keygen_count.load(Ordering::Relaxed);
+        if count == 0 {
+            return Duration::from_nanos(0);
         }
+        let total_nanos = self.kyber_keygen_total_time.load(Ordering::Relaxed);
+        Duration::from_nanos(total_nanos / count)
     }
-    
-    pub fn get_mldsa_sign_avg_time(&self) -> Duration {
-        let count = self.mldsa_sign_count.load(Ordering::Relaxed);
-        let total = self.mldsa_sign_total_time.load(Ordering::Relaxed);
-        
-        if count > 0 {
-            Duration::from_nanos(total / count)
-        } else {
-            Duration::from_nanos(0)
+
+    pub fn record_kyber_encap(&self, duration: Duration) {
+        self.kyber_encap_count.fetch_add(1, Ordering::Relaxed);
+        self.kyber_encap_total_time.fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
+    }
+
+    pub fn get_kyber_encap_avg_time(&self) -> Duration {
+        let count = self.kyber_encap_count.load(Ordering::Relaxed);
+        if count == 0 {
+            return Duration::from_nanos(0);
         }
+        let total_nanos = self.kyber_encap_total_time.load(Ordering::Relaxed);
+        Duration::from_nanos(total_nanos / count)
+    }
+
+    pub fn record_kyber_decap(&self, duration: Duration) {
+        self.kyber_decap_count.fetch_add(1, Ordering::Relaxed);
+        self.kyber_decap_total_time.fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
+    }
+
+    pub fn get_kyber_decap_avg_time(&self) -> Duration {
+        let count = self.kyber_decap_count.load(Ordering::Relaxed);
+        if count == 0 {
+            return Duration::from_nanos(0);
+        }
+        let total_nanos = self.kyber_decap_total_time.load(Ordering::Relaxed);
+        Duration::from_nanos(total_nanos / count)
     }
     
-    pub fn get_operation_counts(&self) -> (u64, u64, u64) {
-        (
-            self.mlkem_keygen_count.load(Ordering::Relaxed),
-            self.mldsa_sign_count.load(Ordering::Relaxed),
-            self.mldsa_verify_count.load(Ordering::Relaxed),
-        )
+    pub fn record_dilithium_sign(&self, duration: Duration) {
+        self.dilithium_sign_count.fetch_add(1, Ordering::Relaxed);
+        self.dilithium_sign_total_time.fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
+    }
+
+    pub fn get_dilithium_sign_avg_time(&self) -> Duration {
+        let count = self.dilithium_sign_count.load(Ordering::Relaxed);
+        if count == 0 {
+            return Duration::from_nanos(0);
+        }
+        let total_nanos = self.dilithium_sign_total_time.load(Ordering::Relaxed);
+        Duration::from_nanos(total_nanos / count)
+    }
+    
+    pub fn record_dilithium_verify(&self, duration: Duration) {
+        self.dilithium_verify_count.fetch_add(1, Ordering::Relaxed);
+        self.dilithium_verify_total_time.fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
+    }
+
+    pub fn get_dilithium_verify_avg_time(&self) -> Duration {
+        let count = self.dilithium_verify_count.load(Ordering::Relaxed);
+        if count == 0 {
+            return Duration::from_nanos(0);
+        }
+        let total_nanos = self.dilithium_verify_total_time.load(Ordering::Relaxed);
+        Duration::from_nanos(total_nanos / count)
+    }
+
+    pub fn reset_metrics(&self) {
+        self.kyber_keygen_count.store(0, Ordering::Relaxed);
+        self.kyber_keygen_total_time.store(0, Ordering::Relaxed);
+        self.kyber_encap_count.store(0, Ordering::Relaxed);
+        self.kyber_encap_total_time.store(0, Ordering::Relaxed);
+        self.kyber_decap_count.store(0, Ordering::Relaxed);
+        self.kyber_decap_total_time.store(0, Ordering::Relaxed);
+        self.dilithium_sign_count.store(0, Ordering::Relaxed);
+        self.dilithium_sign_total_time.store(0, Ordering::Relaxed);
+        self.dilithium_verify_count.store(0, Ordering::Relaxed);
+        self.dilithium_verify_total_time.store(0, Ordering::Relaxed);
     }
 }
 
-static FFI_METRICS: Lazy<FFIMetrics> = Lazy::new(|| FFIMetrics::new());
+static FFI_METRICS: Lazy<FFIMetrics> = Lazy::new(FFIMetrics::new);
+
+#[repr(C)]
+pub struct FFIPerformanceReport {
+    pub kyber_keygen_avg_nanos: u64,
+    pub kyber_keygen_count: u64,
+    pub kyber_encap_avg_nanos: u64,
+    pub kyber_encap_count: u64,
+    pub kyber_decap_avg_nanos: u64,
+    pub kyber_decap_count: u64,
+    pub dilithium_sign_avg_nanos: u64,
+    pub dilithium_sign_count: u64,
+    pub dilithium_verify_avg_nanos: u64,
+    pub dilithium_verify_count: u64,
+}
 
 pub fn record_operation_time<F, R>(operation: &str, f: F) -> R
 where
@@ -81,9 +147,12 @@ where
     let duration = start.elapsed();
     
     match operation {
-        "mlkem_keygen" => FFI_METRICS.record_mlkem_keygen(duration),
-        "mldsa_sign" => FFI_METRICS.record_mldsa_sign(duration),
-        "mldsa_verify" => FFI_METRICS.record_mldsa_verify(duration),
+        "mlkem_keygen" => FFI_METRICS.record_kyber_keygen(duration),
+        "mlkem_encap" => FFI_METRICS.record_kyber_encap(duration),
+        "mlkem_decap" => FFI_METRICS.record_kyber_decap(duration),
+        "mldsa_keygen" => FFI_METRICS.record_kyber_keygen(duration),
+        "mldsa_sign" => FFI_METRICS.record_dilithium_sign(duration),
+        "mldsa_verify" => FFI_METRICS.record_dilithium_verify(duration),
         _ => {}
     }
     
@@ -91,44 +160,39 @@ where
 }
 
 #[no_mangle]
-pub extern "C" fn ffi_enable_optimizations(flags: u32) -> c_int {
+pub extern "C" fn ffi_enable_optimizations(_flags: u32) -> c_int {
     0
 }
 
 #[no_mangle]
-pub extern "C" fn ffi_get_operation_counts(
-    mlkem_keygen_count: *mut u64,
-    mldsa_sign_count: *mut u64,
-    mldsa_verify_count: *mut u64,
-) -> c_int {
-    if mlkem_keygen_count.is_null() || mldsa_sign_count.is_null() || mldsa_verify_count.is_null() {
-        return -1;
-    }
-    
-    let (keygen, sign, verify) = FFI_METRICS.get_operation_counts();
-    
-    unsafe {
-        *mlkem_keygen_count = keygen;
-        *mldsa_sign_count = sign;
-        *mldsa_verify_count = verify;
-    }
-    
-    0
+pub extern "C" fn ffi_get_performance_metrics() -> *const FFIPerformanceReport {
+    let report = Box::new(FFIPerformanceReport {
+        kyber_keygen_avg_nanos: FFI_METRICS.get_kyber_keygen_avg_time().as_nanos() as u64,
+        kyber_keygen_count: FFI_METRICS.kyber_keygen_count.load(Ordering::Relaxed),
+        kyber_encap_avg_nanos: FFI_METRICS.get_kyber_encap_avg_time().as_nanos() as u64,
+        kyber_encap_count: FFI_METRICS.kyber_encap_count.load(Ordering::Relaxed),
+        kyber_decap_avg_nanos: FFI_METRICS.get_kyber_decap_avg_time().as_nanos() as u64,
+        kyber_decap_count: FFI_METRICS.kyber_decap_count.load(Ordering::Relaxed),
+        dilithium_sign_avg_nanos: FFI_METRICS.get_dilithium_sign_avg_time().as_nanos() as u64,
+        dilithium_sign_count: FFI_METRICS.dilithium_sign_count.load(Ordering::Relaxed),
+        dilithium_verify_avg_nanos: FFI_METRICS.get_dilithium_verify_avg_time().as_nanos() as u64,
+        dilithium_verify_count: FFI_METRICS.dilithium_verify_count.load(Ordering::Relaxed),
+    });
+
+    Box::into_raw(report)
 }
 
 #[no_mangle]
-pub extern "C" fn ffi_get_avg_operation_times(
-    mlkem_keygen_ns: *mut u64,
-    mldsa_sign_ns: *mut u64,
-) -> c_int {
-    if mlkem_keygen_ns.is_null() || mldsa_sign_ns.is_null() {
-        return -1;
+pub extern "C" fn ffi_free_performance_report(report: *mut FFIPerformanceReport) {
+    if !report.is_null() {
+        unsafe {
+            let _ = Box::from_raw(report);
+        }
     }
-    
-    unsafe {
-        *mlkem_keygen_ns = FFI_METRICS.get_mlkem_keygen_avg_time().as_nanos() as u64;
-        *mldsa_sign_ns = FFI_METRICS.get_mldsa_sign_avg_time().as_nanos() as u64;
-    }
-    
+}
+
+#[no_mangle]
+pub extern "C" fn ffi_reset_metrics() -> c_int {
+    FFI_METRICS.reset_metrics();
     0
 }

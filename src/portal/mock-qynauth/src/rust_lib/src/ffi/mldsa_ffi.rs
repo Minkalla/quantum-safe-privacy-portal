@@ -1,8 +1,7 @@
-use std::ffi::{CStr, CString};
-use std::os::raw::{c_char, c_int};
+use std::os::raw::c_int;
 use libc::size_t;
-use crate::{generate_mldsa_keypair, mldsa_sign, mldsa_verify};
-use crate::ffi::memory::{FFIBuffer, FFIErrorCode, validate_buffer_params, safe_slice_from_raw, set_last_error};
+use crate::{generate_mldsa_keypair, mldsa_sign as core_mldsa_sign, mldsa_verify as core_mldsa_verify};
+use crate::ffi::memory::{FFIBuffer, FFIErrorCode, safe_slice_from_raw, set_last_error};
 use crate::ffi::monitoring::record_operation_time;
 use secrecy::ExposeSecret;
 
@@ -25,7 +24,7 @@ pub extern "C" fn mldsa_keypair_generate() -> *mut CMLDSAKeyPair {
                 let mut public_buffer = match FFIBuffer::new(public_key.len()) {
                     Ok(buf) => buf,
                     Err(e) => {
-                        set_last_error(&format!("Failed to allocate public key buffer: {}", e));
+                        set_last_error(&format!("Failed to allocate public key buffer: {e}"));
                         return std::ptr::null_mut();
                     }
                 };
@@ -33,7 +32,7 @@ pub extern "C" fn mldsa_keypair_generate() -> *mut CMLDSAKeyPair {
                 let mut secret_buffer = match FFIBuffer::new(secret_key.len()) {
                     Ok(buf) => buf,
                     Err(e) => {
-                        set_last_error(&format!("Failed to allocate secret key buffer: {}", e));
+                        set_last_error(&format!("Failed to allocate secret key buffer: {e}"));
                         return std::ptr::null_mut();
                     }
                 };
@@ -61,7 +60,7 @@ pub extern "C" fn mldsa_keypair_generate() -> *mut CMLDSAKeyPair {
                 Box::into_raw(keypair)
             },
             Err(e) => {
-                set_last_error(&format!("ML-DSA keypair generation failed: {}", e));
+                set_last_error(&format!("ML-DSA keypair generation failed: {e}"));
                 std::ptr::null_mut()
             }
         }
@@ -85,7 +84,7 @@ pub extern "C" fn mldsa_sign(
     let secret_key_slice = match safe_slice_from_raw(secret_key_ptr, secret_key_len) {
         Ok(slice) => slice,
         Err(e) => {
-            set_last_error(&format!("Invalid secret key buffer: {}", e));
+            set_last_error(&format!("Invalid secret key buffer: {e}"));
             return FFIErrorCode::InvalidInput as c_int;
         }
     };
@@ -93,20 +92,20 @@ pub extern "C" fn mldsa_sign(
     let message_slice = match safe_slice_from_raw(message_ptr, message_len) {
         Ok(slice) => slice,
         Err(e) => {
-            set_last_error(&format!("Invalid message buffer: {}", e));
+            set_last_error(&format!("Invalid message buffer: {e}"));
             return FFIErrorCode::InvalidInput as c_int;
         }
     };
     
     record_operation_time("mldsa_sign", || {
-        match crate::mldsa_sign(secret_key_slice, message_slice) {
+        match core_mldsa_sign(secret_key_slice, message_slice) {
             Ok(signature_result) => {
                 let signature = signature_result.signature.expose_secret();
                 
                 let mut sig_buffer = match FFIBuffer::new(signature.len()) {
                     Ok(buf) => buf,
                     Err(e) => {
-                        set_last_error(&format!("Failed to allocate signature buffer: {}", e));
+                        set_last_error(&format!("Failed to allocate signature buffer: {e}"));
                         return FFIErrorCode::AllocationFailed as c_int;
                     }
                 };
@@ -125,7 +124,7 @@ pub extern "C" fn mldsa_sign(
                 FFIErrorCode::Success as c_int
             },
             Err(e) => {
-                set_last_error(&format!("ML-DSA signing failed: {}", e));
+                set_last_error(&format!("ML-DSA signing failed: {e}"));
                 FFIErrorCode::CryptoError as c_int
             }
         }
@@ -144,7 +143,7 @@ pub extern "C" fn mldsa_verify(
     let public_key_slice = match safe_slice_from_raw(public_key_ptr, public_key_len) {
         Ok(slice) => slice,
         Err(e) => {
-            set_last_error(&format!("Invalid public key buffer: {}", e));
+            set_last_error(&format!("Invalid public key buffer: {e}"));
             return FFIErrorCode::InvalidInput as c_int;
         }
     };
@@ -152,7 +151,7 @@ pub extern "C" fn mldsa_verify(
     let message_slice = match safe_slice_from_raw(message_ptr, message_len) {
         Ok(slice) => slice,
         Err(e) => {
-            set_last_error(&format!("Invalid message buffer: {}", e));
+            set_last_error(&format!("Invalid message buffer: {e}"));
             return FFIErrorCode::InvalidInput as c_int;
         }
     };
@@ -160,12 +159,12 @@ pub extern "C" fn mldsa_verify(
     let signature_slice = match safe_slice_from_raw(signature_ptr, signature_len) {
         Ok(slice) => slice,
         Err(e) => {
-            set_last_error(&format!("Invalid signature buffer: {}", e));
+            set_last_error(&format!("Invalid signature buffer: {e}"));
             return FFIErrorCode::InvalidInput as c_int;
         }
     };
     
-    match crate::mldsa_verify(public_key_slice, message_slice, signature_slice) {
+    match core_mldsa_verify(public_key_slice, message_slice, signature_slice) {
         Ok(is_valid) => {
             if is_valid {
                 FFIErrorCode::Success as c_int
@@ -175,7 +174,7 @@ pub extern "C" fn mldsa_verify(
             }
         },
         Err(e) => {
-            set_last_error(&format!("ML-DSA verification failed: {}", e));
+            set_last_error(&format!("ML-DSA verification failed: {e}"));
             FFIErrorCode::CryptoError as c_int
         }
     }
