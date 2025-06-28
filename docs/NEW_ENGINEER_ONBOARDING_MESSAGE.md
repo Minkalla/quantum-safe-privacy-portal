@@ -99,33 +99,33 @@ docs/
 └── performance_benchmarks.md       # WBS 2.1.3 deliverable
 ```
 
-### **COMPLETED WBS TASK: WBS 2.3.6 FFI Performance Optimization and Monitoring**
+### **NEXT WBS TASK: WBS 2.4 Security and Performance Optimization**
 
-**Objective**: Implement performance optimizations and monitoring for FFI operations.
+**Objective**: Execute WBS 2.4 Security and Performance Optimization for NIST Post-Quantum Cryptography (PQC) Integration into QynAuth service. This sub-task focuses on implementing comprehensive security hardening, performance optimizations, vulnerability assessments, and establishing security monitoring for the PQC implementation.
 
-**Sub-task Breakdown** (36 hours total - COMPLETED):
-- ✅ **WBS 2.3.1**: Design and implement C-compatible FFI interface for Kyber operations (6 hours)
-- ✅ **WBS 2.3.2**: Design and implement C-compatible FFI interface for Dilithium operations (6 hours)
-- ✅ **WBS 2.3.3**: Implement safe memory management and error handling across FFI boundary (8 hours)
-- ✅ **WBS 2.3.4**: Create Python bindings and high-level API wrapper (6 hours)
-- ✅ **WBS 2.3.5**: Implement comprehensive FFI testing and validation framework (6 hours)
-- ✅ **WBS 2.3.6**: Add FFI performance optimization and monitoring (4 hours)
+**Sub-task Breakdown** (36 hours total):
+- **WBS 2.4.1**: Implement comprehensive security hardening for PQC operations (8 hours)
+- **WBS 2.4.2**: Optimize performance across Rust, FFI, and Python layers (6 hours)
+- **WBS 2.4.3**: Conduct comprehensive vulnerability assessment and penetration testing (8 hours)
+- **WBS 2.4.4**: Implement security monitoring and alerting system (6 hours)
+- **WBS 2.4.5**: Add side-channel attack protection and constant-time operations (8 hours)
 
-**Key Deliverables** (COMPLETED):
-- FFI Performance Monitoring (`src/rust_lib/src/ffi/monitoring.rs`)
-- Python Bindings with Performance Tracking (`src/python_app/pqc_bindings.py`)
-- Comprehensive Test Suite (`src/python_app/test_wbs_2_3_6_local.py`)
-- Performance Monitoring Module (`src/python_app/ffi_performance_monitor.py`)
+**Key Deliverables**:
+- Security hardening implementation with comprehensive threat mitigation
+- Performance optimization across entire PQC stack
+- Vulnerability assessment report and penetration testing results
+- Security monitoring and alerting system
+- Side-channel attack protection and constant-time operation validation
 
 **Working Directory**: `/home/ubuntu/repos/quantum-safe-privacy-portal/src/portal/mock-qynauth/`
-**Current Branch**: `devin/1751123190-wbs-2-3-6-ffi-monitoring`
+**Dependencies**: WBS 2.3.1-2.3.6 (FFI Interface Development) - COMPLETED ✅
 
 ### **IMMEDIATE NEXT STEPS**
 
 1. **🚨 MANDATORY: Review Session Handoff Documents**: FIRST ACTION - Read `docs/HANDOVER_SUMMARY.md` for complete project context and current status
 2. **Acknowledge Framework Compliance**: Confirm you understand user-authorized testing policy
-3. **Review WBS 2.3.6 Completion**: Examine FFI performance monitoring implementation and test results
-4. **Await USER Assignment**: Wait for USER to provide next WBS task assignment
+3. **Begin WBS 2.4 Implementation**: Start with WBS 2.4.1 security hardening for PQC operations
+4. **Review WBS 2.3 Completion**: Examine completed FFI interface development and performance monitoring
 5. **Follow User-Authorized Testing**: No CI tests without explicit USER authorization
 
 ### **DEVELOPMENT PHASE STANDARDS**
@@ -183,4 +183,4 @@ docs/
 
 ---
 
-**WBS 2.3.6 FFI Performance Optimization and Monitoring is COMPLETE. Awaiting USER assignment for next WBS task.**
+**WBS 2.3 FFI Interface Development is COMPLETE. Ready to begin WBS 2.4 Security and Performance Optimization.**
