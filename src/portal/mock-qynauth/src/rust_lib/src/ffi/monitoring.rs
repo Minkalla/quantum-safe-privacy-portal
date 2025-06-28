@@ -10,6 +10,8 @@ pub struct FFIMetrics {
     pub kyber_encap_total_time: AtomicU64,
     pub kyber_decap_count: AtomicU64,
     pub kyber_decap_total_time: AtomicU64,
+    pub dilithium_keygen_count: AtomicU64,
+    pub dilithium_keygen_total_time: AtomicU64,
     pub dilithium_sign_count: AtomicU64,
     pub dilithium_sign_total_time: AtomicU64,
     pub dilithium_verify_count: AtomicU64,
@@ -31,6 +33,8 @@ impl FFIMetrics {
             kyber_encap_total_time: AtomicU64::new(0),
             kyber_decap_count: AtomicU64::new(0),
             kyber_decap_total_time: AtomicU64::new(0),
+            dilithium_keygen_count: AtomicU64::new(0),
+            dilithium_keygen_total_time: AtomicU64::new(0),
             dilithium_sign_count: AtomicU64::new(0),
             dilithium_sign_total_time: AtomicU64::new(0),
             dilithium_verify_count: AtomicU64::new(0),
@@ -95,8 +99,17 @@ impl FFIMetrics {
     }
     
     pub fn record_dilithium_keygen(&self, duration: Duration) {
-        self.dilithium_sign_count.fetch_add(1, Ordering::Relaxed);
-        self.dilithium_sign_total_time.fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
+        self.dilithium_keygen_count.fetch_add(1, Ordering::Relaxed);
+        self.dilithium_keygen_total_time.fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
+    }
+
+    pub fn get_dilithium_keygen_avg_time(&self) -> Duration {
+        let count = self.dilithium_keygen_count.load(Ordering::Relaxed);
+        if count == 0 {
+            return Duration::from_nanos(0);
+        }
+        let total_nanos = self.dilithium_keygen_total_time.load(Ordering::Relaxed);
+        Duration::from_nanos(total_nanos / count)
     }
     
     pub fn record_dilithium_verify(&self, duration: Duration) {
@@ -120,6 +133,8 @@ impl FFIMetrics {
         self.kyber_encap_total_time.store(0, Ordering::Relaxed);
         self.kyber_decap_count.store(0, Ordering::Relaxed);
         self.kyber_decap_total_time.store(0, Ordering::Relaxed);
+        self.dilithium_keygen_count.store(0, Ordering::Relaxed);
+        self.dilithium_keygen_total_time.store(0, Ordering::Relaxed);
         self.dilithium_sign_count.store(0, Ordering::Relaxed);
         self.dilithium_sign_total_time.store(0, Ordering::Relaxed);
         self.dilithium_verify_count.store(0, Ordering::Relaxed);
@@ -137,6 +152,8 @@ pub struct FFIPerformanceReport {
     pub kyber_encap_count: u64,
     pub kyber_decap_avg_nanos: u64,
     pub kyber_decap_count: u64,
+    pub dilithium_keygen_avg_nanos: u64,
+    pub dilithium_keygen_count: u64,
     pub dilithium_sign_avg_nanos: u64,
     pub dilithium_sign_count: u64,
     pub dilithium_verify_avg_nanos: u64,
@@ -178,6 +195,8 @@ pub extern "C" fn ffi_get_performance_metrics() -> *const FFIPerformanceReport {
         kyber_encap_count: FFI_METRICS.kyber_encap_count.load(Ordering::Relaxed),
         kyber_decap_avg_nanos: FFI_METRICS.get_kyber_decap_avg_time().as_nanos() as u64,
         kyber_decap_count: FFI_METRICS.kyber_decap_count.load(Ordering::Relaxed),
+        dilithium_keygen_avg_nanos: FFI_METRICS.get_dilithium_keygen_avg_time().as_nanos() as u64,
+        dilithium_keygen_count: FFI_METRICS.dilithium_keygen_count.load(Ordering::Relaxed),
         dilithium_sign_avg_nanos: FFI_METRICS.get_dilithium_sign_avg_time().as_nanos() as u64,
         dilithium_sign_count: FFI_METRICS.dilithium_sign_count.load(Ordering::Relaxed),
         dilithium_verify_avg_nanos: FFI_METRICS.get_dilithium_verify_avg_time().as_nanos() as u64,
