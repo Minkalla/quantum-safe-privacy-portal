@@ -1,6 +1,6 @@
 use std::alloc::{alloc, dealloc, Layout};
 use std::ptr;
-use std::os::raw::{c_char, c_int};
+use std::os::raw::c_char;
 use libc::size_t;
 use zeroize::Zeroize;
 use crate::PQCError;
@@ -110,8 +110,12 @@ pub fn safe_slice_from_raw<'a>(ptr: *const u8, len: size_t) -> Result<&'a [u8], 
 #[no_mangle]
 pub extern "C" fn ffi_buffer_free(ptr: *mut u8, len: size_t) {
     if !ptr.is_null() && len > 0 {
-        let buffer = FFIBuffer::from_raw_parts(ptr, len);
-        buffer.secure_free();
+        unsafe {
+            let layout = std::alloc::Layout::array::<u8>(len).unwrap();
+            let slice = std::slice::from_raw_parts_mut(ptr, len);
+            slice.zeroize();
+            std::alloc::dealloc(ptr, layout);
+        }
     }
 }
 

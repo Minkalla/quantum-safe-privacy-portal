@@ -115,15 +115,14 @@ class PQCLibraryV2:
         self.lib.ffi_buffer_free.argtypes = [POINTER(ctypes.c_uint8), c_size_t]
         self.lib.ffi_buffer_free.restype = None
         
-        self.lib.ffi_get_operation_counts.argtypes = [
-            POINTER(c_uint64), POINTER(c_uint64), POINTER(c_uint64)
-        ]
-        self.lib.ffi_get_operation_counts.restype = c_int
+        self.lib.ffi_get_performance_metrics.argtypes = []
+        self.lib.ffi_get_performance_metrics.restype = c_void_p
         
-        self.lib.ffi_get_avg_operation_times.argtypes = [
-            POINTER(c_uint64), POINTER(c_uint64)
-        ]
-        self.lib.ffi_get_avg_operation_times.restype = c_int
+        self.lib.ffi_free_performance_report.argtypes = [c_void_p]
+        self.lib.ffi_free_performance_report.restype = None
+        
+        self.lib.ffi_reset_metrics.argtypes = []
+        self.lib.ffi_reset_metrics.restype = c_int
 
 class KyberKeyPair:
     def __init__(self, lib: PQCLibraryV2):
@@ -266,41 +265,79 @@ class DilithiumKeyPair:
         
         return result == FFIErrorCode.SUCCESS
 
+class FFIPerformanceReport(Structure):
+    _fields_ = [
+        ("kyber_keygen_avg_nanos", c_uint64),
+        ("kyber_keygen_count", c_uint64),
+        ("kyber_encap_avg_nanos", c_uint64),
+        ("kyber_encap_count", c_uint64),
+        ("kyber_decap_avg_nanos", c_uint64),
+        ("kyber_decap_count", c_uint64),
+        ("dilithium_sign_avg_nanos", c_uint64),
+        ("dilithium_sign_count", c_uint64),
+        ("dilithium_verify_avg_nanos", c_uint64),
+        ("dilithium_verify_count", c_uint64),
+    ]
+
 class PerformanceMonitor:
     def __init__(self, lib: PQCLibraryV2):
         self.lib = lib
     
-    def get_operation_counts(self) -> Tuple[int, int, int]:
-        """Get operation counts for (mlkem_keygen, mldsa_sign, mldsa_verify)."""
-        mlkem_count = c_uint64()
-        mldsa_sign_count = c_uint64()
-        mldsa_verify_count = c_uint64()
+    def get_performance_report(self) -> dict:
+        """Get comprehensive performance metrics."""
+        report_ptr = self.lib.lib.ffi_get_performance_metrics()
+        if not report_ptr:
+            raise PQCError("Failed to get performance metrics")
         
-        result = self.lib.lib.ffi_get_operation_counts(
-            ctypes.byref(mlkem_count),
-            ctypes.byref(mldsa_sign_count),
-            ctypes.byref(mldsa_verify_count)
-        )
-        
+        try:
+            report = ctypes.cast(report_ptr, POINTER(FFIPerformanceReport)).contents
+            return {
+                "kyber_keygen": {
+                    "avg_time_ms": report.kyber_keygen_avg_nanos / 1e6,
+                    "count": report.kyber_keygen_count
+                },
+                "kyber_encap": {
+                    "avg_time_ms": report.kyber_encap_avg_nanos / 1e6,
+                    "count": report.kyber_encap_count
+                },
+                "kyber_decap": {
+                    "avg_time_ms": report.kyber_decap_avg_nanos / 1e6,
+                    "count": report.kyber_decap_count
+                },
+                "dilithium_sign": {
+                    "avg_time_ms": report.dilithium_sign_avg_nanos / 1e6,
+                    "count": report.dilithium_sign_count
+                },
+                "dilithium_verify": {
+                    "avg_time_ms": report.dilithium_verify_avg_nanos / 1e6,
+                    "count": report.dilithium_verify_count
+                }
+            }
+        finally:
+            self.lib.lib.ffi_free_performance_report(report_ptr)
+    
+    def reset_metrics(self) -> None:
+        """Reset all performance metrics."""
+        result = self.lib.lib.ffi_reset_metrics()
         if result != 0:
-            raise PQCError("Failed to get operation counts")
-        
-        return (mlkem_count.value, mldsa_sign_count.value, mldsa_verify_count.value)
+            raise PQCError("Failed to reset metrics")
+    
+    def get_operation_counts(self) -> Tuple[int, int, int]:
+        """Get operation counts for (kyber_keygen, dilithium_sign, dilithium_verify)."""
+        report = self.get_performance_report()
+        return (
+            report["kyber_keygen"]["count"],
+            report["dilithium_sign"]["count"],
+            report["dilithium_verify"]["count"]
+        )
     
     def get_avg_operation_times(self) -> Tuple[float, float]:
-        """Get average operation times in nanoseconds for (mlkem_keygen, mldsa_sign)."""
-        mlkem_time = c_uint64()
-        mldsa_time = c_uint64()
-        
-        result = self.lib.lib.ffi_get_avg_operation_times(
-            ctypes.byref(mlkem_time),
-            ctypes.byref(mldsa_time)
+        """Get average operation times in seconds for (kyber_keygen, dilithium_sign)."""
+        report = self.get_performance_report()
+        return (
+            report["kyber_keygen"]["avg_time_ms"] / 1000.0,
+            report["dilithium_sign"]["avg_time_ms"] / 1000.0
         )
-        
-        if result != 0:
-            raise PQCError("Failed to get average operation times")
-        
-        return (mlkem_time.value / 1e9, mldsa_time.value / 1e9)
 
 @contextmanager
 def secure_buffer(lib: PQCLibraryV2, size: int):

@@ -209,8 +209,20 @@ pub extern "C" fn mlkem_keypair_free(keypair: *mut CMLKEMKeyPair) {
     if !keypair.is_null() {
         unsafe {
             let keypair = Box::from_raw(keypair);
-            FFIBuffer::from_raw_parts(keypair.public_key_ptr, keypair.public_key_len).secure_free();
-            FFIBuffer::from_raw_parts(keypair.secret_key_ptr, keypair.secret_key_len).secure_free();
+            
+            if !keypair.public_key_ptr.is_null() && keypair.public_key_len > 0 {
+                let layout = std::alloc::Layout::array::<u8>(keypair.public_key_len).unwrap();
+                let slice = std::slice::from_raw_parts_mut(keypair.public_key_ptr, keypair.public_key_len);
+                slice.fill(0);
+                std::alloc::dealloc(keypair.public_key_ptr, layout);
+            }
+            
+            if !keypair.secret_key_ptr.is_null() && keypair.secret_key_len > 0 {
+                let layout = std::alloc::Layout::array::<u8>(keypair.secret_key_len).unwrap();
+                let slice = std::slice::from_raw_parts_mut(keypair.secret_key_ptr, keypair.secret_key_len);
+                slice.fill(0);
+                std::alloc::dealloc(keypair.secret_key_ptr, layout);
+            }
         }
     }
 }
