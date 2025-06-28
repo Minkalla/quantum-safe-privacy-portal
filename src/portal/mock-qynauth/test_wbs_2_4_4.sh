@@ -21,7 +21,7 @@ else
 fi
 
 echo "Testing monitoring performance and scalability..."
-if cargo test monitoring_performance --release --quiet; then
+if (cd src/rust_lib && cargo test monitoring_performance --release --quiet); then
     echo "✅ Monitoring performance tests passed"
 else
     echo "❌ Monitoring performance tests failed"

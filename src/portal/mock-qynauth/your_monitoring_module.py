@@ -233,6 +233,12 @@ class AlertingSystem:
             self.alert_metrics[f'by_type_{alert.alert_type}'] += 1
             self.alert_metrics[f'by_severity_{alert.severity}'] += 1
         
+        email_recipients = [r for r in recipients if '@' in str(r)]
+        if email_recipients and self.email_sender:
+            subject = f"Security Alert: {alert.alert_type}"
+            body = f"Alert: {alert.message}\nSeverity: {alert.severity}\nDetails: {alert.details}"
+            self.email_sender(email_recipients, subject, body)
+        
         if self.send_handler:
             self.send_handler(alert)
         
@@ -480,6 +486,9 @@ class LogAnalyzer:
                         log_dt = datetime.datetime.strptime(log_date, '%Y-%m-%d')
                         if log_dt < cutoff_dt:
                             archived_count += 1
+                        else:
+                            parsed = self.parse_log_entry(line.strip())
+                            self.processed_logs.append(parsed)
                     except (ValueError, IndexError):
                         pass
         except FileNotFoundError:
@@ -542,8 +551,9 @@ class ThreatDetector:
     
     def analyze_log_entry(self, log_entry: str):
         """Analyze log entry for threat patterns"""
-        sql_patterns = ["'", "OR '1'='1'", "DROP TABLE", "UNION SELECT", "--", "';"]
-        for pattern in sql_patterns:
+        malicious_patterns = ["OR '1'='1'", "DROP TABLE", "UNION SELECT", "'; DROP TABLE", "--"]
+        
+        for pattern in malicious_patterns:
             if pattern in log_entry:
                 threat = type('Threat', (), {
                     'threat_type': 'SQL_INJECTION',
@@ -649,9 +659,18 @@ class SecurityDashboard:
             for event in self.events:
                 headers.update(event.keys())
             
-            csv_lines = [','.join(sorted(headers))]
+            preferred_order = ['type', 'severity', 'timestamp']
+            ordered_headers = []
+            for header in preferred_order:
+                if header in headers:
+                    ordered_headers.append(header)
+            for header in sorted(headers):
+                if header not in ordered_headers:
+                    ordered_headers.append(header)
+            
+            csv_lines = [','.join(ordered_headers)]
             for event in self.events:
-                row = [str(event.get(header, '')) for header in sorted(headers)]
+                row = [str(event.get(header, '')) for header in ordered_headers]
                 csv_lines.append(','.join(row))
             
             return '\n'.join(csv_lines)
