@@ -18,6 +18,7 @@ use std::os::raw::c_char;
 use thiserror::Error;
 
 pub mod ffi;
+pub mod security;
 
 #[derive(Error, Debug)]
 pub enum PQCError {
@@ -57,6 +58,8 @@ pub type PQCResult<T> = Result<T, PQCError>;
 
 pub mod key_management;
 pub use key_management::{SecureKeyManager, KeyMetadata, KeyStatus, HSMConfig, KeyStatistics};
+
+pub use security::{ConstantTimeOps, PowerAnalysisProtection, CacheProtection, SideChannelProtection};
 
 pub struct PQCKeyPair {
     pub public_key: Vec<u8>,
