@@ -27,9 +27,9 @@ export class PQCMonitoringService {
 
   constructor(private readonly configService: ConfigService) {
     this.alertThresholds = {
-      maxErrorRate: this.configService.get<number>('PQC_MAX_ERROR_RATE') || 0.05, // 5% error rate threshold
-      maxLatencyIncrease: this.configService.get<number>('PQC_MAX_LATENCY_INCREASE') || 1.5, // 50% latency increase threshold
-      maxMemoryUsage: this.configService.get<number>('PQC_MAX_MEMORY_MB') || 50 * 1024 * 1024, // 50MB memory threshold
+      maxErrorRate: this.configService.get<number>('PQC_MAX_ERROR_RATE') || 0.001, // 0.1% error rate threshold (WBS 2.5.5)
+      maxLatencyIncrease: this.configService.get<number>('PQC_MAX_LATENCY_INCREASE') || 2.0, // 100% latency increase threshold
+      maxMemoryUsage: this.configService.get<number>('PQC_MAX_MEMORY_MB') || 4 * 1024 * 1024, // 4MB memory threshold (WBS 2.5.5)
     };
     this.initializeBaselines();
 
@@ -42,10 +42,16 @@ export class PQCMonitoringService {
   }
 
   private initializeBaselines(): void {
-    this.baselineMetrics.set('keyGenerationLatency', 100); // 100ms baseline
-    this.baselineMetrics.set('jwtSigningLatency', 50); // 50ms baseline
+    this.baselineMetrics.set('mlkemKeyGenLatency', 50); // 50ms baseline (WBS 2.5.5)
+    this.baselineMetrics.set('mlkemEncapLatency', 25); // 25ms baseline (WBS 2.5.5)
+    this.baselineMetrics.set('mlkemDecapLatency', 30); // 30ms baseline (WBS 2.5.5)
+    this.baselineMetrics.set('mldsaKeyGenLatency', 75); // 75ms baseline (WBS 2.5.5)
+    this.baselineMetrics.set('mldsaSignLatency', 35); // 35ms baseline (WBS 2.5.5)
+    this.baselineMetrics.set('mldsaVerifyLatency', 15); // 15ms baseline (WBS 2.5.5)
+    this.baselineMetrics.set('keyGenerationLatency', 50); // Legacy compatibility
+    this.baselineMetrics.set('jwtSigningLatency', 35); // Updated for ML-DSA
     this.baselineMetrics.set('authenticationLatency', 200); // 200ms baseline
-    this.baselineMetrics.set('errorRate', 0.01); // 1% baseline error rate
+    this.baselineMetrics.set('errorRate', 0.001); // 0.1% baseline error rate (WBS 2.5.5)
   }
 
   async recordPQCKeyGeneration(userId: string, startTime: number, success: boolean): Promise<void> {
@@ -259,5 +265,63 @@ export class PQCMonitoringService {
       this.logger.error(`Rollback trigger test failed: ${error.message}`);
       return { success: false, triggeredAlerts };
     }
+  }
+
+  async validateSLACompliance(): Promise<{
+    compliant: boolean;
+    violations: Array<{ metric: string; current: number; target: number; severity: string }>;
+    report: string;
+  }> {
+    const violations: Array<{ metric: string; current: number; target: number; severity: string }> = [];
+    
+    const slaTargets = {
+      mlkemKeyGenLatency: 50,
+      mlkemEncapLatency: 25,
+      mlkemDecapLatency: 30,
+      mldsaKeyGenLatency: 75,
+      mldsaSignLatency: 35,
+      mldsaVerifyLatency: 15,
+      errorRate: 0.001,
+    };
+
+    for (const [metric, target] of Object.entries(slaTargets)) {
+      const current = this.currentMetrics.get(metric) || 0;
+      if (current > target) {
+        const severity = current > target * 2 ? 'emergency' : current > target * 1.5 ? 'critical' : 'warning';
+        violations.push({ metric, current, target, severity });
+      }
+    }
+
+    const report = this.generateSLAComplianceReport(violations);
+    
+    return {
+      compliant: violations.length === 0,
+      violations,
+      report,
+    };
+  }
+
+  private generateSLAComplianceReport(violations: Array<{ metric: string; current: number; target: number; severity: string }>): string {
+    let report = '=== WBS 2.5.5: PQC Performance SLA Compliance Report ===\n';
+    report += `Generated: ${new Date().toISOString()}\n\n`;
+
+    if (violations.length === 0) {
+      report += '✅ ALL SLA TARGETS MET\n';
+      report += 'All Post-Quantum Cryptography operations are performing within SLA targets.\n\n';
+    } else {
+      report += `⚠️ SLA VIOLATIONS DETECTED: ${violations.length}\n\n`;
+      
+      violations.forEach(violation => {
+        const emoji = violation.severity === 'emergency' ? '🚨' : violation.severity === 'critical' ? '⚠️' : '📊';
+        report += `${emoji} ${violation.metric}: ${violation.current}ms (target: ${violation.target}ms) - ${violation.severity.toUpperCase()}\n`;
+      });
+    }
+
+    report += '\n=== Current Performance Metrics ===\n';
+    for (const [metric, value] of this.currentMetrics.entries()) {
+      report += `${metric}: ${value}${metric.includes('Latency') ? 'ms' : metric === 'errorRate' ? '%' : ''}\n`;
+    }
+
+    return report;
   }
 }

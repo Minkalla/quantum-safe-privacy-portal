@@ -19,6 +19,12 @@ export class AnomalyDetectorService {
         memoryUsage: process.memoryUsage().heapUsed / 1024 / 1024,
         errorRate: await this.getCurrentErrorRate(),
         throughput: await this.getCurrentThroughput(),
+        mlkemKeyGenLatency: await this.getCurrentMLKEMKeyGeneration(),
+        mlkemEncapLatency: await this.getCurrentMLKEMEncapsulation(),
+        mlkemDecapLatency: await this.getCurrentMLKEMDecapsulation(),
+        mldsaKeyGenLatency: await this.getCurrentMLDSAKeyGeneration(),
+        mldsaSignLatency: await this.getCurrentMLDSASigning(),
+        mldsaVerifyLatency: await this.getCurrentMLDSAVerification(),
       };
 
       const anomalyResult = this.baselineManager.detectAnomalies(currentMetrics);
@@ -67,5 +73,29 @@ export class AnomalyDetectorService {
 
   private async getCurrentThroughput(): Promise<number> {
     return Math.random() * 200 + 800;
+  }
+
+  private async getCurrentMLKEMKeyGeneration(): Promise<number> {
+    return Math.random() * 20 + 45;
+  }
+
+  private async getCurrentMLKEMEncapsulation(): Promise<number> {
+    return Math.random() * 10 + 20;
+  }
+
+  private async getCurrentMLKEMDecapsulation(): Promise<number> {
+    return Math.random() * 10 + 25;
+  }
+
+  private async getCurrentMLDSAKeyGeneration(): Promise<number> {
+    return Math.random() * 30 + 65;
+  }
+
+  private async getCurrentMLDSASigning(): Promise<number> {
+    return Math.random() * 15 + 30;
+  }
+
+  private async getCurrentMLDSAVerification(): Promise<number> {
+    return Math.random() * 8 + 12;
   }
 }
