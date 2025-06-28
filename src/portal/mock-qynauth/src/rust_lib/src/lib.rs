@@ -1,3 +1,10 @@
+#![allow(clippy::missing_safety_doc)]
+#![allow(static_mut_refs)]
+#![allow(clippy::uninlined_format_args)]
+#![allow(clippy::unwrap_or_default)]
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
+#![allow(clippy::manual_unwrap_or_default)]
+
 use pqcrypto_mldsa::mldsa65;
 use pqcrypto_mlkem::mlkem768;
 use pqcrypto_traits::kem::{Ciphertext, PublicKey, SecretKey, SharedSecret};
