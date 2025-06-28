@@ -383,7 +383,7 @@ impl ErrorReporter {
             let security_event = SecurityEvent::new(
                 SecurityEventType::SystemAnomaly,
                 ErrorSeverity::Critical,
-                format!("Critical crypto error: {}", error),
+                format!("Critical crypto error: {error}"),
             );
             log_security_event(&security_event);
         }
@@ -498,7 +498,7 @@ mod tests {
         let error = CryptoError::KeyGenerationFailed {
             reason: "Random number generator failed".to_string(),
         };
-        let error_string = format!("{}", error);
+        let error_string = format!("{error}");
         assert!(error_string.contains("Key generation failed"));
         assert!(error_string.contains("Random number generator failed"));
     }

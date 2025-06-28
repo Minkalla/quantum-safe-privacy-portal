@@ -164,20 +164,22 @@ pub extern "C" fn mldsa_verify(
         }
     };
     
-    match core_mldsa_verify(public_key_slice, message_slice, signature_slice) {
-        Ok(is_valid) => {
-            if is_valid {
-                FFIErrorCode::Success as c_int
-            } else {
-                set_last_error("Signature verification failed");
-                FFIErrorCode::SignatureVerificationFailed as c_int
+    record_operation_time("mldsa_verify", || {
+        match core_mldsa_verify(public_key_slice, message_slice, signature_slice) {
+            Ok(is_valid) => {
+                if is_valid {
+                    FFIErrorCode::Success as c_int
+                } else {
+                    set_last_error("Signature verification failed");
+                    FFIErrorCode::SignatureVerificationFailed as c_int
+                }
+            },
+            Err(e) => {
+                set_last_error(&format!("ML-DSA verification failed: {e}"));
+                FFIErrorCode::CryptoError as c_int
             }
-        },
-        Err(e) => {
-            set_last_error(&format!("ML-DSA verification failed: {e}"));
-            FFIErrorCode::CryptoError as c_int
         }
-    }
+    })
 }
 
 #[no_mangle]

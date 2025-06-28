@@ -94,6 +94,11 @@ impl FFIMetrics {
         Duration::from_nanos(total_nanos / count)
     }
     
+    pub fn record_dilithium_keygen(&self, duration: Duration) {
+        self.dilithium_sign_count.fetch_add(1, Ordering::Relaxed);
+        self.dilithium_sign_total_time.fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
+    }
+    
     pub fn record_dilithium_verify(&self, duration: Duration) {
         self.dilithium_verify_count.fetch_add(1, Ordering::Relaxed);
         self.dilithium_verify_total_time.fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
@@ -150,7 +155,7 @@ where
         "mlkem_keygen" => FFI_METRICS.record_kyber_keygen(duration),
         "mlkem_encap" => FFI_METRICS.record_kyber_encap(duration),
         "mlkem_decap" => FFI_METRICS.record_kyber_decap(duration),
-        "mldsa_keygen" => FFI_METRICS.record_kyber_keygen(duration),
+        "mldsa_keygen" => FFI_METRICS.record_dilithium_keygen(duration),
         "mldsa_sign" => FFI_METRICS.record_dilithium_sign(duration),
         "mldsa_verify" => FFI_METRICS.record_dilithium_verify(duration),
         _ => {}

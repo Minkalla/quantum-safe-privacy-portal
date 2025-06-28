@@ -73,7 +73,7 @@ mod key_management_tests {
 
         let keys = manager.get_all_keys();
         assert_eq!(keys.len(), 2);
-        
+
         for metadata in &keys {
             assert_eq!(metadata.user_id, user_id);
             assert_eq!(metadata.status, KeyStatus::Active);
@@ -91,8 +91,12 @@ mod key_management_tests {
         let user2 = "user2";
 
         let _key1 = manager.generate_and_store_key(user1, "Kyber-768").unwrap();
-        let _key2 = manager.generate_and_store_key(user2, "Dilithium-3").unwrap();
-        let _key3 = manager.generate_and_store_key(user1, "Dilithium-3").unwrap();
+        let _key2 = manager
+            .generate_and_store_key(user2, "Dilithium-3")
+            .unwrap();
+        let _key3 = manager
+            .generate_and_store_key(user1, "Dilithium-3")
+            .unwrap();
 
         let user1_keys = manager.get_active_keys_for_user(user1);
         assert_eq!(user1_keys.len(), 2);
@@ -127,7 +131,10 @@ mod key_management_tests {
         assert_eq!(manager.get_key_count(), 2); // Old key + new key
 
         let all_keys = manager.get_all_keys();
-        let old_key = all_keys.iter().find(|k| k.key_id == original_key_id).unwrap();
+        let old_key = all_keys
+            .iter()
+            .find(|k| k.key_id == original_key_id)
+            .unwrap();
         assert_eq!(old_key.status, KeyStatus::Rotating);
 
         let new_key = all_keys.iter().find(|k| k.key_id == new_key_id).unwrap();
@@ -143,7 +150,7 @@ mod key_management_tests {
 
         let result = manager.rotate_key(nonexistent_key_id);
         assert!(result.is_err());
-        
+
         if let Err(PQCError::KeyNotFound(msg)) = result {
             assert_eq!(msg, "nonexistent_key");
         } else {
@@ -178,7 +185,7 @@ mod key_management_tests {
 
         let result = manager.revoke_key(nonexistent_key_id);
         assert!(result.is_err());
-        
+
         if let Err(PQCError::KeyNotFound(msg)) = result {
             assert_eq!(msg, "nonexistent_key");
         } else {
@@ -191,7 +198,9 @@ mod key_management_tests {
         let mut manager = create_test_manager();
         let user_id = "test_user_cleanup";
 
-        let key_id = manager.generate_and_store_key(user_id, "Kyber-768").unwrap();
+        let key_id = manager
+            .generate_and_store_key(user_id, "Kyber-768")
+            .unwrap();
         assert_eq!(manager.get_key_count(), 1);
 
         if let Some((_, metadata)) = manager.keys.get_mut(&key_id) {
@@ -211,8 +220,12 @@ mod key_management_tests {
         let mut manager = create_test_manager();
         let user_id = "test_user_no_cleanup";
 
-        let _key1 = manager.generate_and_store_key(user_id, "Kyber-768").unwrap();
-        let _key2 = manager.generate_and_store_key(user_id, "Dilithium-3").unwrap();
+        let _key1 = manager
+            .generate_and_store_key(user_id, "Kyber-768")
+            .unwrap();
+        let _key2 = manager
+            .generate_and_store_key(user_id, "Dilithium-3")
+            .unwrap();
         assert_eq!(manager.get_key_count(), 2);
 
         let cleanup_result = manager.cleanup_expired_keys();
@@ -230,15 +243,19 @@ mod key_management_tests {
         let user2 = "user2";
 
         let key1 = manager.generate_and_store_key(user1, "Kyber-768").unwrap();
-        let key2 = manager.generate_and_store_key(user2, "Dilithium-3").unwrap();
-        let _key3 = manager.generate_and_store_key(user1, "Dilithium-3").unwrap();
+        let key2 = manager
+            .generate_and_store_key(user2, "Dilithium-3")
+            .unwrap();
+        let _key3 = manager
+            .generate_and_store_key(user1, "Dilithium-3")
+            .unwrap();
 
         manager.revoke_key(&key2).unwrap();
 
         manager.rotate_key(&key1).unwrap();
 
         let stats = manager.get_key_statistics();
-        
+
         assert_eq!(stats.get(&KeyStatus::Active).unwrap_or(&0), &2); // key3 + new rotated key
         assert_eq!(stats.get(&KeyStatus::Revoked).unwrap_or(&0), &1); // key2
         assert_eq!(stats.get(&KeyStatus::Rotating).unwrap_or(&0), &1); // original key1
@@ -252,7 +269,7 @@ mod key_management_tests {
 
         let result = manager.generate_and_store_key(user_id, unsupported_algorithm);
         assert!(result.is_err());
-        
+
         if let Err(PQCError::UnsupportedAlgorithm(msg)) = result {
             assert!(msg.contains("UnsupportedAlgorithm"));
         } else {
@@ -272,7 +289,9 @@ mod key_management_tests {
             .unwrap()
             .as_secs();
 
-        let key_id = manager.generate_and_store_key(user_id, "Kyber-768").unwrap();
+        let key_id = manager
+            .generate_and_store_key(user_id, "Kyber-768")
+            .unwrap();
 
         let after_generation = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -321,11 +340,15 @@ mod key_management_tests {
     #[test]
     fn test_key_id_uniqueness() {
         let mut manager = create_test_manager();
-        let user_id = "test_user_uniqueness";
+            assert!(!key_ids.contains(&key_id), "Duplicate key ID generated: {key_id}");
         let mut key_ids = std::collections::HashSet::new();
 
         for i in 0..10 {
-            let algorithm = if i % 2 == 0 { "Kyber-768" } else { "Dilithium-3" };
+            let algorithm = if i % 2 == 0 {
+                "Kyber-768"
+            } else {
+                "Dilithium-3"
+            };
             let key_id = manager.generate_and_store_key(user_id, algorithm).unwrap();
             
             assert!(!key_ids.contains(&key_id), "Duplicate key ID generated: {key_id}");
@@ -341,11 +364,13 @@ mod key_management_tests {
         let mut manager = create_test_manager();
         let user_id = "test_user_hsm";
 
-        let key_id = manager.generate_and_store_key(user_id, "Kyber-768").unwrap();
-        
+        let key_id = manager
+            .generate_and_store_key(user_id, "Kyber-768")
+            .unwrap();
+
         let keys = manager.get_all_keys();
         let metadata = keys.iter().find(|k| k.key_id == key_id).unwrap();
-        
+
         assert!(metadata.hsm_reference.is_none());
     }
 
@@ -357,27 +382,27 @@ mod key_management_tests {
 
         let original_key_id = manager.generate_and_store_key(user_id, algorithm).unwrap();
         assert_eq!(manager.get_key_count(), 1);
-        
+
         let active_keys = manager.get_active_keys_for_user(user_id);
         assert_eq!(active_keys.len(), 1);
         assert_eq!(active_keys[0].status, KeyStatus::Active);
 
         let new_key_id = manager.rotate_key(&original_key_id).unwrap();
         assert_eq!(manager.get_key_count(), 2);
-        
+
         let active_keys = manager.get_active_keys_for_user(user_id);
         assert_eq!(active_keys.len(), 1); // Only new key should be active
         assert_eq!(active_keys[0].key_id, new_key_id);
 
         manager.revoke_key(&new_key_id).unwrap();
-        
+
         let active_keys = manager.get_active_keys_for_user(user_id);
         assert!(active_keys.is_empty()); // No active keys
 
         if let Some((_, metadata)) = manager.keys.get_mut(&original_key_id) {
             metadata.status = KeyStatus::Expired;
         }
-        
+
         let cleaned_count = manager.cleanup_expired_keys().unwrap();
         assert_eq!(cleaned_count, 1);
         assert_eq!(manager.get_key_count(), 1); // Only revoked key remains

@@ -2,10 +2,10 @@ use std::env;
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
-    
+
     let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();
     let target_feature = env::var("CARGO_CFG_TARGET_FEATURE").unwrap_or_default();
-    
+
     match target_arch.as_str() {
         "x86_64" => {
             if target_feature.contains("avx2") {
@@ -23,14 +23,14 @@ fn main() {
             println!("cargo:warning=No hardware acceleration available for {target_arch}");
         }
     }
-    
+
     println!("cargo:rustc-env=PQC_OPTIMIZATION_LEVEL=3");
     println!("cargo:rustc-env=PQC_TARGET_CPU=native");
-    
+
     if cfg!(feature = "kyber768") {
         println!("cargo:rustc-cfg=pqc_kyber768");
     }
-    
+
     if cfg!(feature = "dilithium3") {
         println!("cargo:rustc-cfg=pqc_dilithium3");
     }

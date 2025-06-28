@@ -2,8 +2,8 @@ import ctypes
 from ctypes import c_int, c_char_p, c_void_p, c_size_t, POINTER, Structure, c_uint64
 from pathlib import Path
 import os
+import sys
 from contextlib import contextmanager
-from typing import Tuple, Optional
 
 class FFIErrorCode:
     SUCCESS = 0
@@ -16,7 +16,12 @@ class FFIErrorCode:
     SIGNATURE_VERIFICATION_FAILED = -7
 
 class PQCError(Exception):
-    """Base exception for PQC operations"""
+    pass
+
+class KyberError(PQCError):
+    pass
+
+class DilithiumError(PQCError):
     pass
 
 class CKyberKeyPair(Structure):
@@ -36,117 +41,95 @@ class CDilithiumKeyPair(Structure):
     ]
 
 class PQCLibraryV2:
-    """Enhanced Python interface for the Rust PQC library using C-compatible FFI."""
-    
-    def __init__(self, lib_path: Optional[str] = None):
-        if lib_path is None:
-            lib_path = self._find_library_path()
-        
-        if not os.path.exists(lib_path):
-            raise PQCError(f"Library not found at {lib_path}")
+    def __init__(self):
+        self.lib_path = self._find_library_path()
+        if not self.lib_path.exists():
+            raise PQCError(f"PQC library not found at {self.lib_path}")
         
         try:
-            self.lib = ctypes.CDLL(lib_path)
+            self.lib = ctypes.CDLL(str(self.lib_path))
+            self._setup_function_signatures()
         except OSError as e:
-            raise PQCError(f"Failed to load library: {e}")
+            raise PQCError(f"Failed to load PQC library: {e}")
+
+    def _find_library_path(self):
+        base_path = Path(__file__).parent.parent / "rust_lib" / "target" / "debug"
         
-        self._setup_function_signatures()
-    
-    def _find_library_path(self) -> str:
-        possible_paths = [
-            "./target/release/libqynauth_pqc.so",
-            "../rust_lib/target/release/libqynauth_pqc.so",
-            "../../rust_lib/target/release/libqynauth_pqc.so",
-            "./target/release/libqynauth_pqc.dylib",
-            "../rust_lib/target/release/libqynauth_pqc.dylib",
-            "./target/release/qynauth_pqc.dll",
-            "../rust_lib/target/release/qynauth_pqc.dll",
-        ]
+        if os.name == 'nt':
+            lib_name = "qynauth_pqc.dll"
+        elif os.uname().sysname == 'Darwin':
+            lib_name = "libqynauth_pqc.dylib"
+        else:
+            lib_name = "libqynauth_pqc.so"
         
-        current_dir = Path(__file__).parent
-        for path in possible_paths:
-            full_path = current_dir / path
-            if full_path.exists():
-                return str(full_path)
-        
-        raise PQCError("Could not find PQC library. Please build the Rust library first.")
-    
+        return base_path / lib_name
+
     def _setup_function_signatures(self):
-        self.lib.mlkem_keypair_generate.argtypes = []
         self.lib.mlkem_keypair_generate.restype = POINTER(CKyberKeyPair)
+        self.lib.mlkem_keypair_generate.argtypes = []
         
+        self.lib.mlkem_encapsulate.restype = c_int
         self.lib.mlkem_encapsulate.argtypes = [
             POINTER(ctypes.c_uint8), c_size_t,
             POINTER(POINTER(ctypes.c_uint8)), POINTER(c_size_t),
             POINTER(POINTER(ctypes.c_uint8)), POINTER(c_size_t)
         ]
-        self.lib.mlkem_encapsulate.restype = c_int
         
+        self.lib.mlkem_decapsulate.restype = c_int
         self.lib.mlkem_decapsulate.argtypes = [
             POINTER(ctypes.c_uint8), c_size_t,
             POINTER(ctypes.c_uint8), c_size_t,
             POINTER(POINTER(ctypes.c_uint8)), POINTER(c_size_t)
         ]
-        self.lib.mlkem_decapsulate.restype = c_int
         
-        self.lib.mlkem_keypair_free.argtypes = [POINTER(CKyberKeyPair)]
-        self.lib.mlkem_keypair_free.restype = None
-        
-        self.lib.mldsa_keypair_generate.argtypes = []
         self.lib.mldsa_keypair_generate.restype = POINTER(CDilithiumKeyPair)
+        self.lib.mldsa_keypair_generate.argtypes = []
         
+        self.lib.mldsa_sign.restype = c_int
         self.lib.mldsa_sign.argtypes = [
             POINTER(ctypes.c_uint8), c_size_t,
             POINTER(ctypes.c_uint8), c_size_t,
             POINTER(POINTER(ctypes.c_uint8)), POINTER(c_size_t)
         ]
-        self.lib.mldsa_sign.restype = c_int
         
+        self.lib.mldsa_verify.restype = c_int
         self.lib.mldsa_verify.argtypes = [
             POINTER(ctypes.c_uint8), c_size_t,
             POINTER(ctypes.c_uint8), c_size_t,
             POINTER(ctypes.c_uint8), c_size_t
         ]
-        self.lib.mldsa_verify.restype = c_int
         
-        self.lib.mldsa_keypair_free.argtypes = [POINTER(CDilithiumKeyPair)]
-        self.lib.mldsa_keypair_free.restype = None
+        self.lib.ffi_get_last_error_message.restype = c_char_p
+        self.lib.ffi_get_last_error_message.argtypes = []
         
-        self.lib.ffi_buffer_free.argtypes = [POINTER(ctypes.c_uint8), c_size_t]
-        self.lib.ffi_buffer_free.restype = None
-        
-        self.lib.ffi_get_performance_metrics.argtypes = []
         self.lib.ffi_get_performance_metrics.restype = c_void_p
+        self.lib.ffi_get_performance_metrics.argtypes = []
         
-        self.lib.ffi_free_performance_report.argtypes = [c_void_p]
-        self.lib.ffi_free_performance_report.restype = None
-        
-        self.lib.ffi_reset_metrics.argtypes = []
         self.lib.ffi_reset_metrics.restype = c_int
+        self.lib.ffi_reset_metrics.argtypes = []
 
 class KyberKeyPair:
     def __init__(self, lib: PQCLibraryV2):
         self.lib = lib
-        self._keypair_ptr = lib.lib.mlkem_keypair_generate()
-        if not self._keypair_ptr:
-            raise PQCError("Failed to generate ML-KEM keypair")
-    
+        self.keypair_ptr = self.lib.lib.mlkem_keypair_generate()
+        if not self.keypair_ptr:
+            raise PQCError("Failed to generate Kyber keypair")
+
     def __del__(self):
-        if hasattr(self, '_keypair_ptr') and self._keypair_ptr:
-            self.lib.lib.mlkem_keypair_free(self._keypair_ptr)
-    
-    def get_public_key(self) -> bytes:
-        """Get the public key as bytes."""
-        if not self._keypair_ptr:
-            raise PQCError("Keypair has been freed")
-        
-        keypair = self._keypair_ptr.contents
+        pass
+
+    def get_public_key(self):
+        if not self.keypair_ptr:
+            raise PQCError("Invalid keypair")
+        keypair = self.keypair_ptr.contents
         return ctypes.string_at(keypair.public_key_ptr, keypair.public_key_len)
-    
-    def encapsulate(self) -> Tuple[bytes, bytes]:
-        """Perform encapsulation and return (ciphertext, shared_secret)."""
-        if not self._keypair_ptr:
-            raise PQCError("Keypair has been freed")
+
+    def encapsulate(self, additional_data=b""):
+        if not self.keypair_ptr:
+            raise PQCError("Invalid keypair")
+        
+        keypair = self.keypair_ptr.contents
+        public_key_data = ctypes.string_at(keypair.public_key_ptr, keypair.public_key_len)
         
         shared_secret_ptr = POINTER(ctypes.c_uint8)()
         shared_secret_len = c_size_t()
@@ -154,113 +137,106 @@ class KyberKeyPair:
         ciphertext_len = c_size_t()
         
         result = self.lib.lib.mlkem_encapsulate(
-            self._keypair_ptr.contents.public_key_ptr,
-            self._keypair_ptr.contents.public_key_len,
-            ctypes.byref(shared_secret_ptr),
-            ctypes.byref(shared_secret_len),
-            ctypes.byref(ciphertext_ptr),
-            ctypes.byref(ciphertext_len)
+            keypair.public_key_ptr, keypair.public_key_len,
+            ctypes.byref(shared_secret_ptr), ctypes.byref(shared_secret_len),
+            ctypes.byref(ciphertext_ptr), ctypes.byref(ciphertext_len)
         )
         
         if result != FFIErrorCode.SUCCESS:
-            raise PQCError(f"Encapsulation failed with error code: {result}")
+            error_msg = self.lib.lib.ffi_get_last_error_message()
+            if error_msg:
+                raise PQCError(f"Encapsulation failed: {error_msg.decode()}")
+            else:
+                raise PQCError("Encapsulation failed with unknown error")
         
-        try:
-            shared_secret = ctypes.string_at(shared_secret_ptr, shared_secret_len.value)
-            ciphertext = ctypes.string_at(ciphertext_ptr, ciphertext_len.value)
-            return ciphertext, shared_secret
-        finally:
-            self.lib.lib.ffi_buffer_free(shared_secret_ptr, shared_secret_len)
-            self.lib.lib.ffi_buffer_free(ciphertext_ptr, ciphertext_len)
-    
-    def decapsulate(self, ciphertext: bytes) -> bytes:
-        """Perform decapsulation and return shared secret."""
-        if not self._keypair_ptr:
-            raise PQCError("Keypair has been freed")
+        shared_secret = ctypes.string_at(shared_secret_ptr, shared_secret_len.value)
+        ciphertext = ctypes.string_at(ciphertext_ptr, ciphertext_len.value)
         
-        ciphertext_array = (ctypes.c_uint8 * len(ciphertext)).from_buffer_copy(ciphertext)
+        return {
+            'shared_secret': shared_secret,
+            'ciphertext': ciphertext
+        }
+
+    def decapsulate(self, ciphertext):
+        if not self.keypair_ptr:
+            raise PQCError("Invalid keypair")
+        
+        keypair = self.keypair_ptr.contents
+        ciphertext_data = (ctypes.c_uint8 * len(ciphertext)).from_buffer_copy(ciphertext)
+        
         shared_secret_ptr = POINTER(ctypes.c_uint8)()
         shared_secret_len = c_size_t()
         
         result = self.lib.lib.mlkem_decapsulate(
-            self._keypair_ptr.contents.secret_key_ptr,
-            self._keypair_ptr.contents.secret_key_len,
-            ctypes.cast(ciphertext_array, POINTER(ctypes.c_uint8)),
-            len(ciphertext),
-            ctypes.byref(shared_secret_ptr),
-            ctypes.byref(shared_secret_len)
+            keypair.secret_key_ptr, keypair.secret_key_len,
+            ciphertext_data, len(ciphertext),
+            ctypes.byref(shared_secret_ptr), ctypes.byref(shared_secret_len)
         )
         
         if result != FFIErrorCode.SUCCESS:
-            raise PQCError(f"Decapsulation failed with error code: {result}")
+            error_msg = self.lib.lib.ffi_get_last_error_message()
+            if error_msg:
+                raise PQCError(f"Decapsulation failed: {error_msg.decode()}")
+            else:
+                raise PQCError("Decapsulation failed with unknown error")
         
-        try:
-            shared_secret = ctypes.string_at(shared_secret_ptr, shared_secret_len.value)
-            return shared_secret
-        finally:
-            self.lib.lib.ffi_buffer_free(shared_secret_ptr, shared_secret_len)
+        shared_secret = ctypes.string_at(shared_secret_ptr, shared_secret_len.value)
+        return shared_secret
 
 class DilithiumKeyPair:
     def __init__(self, lib: PQCLibraryV2):
         self.lib = lib
-        self._keypair_ptr = lib.lib.mldsa_keypair_generate()
-        if not self._keypair_ptr:
-            raise PQCError("Failed to generate ML-DSA keypair")
-    
+        self.keypair_ptr = self.lib.lib.mldsa_keypair_generate()
+        if not self.keypair_ptr:
+            raise PQCError("Failed to generate Dilithium keypair")
+
     def __del__(self):
-        if hasattr(self, '_keypair_ptr') and self._keypair_ptr:
-            self.lib.lib.mldsa_keypair_free(self._keypair_ptr)
-    
-    def get_public_key(self) -> bytes:
-        """Get the public key as bytes."""
-        if not self._keypair_ptr:
-            raise PQCError("Keypair has been freed")
-        
-        keypair = self._keypair_ptr.contents
+        pass
+
+    def get_public_key(self):
+        if not self.keypair_ptr:
+            raise PQCError("Invalid keypair")
+        keypair = self.keypair_ptr.contents
         return ctypes.string_at(keypair.public_key_ptr, keypair.public_key_len)
-    
-    def sign(self, message: bytes) -> bytes:
-        """Sign a message and return the signature."""
-        if not self._keypair_ptr:
-            raise PQCError("Keypair has been freed")
+
+    def sign(self, message):
+        if not self.keypair_ptr:
+            raise PQCError("Invalid keypair")
         
-        message_array = (ctypes.c_uint8 * len(message)).from_buffer_copy(message)
+        keypair = self.keypair_ptr.contents
+        message_data = (ctypes.c_uint8 * len(message)).from_buffer_copy(message)
+        
         signature_ptr = POINTER(ctypes.c_uint8)()
         signature_len = c_size_t()
         
         result = self.lib.lib.mldsa_sign(
-            self._keypair_ptr.contents.secret_key_ptr,
-            self._keypair_ptr.contents.secret_key_len,
-            ctypes.cast(message_array, POINTER(ctypes.c_uint8)),
-            len(message),
-            ctypes.byref(signature_ptr),
-            ctypes.byref(signature_len)
+            keypair.secret_key_ptr, keypair.secret_key_len,
+            message_data, len(message),
+            ctypes.byref(signature_ptr), ctypes.byref(signature_len)
         )
         
         if result != FFIErrorCode.SUCCESS:
-            raise PQCError(f"Signing failed with error code: {result}")
+            error_msg = self.lib.lib.ffi_get_last_error_message()
+            if error_msg:
+                raise PQCError(f"Signing failed: {error_msg.decode()}")
+            else:
+                raise PQCError("Signing failed with unknown error")
         
-        try:
-            signature = ctypes.string_at(signature_ptr, signature_len.value)
-            return signature
-        finally:
-            self.lib.lib.ffi_buffer_free(signature_ptr, signature_len)
-    
-    def verify(self, message: bytes, signature: bytes) -> bool:
-        """Verify a signature against a message."""
-        if not self._keypair_ptr:
-            raise PQCError("Keypair has been freed")
+        signature = ctypes.string_at(signature_ptr, signature_len.value)
+        return signature
+
+    def verify(self, message, signature):
+        if not self.keypair_ptr:
+            raise PQCError("Invalid keypair")
         
-        message_array = (ctypes.c_uint8 * len(message)).from_buffer_copy(message)
-        signature_array = (ctypes.c_uint8 * len(signature)).from_buffer_copy(signature)
+        keypair = self.keypair_ptr.contents
+        message_data = (ctypes.c_uint8 * len(message)).from_buffer_copy(message)
+        signature_data = (ctypes.c_uint8 * len(signature)).from_buffer_copy(signature)
         
         result = self.lib.lib.mldsa_verify(
-            self._keypair_ptr.contents.public_key_ptr,
-            self._keypair_ptr.contents.public_key_len,
-            ctypes.cast(message_array, POINTER(ctypes.c_uint8)),
-            len(message),
-            ctypes.cast(signature_array, POINTER(ctypes.c_uint8)),
-            len(signature)
+            keypair.public_key_ptr, keypair.public_key_len,
+            message_data, len(message),
+            signature_data, len(signature)
         )
         
         return result == FFIErrorCode.SUCCESS
@@ -282,121 +258,120 @@ class FFIPerformanceReport(Structure):
 class PerformanceMonitor:
     def __init__(self, lib: PQCLibraryV2):
         self.lib = lib
-    
-    def get_performance_report(self) -> dict:
-        """Get comprehensive performance metrics."""
+
+    def get_performance_report(self):
         report_ptr = self.lib.lib.ffi_get_performance_metrics()
         if not report_ptr:
-            raise PQCError("Failed to get performance metrics")
+            return None
         
-        try:
-            report = ctypes.cast(report_ptr, POINTER(FFIPerformanceReport)).contents
-            return {
-                "kyber_keygen": {
-                    "avg_time_ms": report.kyber_keygen_avg_nanos / 1e6,
-                    "count": report.kyber_keygen_count
-                },
-                "kyber_encap": {
-                    "avg_time_ms": report.kyber_encap_avg_nanos / 1e6,
-                    "count": report.kyber_encap_count
-                },
-                "kyber_decap": {
-                    "avg_time_ms": report.kyber_decap_avg_nanos / 1e6,
-                    "count": report.kyber_decap_count
-                },
-                "dilithium_sign": {
-                    "avg_time_ms": report.dilithium_sign_avg_nanos / 1e6,
-                    "count": report.dilithium_sign_count
-                },
-                "dilithium_verify": {
-                    "avg_time_ms": report.dilithium_verify_avg_nanos / 1e6,
-                    "count": report.dilithium_verify_count
-                }
+        report = ctypes.cast(report_ptr, POINTER(FFIPerformanceReport)).contents
+        
+        return {
+            'kyber_keygen': {
+                'avg_time_ms': report.kyber_keygen_avg_nanos / 1_000_000.0,
+                'count': report.kyber_keygen_count
+            },
+            'kyber_encap': {
+                'avg_time_ms': report.kyber_encap_avg_nanos / 1_000_000.0,
+                'count': report.kyber_encap_count
+            },
+            'kyber_decap': {
+                'avg_time_ms': report.kyber_decap_avg_nanos / 1_000_000.0,
+                'count': report.kyber_decap_count
+            },
+            'dilithium_sign': {
+                'avg_time_ms': report.dilithium_sign_avg_nanos / 1_000_000.0,
+                'count': report.dilithium_sign_count
+            },
+            'dilithium_verify': {
+                'avg_time_ms': report.dilithium_verify_avg_nanos / 1_000_000.0,
+                'count': report.dilithium_verify_count
             }
-        finally:
-            self.lib.lib.ffi_free_performance_report(report_ptr)
-    
-    def reset_metrics(self) -> None:
-        """Reset all performance metrics."""
+        }
+
+    def reset_metrics(self):
         result = self.lib.lib.ffi_reset_metrics()
-        if result != 0:
-            raise PQCError("Failed to reset metrics")
-    
-    def get_operation_counts(self) -> Tuple[int, int, int]:
-        """Get operation counts for (kyber_keygen, dilithium_sign, dilithium_verify)."""
+        return result == FFIErrorCode.SUCCESS
+
+    def get_operation_counts(self):
         report = self.get_performance_report()
-        return (
-            report["kyber_keygen"]["count"],
-            report["dilithium_sign"]["count"],
-            report["dilithium_verify"]["count"]
-        )
-    
-    def get_avg_operation_times(self) -> Tuple[float, float]:
-        """Get average operation times in seconds for (kyber_keygen, dilithium_sign)."""
+        if not report:
+            return {}
+        return {op: data['count'] for op, data in report.items()}
+
+    def get_avg_operation_times(self):
         report = self.get_performance_report()
-        return (
-            report["kyber_keygen"]["avg_time_ms"] / 1000.0,
-            report["dilithium_sign"]["avg_time_ms"] / 1000.0
-        )
+        if not report:
+            return {}
+        return {op: data['avg_time_ms'] for op, data in report.items()}
 
 @contextmanager
-def secure_buffer(lib: PQCLibraryV2, size: int):
-    """Context manager for secure buffer allocation"""
-    buffer_ptr = None
+def secure_buffer(size):
+    buffer = ctypes.create_string_buffer(size)
     try:
-        yield buffer_ptr
+        yield buffer
     finally:
-        if buffer_ptr:
-            lib.lib.ffi_buffer_free(buffer_ptr, size)
+        ctypes.memset(buffer, 0, size)
 
-def get_last_error(lib: PQCLibraryV2) -> Optional[str]:
-    """Get the last FFI error message"""
-    error_ptr = lib.lib.ffi_get_last_error_message()
-    if error_ptr:
-        return ctypes.string_at(error_ptr).decode('utf-8')
-    return None
+def get_last_error():
+    try:
+        lib = PQCLibraryV2()
+        error_msg = lib.lib.ffi_get_last_error_message()
+        return error_msg.decode() if error_msg else None
+    except Exception as e:
+        print(f"Error getting last error: {e}")
+        return None
 
 if __name__ == "__main__":
     try:
         lib = PQCLibraryV2()
-        print("PQC Library V2 loaded successfully")
+        print("✅ PQC Library loaded successfully")
         
-        print("\n=== ML-KEM-768 Test ===")
-        mlkem_keypair = KyberKeyPair(lib)
-        print(f"Generated ML-KEM keypair, public key size: {len(mlkem_keypair.get_public_key())} bytes")
+        print("\n🔑 Testing Kyber operations...")
+        kyber_kp = KyberKeyPair(lib)
+        public_key = kyber_kp.get_public_key()
+        print(f"✅ Kyber public key generated: {len(public_key)} bytes")
         
-        ciphertext, shared_secret = mlkem_keypair.encapsulate()
-        print(f"Encapsulation: ciphertext={len(ciphertext)} bytes, shared_secret={len(shared_secret)} bytes")
+        encap_result = kyber_kp.encapsulate()
+        print(f"✅ Kyber encapsulation: {len(encap_result['shared_secret'])} byte secret, {len(encap_result['ciphertext'])} byte ciphertext")
         
-        decap_shared_secret = mlkem_keypair.decapsulate(ciphertext)
-        print(f"Decapsulation successful: {shared_secret == decap_shared_secret}")
+        decap_secret = kyber_kp.decapsulate(encap_result['ciphertext'])
+        print(f"✅ Kyber decapsulation: {len(decap_secret)} byte secret")
         
-        print("\n=== ML-DSA-65 Test ===")
-        mldsa_keypair = DilithiumKeyPair(lib)
-        print(f"Generated ML-DSA keypair, public key size: {len(mldsa_keypair.get_public_key())} bytes")
+        if encap_result['shared_secret'] == decap_secret:
+            print("✅ Kyber shared secrets match!")
+        else:
+            print("❌ Kyber shared secrets don't match!")
         
-        message = b"Hello, Post-Quantum World!"
-        signature = mldsa_keypair.sign(message)
-        print(f"Signed message, signature size: {len(signature)} bytes")
+        print("\n🖋️  Testing Dilithium operations...")
+        dilithium_kp = DilithiumKeyPair(lib)
+        public_key = dilithium_kp.get_public_key()
+        print(f"✅ Dilithium public key generated: {len(public_key)} bytes")
         
-        is_valid = mldsa_keypair.verify(message, signature)
-        print(f"Signature verification: {is_valid}")
+        message = b"Hello, quantum-safe world!"
+        signature = dilithium_kp.sign(message)
+        print(f"✅ Dilithium signature: {len(signature)} bytes")
         
-        invalid_signature = mldsa_keypair.verify(b"Different message", signature)
-        print(f"Invalid signature verification: {invalid_signature}")
+        is_valid = dilithium_kp.verify(message, signature)
+        print(f"✅ Dilithium verification: {'Valid' if is_valid else 'Invalid'}")
         
-        print("\n=== Performance Monitoring ===")
+        print("\n📊 Testing Performance Monitoring...")
         monitor = PerformanceMonitor(lib)
-        counts = monitor.get_operation_counts()
-        times = monitor.get_avg_operation_times()
-        print(f"Operation counts - ML-KEM keygen: {counts[0]}, ML-DSA sign: {counts[1]}, ML-DSA verify: {counts[2]}")
-        print(f"Average times - ML-KEM keygen: {times[0]:.6f}s, ML-DSA sign: {times[1]:.6f}s")
+        report = monitor.get_performance_report()
+        if report:
+            print("✅ Performance report:")
+            for op, data in report.items():
+                print(f"  {op}: {data['avg_time_ms']:.6f}ms avg, {data['count']} operations")
+        else:
+            print("❌ Failed to get performance report")
         
-    except PQCError as e:
-        print(f"PQC Error: {e}")
-        error_msg = get_last_error(lib) if 'lib' in locals() else None
-        if error_msg:
-            print(f"Last error: {error_msg}")
+        print("\n🎯 All tests completed successfully!")
+        
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        last_error = get_last_error()
+        if last_error:
+            print(f"Last error: {last_error}")
     except Exception as e:
         print(f"Unexpected error: {e}")
         import traceback

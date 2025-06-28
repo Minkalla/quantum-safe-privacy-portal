@@ -2,8 +2,8 @@ use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use rayon::prelude::*;
-use pqcrypto_kyber::kyber768::{keypair as kyber_keypair, PublicKey as KyberPublicKey, SecretKey as KyberSecretKey};
-use pqcrypto_dilithium::dilithium3::{keypair as dilithium_keypair, PublicKey as DilithiumPublicKey, SecretKey as DilithiumSecretKey, DetachedSignature as DilithiumSignature, sign_detached, verify_detached};
+use pqcrypto_mlkem::mlkem768::{keypair as mlkem_keypair, PublicKey as MLKEMPublicKey, SecretKey as MLKEMSecretKey};
+use pqcrypto_mldsa::mldsa65::{keypair as mldsa_keypair, PublicKey as MLDSAPublicKey, SecretKey as MLDSASecretKey, DetachedSignature as MLDSASignature, sign_detached, verify_detached};
 use crate::errors::CryptoError;
 
 #[derive(Debug, Clone)]
@@ -50,21 +50,21 @@ impl MemoryPool {
         }
     }
 
-    pub fn get_kyber_buffer(&self) -> Vec<u8> {
+    pub fn get_mlkem_buffer(&self) -> Vec<u8> {
         let mut buffers = self.kyber_buffers.lock().unwrap();
         buffers.pop_front().unwrap_or_else(|| {
-            Vec::with_capacity(1568) // Kyber-768 public key size
+            Vec::with_capacity(1184) // ML-KEM-768 public key size
         })
     }
 
-    pub fn get_dilithium_buffer(&self) -> Vec<u8> {
+    pub fn get_mldsa_buffer(&self) -> Vec<u8> {
         let mut buffers = self.dilithium_buffers.lock().unwrap();
         buffers.pop_front().unwrap_or_else(|| {
-            Vec::with_capacity(1952) // Dilithium-3 public key size
+            Vec::with_capacity(1952) // ML-DSA-65 public key size
         })
     }
 
-    pub fn return_kyber_buffer(&self, mut buffer: Vec<u8>) {
+    pub fn return_mlkem_buffer(&self, mut buffer: Vec<u8>) {
         buffer.clear();
         let mut buffers = self.kyber_buffers.lock().unwrap();
         if buffers.len() < self.max_pool_size {
@@ -72,7 +72,7 @@ impl MemoryPool {
         }
     }
 
-    pub fn return_dilithium_buffer(&self, mut buffer: Vec<u8>) {
+    pub fn return_mldsa_buffer(&self, mut buffer: Vec<u8>) {
         buffer.clear();
         let mut buffers = self.dilithium_buffers.lock().unwrap();
         if buffers.len() < self.max_pool_size {
@@ -81,22 +81,22 @@ impl MemoryPool {
     }
 
     pub fn pool_stats(&self) -> (usize, usize) {
-        let kyber_count = self.kyber_buffers.lock().unwrap().len();
-        let dilithium_count = self.dilithium_buffers.lock().unwrap().len();
-        (kyber_count, dilithium_count)
+        let mlkem_count = self.kyber_buffers.lock().unwrap().len();
+        let mldsa_count = self.dilithium_buffers.lock().unwrap().len();
+        (mlkem_count, mldsa_count)
     }
 }
 
 #[derive(Debug)]
-pub struct KyberKeyPair {
-    pub public_key: KyberPublicKey,
-    pub secret_key: KyberSecretKey,
+pub struct MLKEMKeyPair {
+    pub public_key: MLKEMPublicKey,
+    pub secret_key: MLKEMSecretKey,
 }
 
 #[derive(Debug)]
-pub struct DilithiumKeyPair {
-    pub public_key: DilithiumPublicKey,
-    pub secret_key: DilithiumSecretKey,
+pub struct MLDSAKeyPair {
+    pub public_key: MLDSAPublicKey,
+    pub secret_key: MLDSASecretKey,
 }
 
 pub struct OptimizedCrypto {
@@ -122,9 +122,9 @@ impl OptimizedCrypto {
         self
     }
 
-    pub fn batch_kyber_key_generation(&self, count: usize) -> Result<Vec<KyberKeyPair>, CryptoError> {
+    pub fn batch_mlkem_key_generation(&self, count: usize) -> Result<Vec<MLKEMKeyPair>, CryptoError> {
         if !self.use_batch_operations || count == 1 {
-            return self.single_kyber_key_generation(count);
+            return self.single_mlkem_key_generation(count);
         }
 
         let start_time = Instant::now();
@@ -135,8 +135,8 @@ impl OptimizedCrypto {
             .par_chunks(batch_size)
             .map(|chunk| {
                 chunk.iter().map(|_| {
-                    let (pk, sk) = kyber_keypair();
-                    Ok(KyberKeyPair {
+                    let (pk, sk) = mlkem_keypair();
+                    Ok(MLKEMKeyPair {
                         public_key: pk,
                         secret_key: sk,
                     })
@@ -147,7 +147,7 @@ impl OptimizedCrypto {
 
         let duration = start_time.elapsed();
         tracing::info!(
-            operation = "batch_kyber_key_generation",
+            operation = "batch_mlkem_key_generation",
             count = count,
             duration_ms = duration.as_millis(),
             batch_size = batch_size,
@@ -157,12 +157,12 @@ impl OptimizedCrypto {
         keypairs
     }
 
-    fn single_kyber_key_generation(&self, count: usize) -> Result<Vec<KyberKeyPair>, CryptoError> {
+    fn single_mlkem_key_generation(&self, count: usize) -> Result<Vec<MLKEMKeyPair>, CryptoError> {
         let mut keypairs = Vec::with_capacity(count);
         
         for _ in 0..count {
-            let (pk, sk) = kyber_keypair();
-            keypairs.push(KyberKeyPair {
+            let (pk, sk) = mlkem_keypair();
+            keypairs.push(MLKEMKeyPair {
                 public_key: pk,
                 secret_key: sk,
             });
@@ -171,9 +171,9 @@ impl OptimizedCrypto {
         Ok(keypairs)
     }
 
-    pub fn batch_dilithium_key_generation(&self, count: usize) -> Result<Vec<DilithiumKeyPair>, CryptoError> {
+    pub fn batch_mldsa_key_generation(&self, count: usize) -> Result<Vec<MLDSAKeyPair>, CryptoError> {
         if !self.use_batch_operations || count == 1 {
-            return self.single_dilithium_key_generation(count);
+            return self.single_mldsa_key_generation(count);
         }
 
         let start_time = Instant::now();
@@ -184,8 +184,8 @@ impl OptimizedCrypto {
             .par_chunks(batch_size)
             .map(|chunk| {
                 chunk.iter().map(|_| {
-                    let (pk, sk) = dilithium_keypair();
-                    Ok(DilithiumKeyPair {
+                    let (pk, sk) = mldsa_keypair();
+                    Ok(MLDSAKeyPair {
                         public_key: pk,
                         secret_key: sk,
                     })
@@ -196,7 +196,7 @@ impl OptimizedCrypto {
 
         let duration = start_time.elapsed();
         tracing::info!(
-            operation = "batch_dilithium_key_generation",
+            operation = "batch_mldsa_key_generation",
             count = count,
             duration_ms = duration.as_millis(),
             batch_size = batch_size,
@@ -206,12 +206,12 @@ impl OptimizedCrypto {
         keypairs
     }
 
-    fn single_dilithium_key_generation(&self, count: usize) -> Result<Vec<DilithiumKeyPair>, CryptoError> {
+    fn single_mldsa_key_generation(&self, count: usize) -> Result<Vec<MLDSAKeyPair>, CryptoError> {
         let mut keypairs = Vec::with_capacity(count);
         
         for _ in 0..count {
-            let (pk, sk) = dilithium_keypair();
-            keypairs.push(DilithiumKeyPair {
+            let (pk, sk) = mldsa_keypair();
+            keypairs.push(MLDSAKeyPair {
                 public_key: pk,
                 secret_key: sk,
             });
@@ -222,7 +222,7 @@ impl OptimizedCrypto {
 
     pub fn parallel_signature_verification(
         &self,
-        signatures: &[(Vec<u8>, DilithiumSignature, DilithiumPublicKey)]
+        signatures: &[(Vec<u8>, MLDSASignature, MLDSAPublicKey)]
     ) -> Result<Vec<bool>, CryptoError> {
         if signatures.is_empty() {
             return Ok(Vec::new());
@@ -273,22 +273,22 @@ impl OptimizedCrypto {
         let start_time = Instant::now();
         
         let key_gen_start = Instant::now();
-        let _kyber_keys = self.batch_kyber_key_generation(10)?;
-        let kyber_key_gen_time = key_gen_start.elapsed();
+        let _mlkem_keys = self.batch_mlkem_key_generation(10)?;
+        let mlkem_key_gen_time = key_gen_start.elapsed();
         
-        let dilithium_gen_start = Instant::now();
-        let dilithium_keys = self.batch_dilithium_key_generation(10)?;
-        let dilithium_key_gen_time = dilithium_gen_start.elapsed();
+        let mldsa_gen_start = Instant::now();
+        let mldsa_keys = self.batch_mldsa_key_generation(10)?;
+        let mldsa_key_gen_time = mldsa_gen_start.elapsed();
         
         let sign_start = Instant::now();
         let test_message = b"benchmark test message";
-        let signatures: Vec<_> = dilithium_keys.iter().map(|keypair| {
+        let signatures: Vec<_> = mldsa_keys.iter().map(|keypair| {
             sign_detached(test_message, &keypair.secret_key)
         }).collect();
         let signing_time = sign_start.elapsed();
         
         let verify_start = Instant::now();
-        let verification_data: Vec<_> = signatures.iter().zip(dilithium_keys.iter())
+        let verification_data: Vec<_> = signatures.iter().zip(mldsa_keys.iter())
             .map(|(sig, keypair)| (test_message.to_vec(), *sig, keypair.public_key))
             .collect();
         let _verification_results = self.parallel_signature_verification(&verification_data)?;
@@ -297,8 +297,8 @@ impl OptimizedCrypto {
         let total_time = start_time.elapsed();
         
         Ok(OptimizationBenchmark {
-            kyber_key_gen_time,
-            dilithium_key_gen_time,
+            mlkem_key_gen_time,
+            mldsa_key_gen_time,
             signing_time,
             verification_time,
             total_time,
@@ -315,8 +315,8 @@ impl Default for OptimizedCrypto {
 
 #[derive(Debug)]
 pub struct OptimizationBenchmark {
-    pub kyber_key_gen_time: Duration,
-    pub dilithium_key_gen_time: Duration,
+    pub mlkem_key_gen_time: Duration,
+    pub mldsa_key_gen_time: Duration,
     pub signing_time: Duration,
     pub verification_time: Duration,
     pub total_time: Duration,
@@ -338,8 +338,8 @@ impl OptimizationBenchmark {
         println!("  CPU Cores: {}", self.hardware_features.cpu_cores);
         println!();
         println!("Performance Metrics:");
-        println!("  Kyber Key Generation (10 keys): {:?}", self.kyber_key_gen_time);
-        println!("  Dilithium Key Generation (10 keys): {:?}", self.dilithium_key_gen_time);
+        println!("  ML-KEM Key Generation (10 keys): {:?}", self.mlkem_key_gen_time);
+        println!("  ML-DSA Key Generation (10 keys): {:?}", self.mldsa_key_gen_time);
         println!("  Signing (10 operations): {:?}", self.signing_time);
         println!("  Verification (10 operations): {:?}", self.verification_time);
         println!("  Total Time: {:?}", self.total_time);
@@ -366,18 +366,18 @@ mod tests {
     fn test_memory_pool() {
         let pool = MemoryPool::new(5);
         
-        let buffer1 = pool.get_kyber_buffer();
-        let buffer2 = pool.get_dilithium_buffer();
+        let buffer1 = pool.get_mlkem_buffer();
+        let buffer2 = pool.get_mldsa_buffer();
         
-        assert!(buffer1.capacity() >= 1568);
+        assert!(buffer1.capacity() >= 1184);
         assert!(buffer2.capacity() >= 1952);
         
-        pool.return_kyber_buffer(buffer1);
-        pool.return_dilithium_buffer(buffer2);
+        pool.return_mlkem_buffer(buffer1);
+        pool.return_mldsa_buffer(buffer2);
         
-        let (kyber_count, dilithium_count) = pool.pool_stats();
-        assert_eq!(kyber_count, 1);
-        assert_eq!(dilithium_count, 1);
+        let (mlkem_count, mldsa_count) = pool.pool_stats();
+        assert_eq!(mlkem_count, 1);
+        assert_eq!(mldsa_count, 1);
     }
 
     #[test]
@@ -391,20 +391,20 @@ mod tests {
     fn test_batch_key_generation() {
         let crypto = OptimizedCrypto::new();
         
-        let kyber_keys = crypto.batch_kyber_key_generation(5).unwrap();
-        assert_eq!(kyber_keys.len(), 5);
+        let mlkem_keys = crypto.batch_mlkem_key_generation(5).unwrap();
+        assert_eq!(mlkem_keys.len(), 5);
         
-        let dilithium_keys = crypto.batch_dilithium_key_generation(3).unwrap();
-        assert_eq!(dilithium_keys.len(), 3);
+        let mldsa_keys = crypto.batch_mldsa_key_generation(3).unwrap();
+        assert_eq!(mldsa_keys.len(), 3);
     }
 
     #[test]
     fn test_parallel_verification() {
         let crypto = OptimizedCrypto::new();
-        let dilithium_keys = crypto.batch_dilithium_key_generation(3).unwrap();
+        let mldsa_keys = crypto.batch_mldsa_key_generation(3).unwrap();
         
         let test_message = b"test message for verification";
-        let verification_data: Vec<_> = dilithium_keys.iter().map(|keypair| {
+        let verification_data: Vec<_> = mldsa_keys.iter().map(|keypair| {
             let signature = sign_detached(test_message, &keypair.secret_key);
             (test_message.to_vec(), signature, keypair.public_key)
         }).collect();
