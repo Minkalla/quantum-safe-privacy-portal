@@ -3,6 +3,7 @@ from ctypes import c_int, c_char_p, c_void_p, c_size_t, POINTER, Structure
 from pathlib import Path
 import os
 import sys
+from contextlib import contextmanager
 
 class PQCError(Exception):
     """Base exception for PQC operations"""
@@ -96,6 +97,9 @@ lib.dilithium_buffer_free.argtypes = [POINTER(ctypes.c_uint8), c_size_t]
 
 lib.dilithium_get_last_error.restype = c_char_p
 lib.dilithium_get_last_error.argtypes = []
+
+lib.ffi_get_last_error_message.restype = c_char_p
+lib.ffi_get_last_error_message.argtypes = []
 
 class KyberKeyPair:
     """High-level Python interface for Kyber ML-KEM-768 operations"""
@@ -316,6 +320,149 @@ def dilithium_signature_demo():
             'signature_len': len(signature),
             'message': message.decode('utf-8'),
             'signature_valid': is_valid
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+@contextmanager
+def secure_buffer(size: int):
+    """
+    Context manager for secure buffer allocation
+    
+    Args:
+        size: Size of buffer to allocate in bytes
+        
+    Yields:
+        ctypes array that can be used for secure operations
+        
+    The buffer is automatically zeroed when the context exits
+    """
+    if size <= 0:
+        raise ValueError("Buffer size must be positive")
+    
+    buffer = (ctypes.c_uint8 * size)()
+    try:
+        yield buffer
+    finally:
+        ctypes.memset(buffer, 0, size)
+
+def get_last_error() -> str:
+    """
+    Get the last FFI error message from the global error state
+    
+    Returns:
+        str: Last error message, or empty string if no error
+    """
+    try:
+        error_ptr = lib.ffi_get_last_error_message()
+        if error_ptr:
+            return error_ptr.decode('utf-8')
+        return ""
+    except Exception:
+        return "Failed to retrieve error message"
+
+def get_kyber_last_error() -> str:
+    """
+    Get the last Kyber-specific error message
+    
+    Returns:
+        str: Last Kyber error message, or empty string if no error
+    """
+    try:
+        error_ptr = lib.kyber_get_last_error()
+        if error_ptr:
+            return error_ptr.decode('utf-8')
+        return ""
+    except Exception:
+        return "Failed to retrieve Kyber error message"
+
+def get_dilithium_last_error() -> str:
+    """
+    Get the last Dilithium-specific error message
+    
+    Returns:
+        str: Last Dilithium error message, or empty string if no error
+    """
+    try:
+        error_ptr = lib.dilithium_get_last_error()
+        if error_ptr:
+            return error_ptr.decode('utf-8')
+        return ""
+    except Exception:
+        return "Failed to retrieve Dilithium error message"
+
+@contextmanager
+def kyber_keypair_context():
+    """
+    Context manager for Kyber key pair operations
+    
+    Yields:
+        KyberKeyPair: A Kyber key pair that is automatically cleaned up
+    """
+    keypair = None
+    try:
+        keypair = KyberKeyPair()
+        yield keypair
+    finally:
+        if keypair:
+            del keypair
+
+@contextmanager
+def dilithium_keypair_context():
+    """
+    Context manager for Dilithium key pair operations
+    
+    Yields:
+        DilithiumKeyPair: A Dilithium key pair that is automatically cleaned up
+    """
+    keypair = None
+    try:
+        keypair = DilithiumKeyPair()
+        yield keypair
+    finally:
+        if keypair:
+            del keypair
+
+def safe_bytes_to_ctypes(data: bytes) -> ctypes.Array:
+    """
+    Safely convert bytes to ctypes array
+    
+    Args:
+        data: Bytes to convert
+        
+    Returns:
+        ctypes array containing the data
+    """
+    if not isinstance(data, bytes):
+        raise TypeError("Input must be bytes")
+    
+    return (ctypes.c_uint8 * len(data)).from_buffer_copy(data)
+
+def validate_key_sizes():
+    """
+    Validate that the FFI library returns expected key sizes
+    
+    Returns:
+        dict: Validation results with key sizes
+    """
+    try:
+        with kyber_keypair_context() as kp:
+            kyber_public_key_len = len(kp.public_key)
+        
+        with dilithium_keypair_context() as dp:
+            dilithium_public_key_len = len(dp.public_key)
+        
+        return {
+            'success': True,
+            'kyber_public_key_len': kyber_public_key_len,
+            'kyber_expected': 1184,  # ML-KEM-768
+            'kyber_valid': kyber_public_key_len == 1184,
+            'dilithium_public_key_len': dilithium_public_key_len,
+            'dilithium_expected': 1952,  # ML-DSA-65
+            'dilithium_valid': dilithium_public_key_len == 1952
         }
     except Exception as e:
         return {
