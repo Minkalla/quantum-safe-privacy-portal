@@ -301,6 +301,8 @@ pub extern "C" fn pqc_ml_kem_768_keygen() -> *mut c_char {
     }
 }
 
+
+
 #[no_mangle]
 pub unsafe extern "C" fn pqc_ml_kem_768_encaps(
     public_key: *const u8,
@@ -341,9 +343,11 @@ pub unsafe extern "C" fn pqc_ml_kem_768_encaps(
     }
 }
 
+
 #[no_mangle]
 pub unsafe extern "C" fn pqc_ml_kem_768_decaps(
     secret_key: *const u8,
+
     secret_key_len: usize,
     ciphertext: *const u8,
     ciphertext_len: usize,
@@ -413,12 +417,14 @@ pub extern "C" fn pqc_ml_dsa_65_keygen() -> *mut c_char {
     }
 }
 
+
 #[no_mangle]
 pub unsafe extern "C" fn pqc_ml_dsa_65_sign(
     message: *const u8,
     message_len: usize,
     private_key: *const u8,
     private_key_len: usize,
+
 ) -> *mut c_char {
     if message.is_null() || private_key.is_null() {
         return std::ptr::null_mut();
@@ -455,6 +461,7 @@ pub unsafe extern "C" fn pqc_ml_dsa_65_sign(
     }
 }
 
+
 #[no_mangle]
 pub unsafe extern "C" fn pqc_ml_dsa_65_verify(
     signature: *const u8,
@@ -464,6 +471,7 @@ pub unsafe extern "C" fn pqc_ml_dsa_65_verify(
     public_key: *const u8,
     public_key_len: usize,
 ) -> bool {
+
     if signature.is_null() || message.is_null() || public_key.is_null() {
         return false;
     }
@@ -472,10 +480,7 @@ pub unsafe extern "C" fn pqc_ml_dsa_65_verify(
     let message_slice = std::slice::from_raw_parts(message, message_len);
     let public_key_slice = std::slice::from_raw_parts(public_key, public_key_len);
     
-    match mldsa_verify(public_key_slice, message_slice, signature_slice) {
-        Ok(is_valid) => is_valid,
-        Err(_) => false,
-    }
+    mldsa_verify(public_key_slice, message_slice, signature_slice).unwrap_or_default()
 }
 
 #[no_mangle]
@@ -494,6 +499,7 @@ pub extern "C" fn pqc_key_manager_create() -> *mut c_char {
     }
 }
 
+
 #[no_mangle]
 pub unsafe extern "C" fn pqc_key_manager_generate_key(
     manager_ptr: usize,
@@ -501,6 +507,7 @@ pub unsafe extern "C" fn pqc_key_manager_generate_key(
     algorithm: *const c_char,
 ) -> *mut c_char {
     if user_id.is_null() || algorithm.is_null() {
+
         return std::ptr::null_mut();
     }
     
@@ -543,6 +550,7 @@ pub unsafe extern "C" fn pqc_key_manager_generate_key(
     }
 }
 
+
 #[no_mangle]
 pub unsafe extern "C" fn pqc_key_manager_rotate_key(
     manager_ptr: usize,
@@ -553,6 +561,7 @@ pub unsafe extern "C" fn pqc_key_manager_rotate_key(
     }
     
     let manager = &mut *(manager_ptr as *mut key_management::SecureKeyManager);
+
     let key_id_cstring = CString::from_raw(key_id as *mut c_char);
     let key_id_str = match key_id_cstring.to_str() {
         Ok(s) => s,
@@ -585,6 +594,7 @@ pub unsafe extern "C" fn pqc_key_manager_rotate_key(
     }
 }
 
+
 #[no_mangle]
 pub unsafe extern "C" fn perform_quantum_safe_operation_placeholder(
     input_ptr: *const u8,
@@ -595,12 +605,13 @@ pub unsafe extern "C" fn perform_quantum_safe_operation_placeholder(
     let input_str = String::from_utf8_lossy(input_slice);
 
     let mock_result = format!(
-        "Rust PQC Real Implementation: Received '{}' ({} bytes). ML-KEM-768 + ML-DSA-65 Ready!",
-        input_str, input_len
+
+        "Rust PQC Real Implementation: Received '{input_str}' ({input_len} bytes). ML-KEM-768 + ML-DSA-65 Ready!"
     );
     let c_string = CString::new(mock_result).expect("CString::new failed");
     c_string.into_raw() as *mut c_char
 }
+
 
 #[no_mangle]
 pub unsafe extern "C" fn free_string(ptr: *mut c_char) {

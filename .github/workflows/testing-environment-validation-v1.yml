@@ -393,5 +393,6 @@ jobs:
 # Environment variables
 env:
   NODE_ENV: 'test'
+  AWS_REGION: 'us-east-1'
 
 # Force CI refresh - June 26, 2025 14:59:17 UTC

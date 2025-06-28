@@ -298,7 +298,7 @@ mod key_management_tests {
         for i in 0..5 {
             let manager_clone = Arc::clone(&manager);
             let handle = thread::spawn(move || {
-                let user_id = format!("user_{}", i);
+                let user_id = format!("user_{i}");
                 let mut mgr = manager_clone.lock().unwrap();
                 mgr.generate_and_store_key(&user_id, "Kyber-768")
             });
@@ -328,7 +328,7 @@ mod key_management_tests {
             let algorithm = if i % 2 == 0 { "Kyber-768" } else { "Dilithium-3" };
             let key_id = manager.generate_and_store_key(user_id, algorithm).unwrap();
             
-            assert!(!key_ids.contains(&key_id), "Duplicate key ID generated: {}", key_id);
+            assert!(!key_ids.contains(&key_id), "Duplicate key ID generated: {key_id}");
             key_ids.insert(key_id);
         }
 

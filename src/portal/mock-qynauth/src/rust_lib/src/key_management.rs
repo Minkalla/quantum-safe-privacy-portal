@@ -121,7 +121,7 @@ impl SecureKeyManager {
     }
 
     pub fn generate_and_store_key(&mut self, user_id: &str, algorithm: &str) -> PQCResult<String> {
-        info!("Generating new {} key for user {}", algorithm, user_id);
+        info!("Generating new {algorithm} key for user {user_id}");
 
         if self.user_keys.get(user_id).map_or(0, |keys| keys.len()) >= self.max_keys_per_user {
             return Err(PQCError::KeyGenerationFailed(
@@ -153,15 +153,15 @@ impl SecureKeyManager {
 
         self.user_keys
             .entry(user_id.to_string())
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(key_id.clone());
 
-        info!("Successfully generated and stored key {} for user {}", key_id, user_id);
+        info!("Successfully generated and stored key {key_id} for user {user_id}");
         Ok(key_id)
     }
 
     pub fn rotate_key(&mut self, key_id: &str) -> PQCResult<String> {
-        info!("Rotating key {}", key_id);
+        info!("Rotating key {key_id}");
 
         let (old_keypair, mut old_metadata) = self.keys.remove(key_id)
             .ok_or_else(|| PQCError::KeyNotFound(key_id.to_string()))?;
@@ -182,12 +182,12 @@ impl SecureKeyManager {
         }
 
 
-        info!("Successfully rotated key {} to new key {}", key_id, new_key_id);
+        info!("Successfully rotated key {key_id} to new key {new_key_id}");
         Ok(new_key_id)
     }
 
     pub fn revoke_key(&mut self, key_id: &str) -> PQCResult<()> {
-        info!("Revoking key {}", key_id);
+        info!("Revoking key {key_id}");
 
         let hsm_ref = if let Some((_, metadata)) = self.keys.get(key_id) {
             metadata.hsm_reference.clone()
@@ -197,7 +197,7 @@ impl SecureKeyManager {
 
         if let Some(hsm_ref) = &hsm_ref {
             self.remove_key_from_hsm(hsm_ref)?;
-            info!("Removed key {} from HSM", key_id);
+            info!("Removed key {key_id} from HSM");
         }
 
         if let Some((keypair, metadata)) = self.keys.get_mut(key_id) {
@@ -206,7 +206,7 @@ impl SecureKeyManager {
             let keypair_copy = keypair.clone();
             self.secure_delete_key(&keypair_copy)?;
 
-            info!("Successfully revoked key {}", key_id);
+            info!("Successfully revoked key {key_id}");
             Ok(())
         } else {
             Err(PQCError::KeyNotFound(key_id.to_string()))
@@ -215,7 +215,7 @@ impl SecureKeyManager {
 
     pub fn get_active_key(&self, user_id: &str, algorithm: &str) -> PQCResult<(&PQCKeyPair, &KeyMetadata)> {
         let user_key_ids = self.user_keys.get(user_id)
-            .ok_or_else(|| PQCError::KeyNotFound(format!("No keys for user {}", user_id)))?;
+            .ok_or_else(|| PQCError::KeyNotFound(format!("No keys for user {user_id}")))?;
 
         for key_id in user_key_ids {
             if let Some((keypair, metadata)) = self.keys.get(key_id) {
@@ -228,7 +228,7 @@ impl SecureKeyManager {
         }
 
         Err(PQCError::KeyNotFound(
-            format!("No active {} key found for user {}", algorithm, user_id)
+            format!("No active {algorithm} key found for user {user_id}")
         ))
     }
 
@@ -268,12 +268,12 @@ impl SecureKeyManager {
             if let Some((keypair, metadata)) = self.keys.remove(key_id) {
                 if let Some(hsm_ref) = &metadata.hsm_reference {
                     if let Err(e) = self.remove_key_from_hsm(hsm_ref) {
-                        error!("Failed to remove key {} from HSM: {}", key_id, e);
+                        error!("Failed to remove key {key_id} from HSM: {e}");
                     }
                 }
 
                 if let Err(e) = self.secure_delete_key(&keypair) {
-                    error!("Failed to securely delete key {}: {}", key_id, e);
+                    error!("Failed to securely delete key {key_id}: {e}");
                 }
 
                 if let Some(user_keys) = self.user_keys.get_mut(&metadata.user_id) {
@@ -283,7 +283,7 @@ impl SecureKeyManager {
         }
 
         let cleanup_count = expired_keys.len();
-        info!("Cleaned up {} expired keys", cleanup_count);
+        info!("Cleaned up {cleanup_count} expired keys");
         Ok(cleanup_count)
     }
 
@@ -306,7 +306,7 @@ impl SecureKeyManager {
                     rotated_keys.push((old_key_id, new_key_id));
                 },
                 Err(e) => {
-                    error!("Failed to rotate key {}: {}", old_key_id, e);
+                    error!("Failed to rotate key {old_key_id}: {e}");
                 }
             }
         }
@@ -388,7 +388,7 @@ impl SecureKeyManager {
     }
 
     fn remove_key_from_hsm(&self, hsm_reference: &str) -> PQCResult<()> {
-        info!("Simulating HSM key removal for reference: {}", hsm_reference);
+        info!("Simulating HSM key removal for reference: {hsm_reference}");
         Ok(())
     }
 
