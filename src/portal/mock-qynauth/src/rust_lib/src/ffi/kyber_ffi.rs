@@ -152,11 +152,6 @@ pub extern "C" fn kyber_keypair_generate() -> *mut CKyberKeyPair {
     keypair
 }
 
-
-
-
-
-
 #[no_mangle]
 pub unsafe extern "C" fn kyber_encapsulate(
     public_key_ptr: *const u8,
@@ -249,9 +244,6 @@ pub unsafe extern "C" fn kyber_encapsulate(
     }
 }
 
-
-
-
 #[no_mangle]
 pub unsafe extern "C" fn kyber_decapsulate(
     secret_key_ptr: *const u8,
@@ -332,9 +324,6 @@ pub unsafe extern "C" fn kyber_decapsulate(
     }
 }
 
-
-
-
 #[no_mangle]
 pub unsafe extern "C" fn kyber_keypair_free(keypair: *mut CKyberKeyPair) {
     if keypair.is_null() {
@@ -344,16 +333,14 @@ pub unsafe extern "C" fn kyber_keypair_free(keypair: *mut CKyberKeyPair) {
     let keypair_ref = &*keypair;
 
     if !keypair_ref.public_key_ptr.is_null() {
-        let layout =
-            std::alloc::Layout::from_size_align_unchecked(keypair_ref.public_key_len, 1);
+        let layout = std::alloc::Layout::from_size_align_unchecked(keypair_ref.public_key_len, 1);
 
         ptr::write_bytes(keypair_ref.public_key_ptr, 0, keypair_ref.public_key_len);
         std::alloc::dealloc(keypair_ref.public_key_ptr, layout);
     }
 
     if !keypair_ref.secret_key_ptr.is_null() {
-        let layout =
-            std::alloc::Layout::from_size_align_unchecked(keypair_ref.secret_key_len, 1);
+        let layout = std::alloc::Layout::from_size_align_unchecked(keypair_ref.secret_key_len, 1);
 
         ptr::write_bytes(keypair_ref.secret_key_ptr, 0, keypair_ref.secret_key_len);
         std::alloc::dealloc(keypair_ref.secret_key_ptr, layout);

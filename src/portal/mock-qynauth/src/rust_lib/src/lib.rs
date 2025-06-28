@@ -314,9 +314,6 @@ pub extern "C" fn pqc_ml_kem_768_keygen() -> *mut c_char {
     }
 }
 
-
-
-
 #[no_mangle]
 pub unsafe extern "C" fn pqc_ml_kem_768_encaps(
     public_key: *const u8,
@@ -361,8 +358,6 @@ pub unsafe extern "C" fn pqc_ml_kem_768_encaps(
 pub unsafe extern "C" fn pqc_ml_kem_768_decaps(
     secret_key: *const u8,
     secret_key_len: usize,
-
-
 
     ciphertext: *const u8,
     ciphertext_len: usize,
@@ -439,8 +434,6 @@ pub unsafe extern "C" fn pqc_ml_dsa_65_sign(
 
     private_key: *const u8,
     private_key_len: usize,
-
-
 ) -> *mut c_char {
     if message.is_null() || private_key.is_null() {
         return std::ptr::null_mut();
@@ -524,11 +517,8 @@ pub unsafe extern "C" fn pqc_key_manager_generate_key(
     manager_ptr: usize,
     user_id: *const c_char,
     algorithm: *const c_char,
-
 ) -> *mut c_char {
-
     if user_id.is_null() || algorithm.is_null() {
-
         return std::ptr::null_mut();
     }
 
@@ -576,12 +566,9 @@ pub unsafe extern "C" fn pqc_key_manager_rotate_key(
     manager_ptr: usize,
     key_id: *const c_char,
 ) -> *mut c_char {
-
     if key_id.is_null() {
         return std::ptr::null_mut();
-
     }
-
 
     let manager = &mut *(manager_ptr as *mut key_management::SecureKeyManager);
     let key_id_cstring = CString::from_raw(key_id as *mut c_char);
@@ -621,12 +608,10 @@ pub unsafe extern "C" fn perform_quantum_safe_operation_placeholder(
     input_ptr: *const u8,
     input_len: usize,
 ) -> *mut c_char {
-
     assert!(!input_ptr.is_null());
     let input_slice = std::slice::from_raw_parts(input_ptr, input_len);
 
     let input_str = String::from_utf8_lossy(input_slice);
-
 
     let mock_result = format!(
         "Rust PQC Real Implementation: Received '{}' ({} bytes). ML-KEM-768 + ML-DSA-65 Ready!",
@@ -636,7 +621,6 @@ pub unsafe extern "C" fn perform_quantum_safe_operation_placeholder(
     c_string.into_raw() as *mut c_char
 }
 
-
 #[no_mangle]
 pub unsafe extern "C" fn free_string(ptr: *mut c_char) {
     if ptr.is_null() {
@@ -644,5 +628,4 @@ pub unsafe extern "C" fn free_string(ptr: *mut c_char) {
     }
 
     let _ = CString::from_raw(ptr);
-
 }
