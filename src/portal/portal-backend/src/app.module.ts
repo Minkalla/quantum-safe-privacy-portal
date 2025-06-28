@@ -15,7 +15,7 @@
  */
 
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 
@@ -31,26 +31,26 @@ import { PQCFeatureFlagsModule } from './pqc/pqc-feature-flags.module';
 import { ABTestingModule } from './pqc/ab-testing.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { QualityModule } from './quality/quality.module';
+import { ConsentEntity } from './entities/consent.entity';
+import { UserEntity } from './entities/user.entity';
 
 // Removed: import * as AWSXRay from 'aws-xray-sdk'; // REMOVED as per plan
 
 @Module({
   imports: [
     ConfigModule,
-    MongooseModule.forRootAsync({
+    TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: async (appConfigService: AppConfigService) => {
-        const mongoUri = appConfigService.get<string>('MONGO_URI');
-        if (!mongoUri) {
-          throw new Error('MONGO_URI environment variable is not defined or invalid. Check .env and AppConfigService validation.');
-        }
-
-        // REMOVED: X-Ray MongoDB capture logic from here to defer as per plan.
-
-        return {
-          uri: mongoUri,
-        };
-      },
+      useFactory: async (appConfigService: AppConfigService) => ({
+        type: 'postgres',
+        host: appConfigService.get<string>('POSTGRES_HOST') || 'localhost',
+        port: appConfigService.get<number>('POSTGRES_PORT') || 5432,
+        username: appConfigService.get<string>('POSTGRES_USER'),
+        password: appConfigService.get<string>('POSTGRES_PASSWORD'),
+        database: appConfigService.get<string>('POSTGRES_DB'),
+        entities: [ConsentEntity, UserEntity],
+        synchronize: appConfigService.get<string>('NODE_ENV') !== 'production',
+      }),
       inject: [AppConfigService],
     }),
     WinstonModule.forRoot({

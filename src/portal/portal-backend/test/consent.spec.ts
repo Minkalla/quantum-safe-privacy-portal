@@ -16,7 +16,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
-import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConsentModule } from '../src/consent/consent.module';
 import { ConsentService } from '../src/consent/consent.service';
 import { JwtService } from '../src/jwt/jwt.service';
@@ -24,6 +24,7 @@ import { PQCFeatureFlagsService } from '../src/pqc/pqc-feature-flags.service';
 import { PQCMonitoringService } from '../src/pqc/pqc-monitoring.service';
 import { ConsentType } from '../src/consent/dto/create-consent.dto';
 import { ConfigModule } from '@nestjs/config';
+import { ConsentEntity } from '../src/entities/consent.entity';
 
 describe('POST /portal/consent (Integration Tests)', () => {
   let app: INestApplication;
@@ -31,12 +32,17 @@ describe('POST /portal/consent (Integration Tests)', () => {
   let testUserId: string;
 
   beforeAll(async () => {
-    const mongoUri = (global as any).__MONGO_URI__;
+    const dataSource = (global as any).__TYPEORM_CONNECTION__;
 
     process.env['AWS_REGION'] = 'us-east-1';
     process.env['SKIP_SECRETS_MANAGER'] = 'true';
     process.env['JWT_ACCESS_SECRET_ID'] = 'test-access-secret';
     process.env['JWT_REFRESH_SECRET_ID'] = 'test-refresh-secret';
+    process.env['POSTGRES_HOST'] = 'localhost';
+    process.env['POSTGRES_PORT'] = '5433';
+    process.env['POSTGRES_USER'] = 'test_user';
+    process.env['POSTGRES_PASSWORD'] = 'test_password';
+    process.env['POSTGRES_DB'] = 'test_db';
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
@@ -44,7 +50,17 @@ describe('POST /portal/consent (Integration Tests)', () => {
           isGlobal: true,
           envFilePath: '.env.test',
         }),
-        MongooseModule.forRoot(mongoUri),
+        TypeOrmModule.forRoot({
+          type: 'postgres',
+          host: 'localhost',
+          port: 5433,
+          username: 'test_user',
+          password: 'test_password',
+          database: 'test_db',
+          entities: [ConsentEntity],
+          synchronize: true,
+          dropSchema: true,
+        }),
         ConsentModule,
       ],
     })
@@ -88,13 +104,9 @@ describe('POST /portal/consent (Integration Tests)', () => {
   });
 
   afterEach(async () => {
-    const connection = (global as any).__MONGO_CONNECTION__;
-    if (connection) {
-      const db = connection.db();
-      const collections = await db.collections();
-      for (const collection of collections) {
-        await collection.deleteMany({});
-      }
+    const dataSource = (global as any).__TYPEORM_CONNECTION__;
+    if (dataSource) {
+      await dataSource.getRepository(ConsentEntity).clear();
     }
   });
 

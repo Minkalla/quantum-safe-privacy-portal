@@ -30,7 +30,19 @@ class EnvironmentVariables {
     PORT!: number;
 
   @IsString()
-    MONGO_URI!: string;
+    POSTGRES_HOST!: string;
+
+  @IsNumber()
+    POSTGRES_PORT!: number;
+
+  @IsString()
+    POSTGRES_USER!: string;
+
+  @IsString()
+    POSTGRES_PASSWORD!: string;
+
+  @IsString()
+    POSTGRES_DB!: string;
 
   @IsString()
     JWT_ACCESS_SECRET_ID!: string;
@@ -105,7 +117,11 @@ export class AppConfigService { // CHANGED: Renamed class to AppConfigService
     const configValues = {
       NODE_ENV: this.nestConfigService.get<string>('NODE_ENV'),
       PORT: this.nestConfigService.get<number>('PORT'),
-      MONGO_URI: this.nestConfigService.get<string>('MONGO_URI'),
+      POSTGRES_HOST: this.nestConfigService.get<string>('POSTGRES_HOST'),
+      POSTGRES_PORT: this.nestConfigService.get<number>('POSTGRES_PORT'),
+      POSTGRES_USER: this.nestConfigService.get<string>('POSTGRES_USER'),
+      POSTGRES_PASSWORD: this.nestConfigService.get<string>('POSTGRES_PASSWORD'),
+      POSTGRES_DB: this.nestConfigService.get<string>('POSTGRES_DB'),
       JWT_ACCESS_SECRET_ID: this.nestConfigService.get<string>('JWT_ACCESS_SECRET_ID'),
       JWT_REFRESH_SECRET_ID: this.nestConfigService.get<string>('JWT_REFRESH_SECRET_ID'),
       AWS_REGION: this.nestConfigService.get<string>('AWS_REGION'),

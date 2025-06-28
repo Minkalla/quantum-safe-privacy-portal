@@ -97,7 +97,7 @@ export class ConsentController {
       const result = await this.consentService.createConsent(createConsentDto);
 
       return {
-        consentId: result._id,
+        consentId: result.id,
         userId: result.userId,
         consentType: result.consentType,
         granted: result.granted,
@@ -164,7 +164,7 @@ export class ConsentController {
     const consents = await this.consentService.getConsentByUserId(params.userId);
 
     return consents.map(consent => ({
-      consentId: consent._id,
+      consentId: consent.id,
       userId: consent.userId,
       consentType: consent.consentType,
       granted: consent.granted,

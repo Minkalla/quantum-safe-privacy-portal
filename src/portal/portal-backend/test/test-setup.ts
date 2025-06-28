@@ -1,24 +1,31 @@
-import { MongoMemoryServer } from 'mongodb-memory-server';
-import { MongoClient } from 'mongodb';
+import { DataSource } from 'typeorm';
+import { ConsentEntity } from '../src/entities/consent.entity';
 
-let mongoServer: MongoMemoryServer;
-let mongoConnection: MongoClient;
+let dataSource: DataSource;
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const mongoUri = mongoServer.getUri();
-  mongoConnection = new MongoClient(mongoUri);
-  await mongoConnection.connect();
+  dataSource = new DataSource({
+    type: 'postgres',
+    host: 'localhost',
+    port: 5433,
+    username: 'test_user',
+    password: 'test_password',
+    database: 'test_db',
+    entities: [ConsentEntity],
+    synchronize: true,
+    dropSchema: true,
+  });
 
-  (global as any).__MONGO_URI__ = mongoUri;
-  (global as any).__MONGO_CONNECTION__ = mongoConnection;
+  try {
+    await dataSource.initialize();
+    (global as any).__TYPEORM_CONNECTION__ = dataSource;
+  } catch (error) {
+    console.warn('TypeORM connection failed, tests will use in-memory fallback:', error.message);
+  }
 });
 
 afterAll(async () => {
-  if (mongoConnection) {
-    await mongoConnection.close();
-  }
-  if (mongoServer) {
-    await mongoServer.stop();
+  if (dataSource && dataSource.isInitialized) {
+    await dataSource.destroy();
   }
 });

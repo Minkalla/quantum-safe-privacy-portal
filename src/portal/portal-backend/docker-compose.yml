@@ -18,8 +18,11 @@ services:
       - AWS_REGION=${AWS_REGION} # Ensure this matches your AWS_REGION in .env and your actual region
       # ADDED: X-Ray Daemon address for the backend service
       - AWS_XRAY_DAEMON_ADDRESS=xray-daemon:2000
-      - MONGO_URI=${MONGODB_URI} # Legacy/compatibility variable
-      - MONGODB_URI=${MONGODB_URI} # Explicitly set for app code expecting MONGODB_URI
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=portal_user
+      - POSTGRES_PASSWORD=portal_password
+      - POSTGRES_DB=portal_dev
       - JWT_ACCESS_SECRET_ID=${JWT_ACCESS_SECRET_ID}
       - JWT_REFRESH_SECRET_ID=${JWT_REFRESH_SECRET_ID}
       - FRONTEND_URL=${FRONTEND_URL}
@@ -27,33 +30,25 @@ services:
       - SKIP_SECRETS_MANAGER=${SKIP_SECRETS_MANAGER} # Ensure this is set for app code expecting SKIP_SECRETS_MANAGER
 
     depends_on:
-      - mongo
-      - xray-daemon # ADDED: Backend depends on X-Ray daemon
+      - postgres
     restart: always
 
-  mongo:
-    image: mongo:5.0
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: portal_user
+      POSTGRES_PASSWORD: portal_password
+      POSTGRES_DB: portal_dev
     ports:
-      - "27017:27017"
+      - "5432:5432"
     volumes:
-      - mongo-data:/data/db
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mongo", "--eval", "db.runCommand({ping: 1})"]
+      test: ["CMD-SHELL", "pg_isready -U portal_user -d portal_dev"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: always
 
-  # ADDED: X-Ray Daemon Service
-  xray-daemon:
-    image: amazon/aws-xray-daemon:latest
-    ports:
-      - "2000:2000/udp" # UDP port for sending traces
-    environment:
-      - AWS_REGION=${AWS_REGION} # Pass AWS region to the daemon
-      # The daemon typically uses the same host AWS credentials if they are configured
-      # or relies on IAM roles if deployed on EC2.
-    restart: always
-
 volumes:
-  mongo-data:
+  postgres-data:

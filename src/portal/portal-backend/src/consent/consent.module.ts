@@ -15,15 +15,15 @@
  */
 
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConsentController } from './consent.controller';
 import { ConsentService } from './consent.service';
-import { ConsentSchema } from '../models/Consent';
+import { ConsentEntity } from '../entities/consent.entity';
 import { JwtModule } from '../jwt/jwt.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: 'Consent', schema: ConsentSchema }]),
+    TypeOrmModule.forFeature([ConsentEntity]),
     JwtModule,
   ],
   controllers: [ConsentController],

@@ -16,17 +16,16 @@
  */
 
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
-import { UserSchema } from '../models/User'; // Only import UserSchema
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { UserEntity } from '../entities/user.entity';
 
 @Module({
   imports: [
-    // Register the User schema with MongooseModule for this module's context
-    MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]), // Use string 'User' for model name
+    TypeOrmModule.forFeature([UserEntity]),
   ],
   providers: [],
   exports: [
-    MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]), // Export MongooseModule.forFeature to make User model available to other modules
+    TypeOrmModule.forFeature([UserEntity]),
   ],
 })
 export class UserModule {}
