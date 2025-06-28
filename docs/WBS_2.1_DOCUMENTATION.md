@@ -382,9 +382,9 @@ cargo bench --verbose
 ## 10. Next Steps and Future Enhancements
 
 ### 10.1 Immediate Actions
-- **WBS 2.1.4**: Integration of selected dependencies into build system
-- **WBS 2.1.5**: Enhanced dependency monitoring and automated security scanning
-- **Performance Optimization**: Real PQC library integration for meaningful benchmarks
+- **WBS 2.4**: Security and Performance Optimization (36 hours total)
+- **WBS 2.4.1**: Implement comprehensive security hardening for PQC operations (8 hours)
+- **Performance Optimization**: Cross-layer optimization across Rust, FFI, and Python layers
 
 ### 10.2 Future Enhancements
 - **Performance Optimization**: Advanced compiler optimizations and SIMD utilization
