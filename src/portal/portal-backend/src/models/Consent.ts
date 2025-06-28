@@ -20,84 +20,88 @@
  * @property {string} [userAgent] - User agent string from which consent was provided (for audit trail).
  */
 
-import { Schema, model, Document, Model } from 'mongoose';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
 
 /**
- * @interface IConsent
- * @description Defines the TypeScript interface for a Consent document,
- * ensuring type safety when interacting with the Consent model.
- * Extends Mongoose's Document interface to include Mongoose-specific properties like _id.
+ * Enum for consent types to ensure type safety
  */
-export interface IConsent extends Document {
-  userId: string;
-  consentType: string;
-  granted: boolean;
-  ipAddress?: string;
-  userAgent?: string;
-  createdAt: Date;
-  updatedAt: Date;
+export enum ConsentType {
+  MARKETING = 'marketing',
+  ANALYTICS = 'analytics',
+  DATA_PROCESSING = 'data_processing',
+  COOKIES = 'cookies',
+  THIRD_PARTY_SHARING = 'third_party_sharing'
 }
 
 /**
- * @constant {Schema<IConsent>} ConsentSchema
- * @description Defines the Mongoose schema for the Consent model.
- * Sets up field types, validation, and schema options.
+ * TypeORM entity for consent records with comprehensive validation.
+ *
+ * Features:
+ * - Unique compound index on userId + consentType
+ * - IP address validation for IPv4 and IPv6 formats
+ * - Automatic timestamp management
+ * - Enum validation for consent types
+ * - Length constraints for security
  */
-export const ConsentSchema = new Schema<IConsent>(
-  {
-    userId: {
-      type: String,
-      required: [true, 'User ID is required'],
-      trim: true,
-      index: true,
-    },
-    consentType: {
-      type: String,
-      required: [true, 'Consent type is required'],
-      trim: true,
-      enum: {
-        values: ['marketing', 'analytics', 'data_processing', 'cookies', 'third_party_sharing'],
-        message: 'Consent type must be one of: marketing, analytics, data_processing, cookies, third_party_sharing',
-      },
-      index: true,
-    },
-    granted: {
-      type: Boolean,
-      required: [true, 'Granted status is required'],
-    },
-    ipAddress: {
-      type: String,
-      trim: true,
-      validate: {
-        validator: function(v: string) {
-          if (!v || v === '' || v === undefined || v === null) return true;
-          const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
-          const ipv6Regex = /^([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}$/;
-          const ipv4MappedV6Regex = /^::ffff:(\d{1,3}\.){3}\d{1,3}$/i;
-          const localhostRegex = /^(127\.0\.0\.1|::1|localhost)$/i;
-          return ipv4Regex.test(v) || ipv6Regex.test(v) || ipv4MappedV6Regex.test(v) || localhostRegex.test(v);
-        },
-        message: 'Please provide a valid IP address',
-      },
-    },
-    userAgent: {
-      type: String,
-      trim: true,
-      maxlength: [500, 'User agent must not exceed 500 characters'],
-    },
-  },
-  {
-    timestamps: true,
-    collection: 'consents',
-  },
-);
+@Entity('consents')
+@Index(['userId', 'consentType'], { unique: true })
+export class Consent {
+  @PrimaryGeneratedColumn('uuid')
+    id!: string;
 
-ConsentSchema.index({ userId: 1, consentType: 1 }, { unique: true });
+  @Column({ type: 'varchar', length: 24 })
+  @Index()
+    userId!: string;
+
+  @Column({
+    type: 'enum',
+    enum: ConsentType,
+  })
+  @Index()
+    consentType!: ConsentType;
+
+  @Column({ type: 'boolean' })
+    granted!: boolean;
+
+  @Column({ type: 'varchar', length: 45, nullable: true })
+    ipAddress?: string;
+
+  @Column({ type: 'varchar', length: 500, nullable: true })
+    userAgent?: string;
+
+  @CreateDateColumn()
+    createdAt!: Date;
+
+  @UpdateDateColumn()
+    updatedAt!: Date;
+}
 
 /**
- * @constant {Model<IConsent>} Consent
- * @description Exports the Mongoose Consent model, making it available for database operations.
+ * TypeScript interface for Consent entities.
+ * Provides type safety for database operations.
  */
-const Consent: Model<IConsent> = model<IConsent>('Consent', ConsentSchema);
+export interface IConsent {
+  /** Unique identifier for the consent record */
+  id: string;
 
-export default Consent;
+  /** Unique identifier for the user (24-character hex string) */
+  userId: string;
+
+  /** Type of consent being granted or revoked */
+  consentType: ConsentType;
+
+  /** Whether consent is granted (true) or revoked (false) */
+  granted: boolean;
+
+  /** IP address of the user when consent was given (optional) */
+  ipAddress?: string;
+
+  /** User agent string of the browser/client (optional) */
+  userAgent?: string;
+
+  /** Timestamp when the consent record was created */
+  createdAt: Date;
+
+  /** Timestamp when the consent record was last updated */
+  updatedAt: Date;
+}

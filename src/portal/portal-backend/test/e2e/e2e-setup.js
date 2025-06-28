@@ -1,23 +1,27 @@
-const { MongoClient, ObjectId } = require('mongodb');
+const { DataSource } = require('typeorm');
 const bcrypt = require('bcryptjs');
 
 class E2ETestSetup {
-  constructor(mongoUri, dbName = 'portal_dev') {
-    this.client = new MongoClient(mongoUri);
-    this.db = this.client.db(dbName);
-    this.testUserId = new ObjectId('60d5ec49f1a23c001c8a4d7d');
+  constructor(databaseUrl = 'postgresql://postgres:password@localhost:5432/portal_test') {
+    this.dataSource = new DataSource({
+      type: 'postgres',
+      url: databaseUrl,
+      entities: [require('../../src/models/Consent').Consent],
+      synchronize: true,
+    });
+    this.testUserId = '60d5ec49-f1a2-3c00-1c8a-4d7d12345678';
     this.testUserEmail = 'e2e-test@example.com';
     this.testUserPassword = 'TestPassword123!';
   }
 
   async connect() {
-    await this.client.connect();
-    console.log('Connected to MongoDB for E2E test setup');
+    await this.dataSource.initialize();
+    console.log('Connected to PostgreSQL for E2E test setup');
   }
 
   async disconnect() {
-    await this.client.close();
-    console.log('Disconnected from MongoDB');
+    await this.dataSource.destroy();
+    console.log('Disconnected from PostgreSQL');
   }
 
   async seedTestUser() {
@@ -67,54 +71,47 @@ class E2ETestSetup {
   }
 
   async seedTestConsent(consentType = 'marketing', granted = true) {
-    const consentsCollection = this.db.collection('consents');
+    const { Consent } = require('../../src/models/Consent');
+    const consentRepository = this.dataSource.getRepository(Consent);
     
-    const testConsent = {
+    const testConsent = consentRepository.create({
       userId: this.testUserId,
       consentType,
       granted,
       ipAddress: '192.168.1.100',
       userAgent: 'E2E Test Browser/1.0',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    });
 
-    await consentsCollection.deleteMany({ 
+    await consentRepository.delete({ 
       userId: this.testUserId, 
       consentType 
     });
     
-    const result = await consentsCollection.insertOne(testConsent);
+    const result = await consentRepository.save(testConsent);
     
-    console.log(`Test consent created with ID: ${result.insertedId}`);
-    return { ...testConsent, _id: result.insertedId.toString() };
+    console.log(`Test consent created with ID: ${result.id}`);
+    return result;
   }
 
   async cleanupTestData() {
-    const usersCollection = this.db.collection('users');
-    const consentsCollection = this.db.collection('consents');
+    const { Consent } = require('../../src/models/Consent');
+    const consentRepository = this.dataSource.getRepository(Consent);
     
     console.log('🧹 Starting comprehensive test data cleanup...');
     
-    const userDeleteResult = await usersCollection.deleteMany({ email: this.testUserEmail });
-    console.log(`🗑️ Deleted ${userDeleteResult.deletedCount} test users`);
-    
-    const consentDeleteResult = await consentsCollection.deleteMany({ 
-      $or: [
-        { userId: this.testUserId },
-        { userId: this.testUserId.toString() }
-      ]
+    const consentDeleteResult = await consentRepository.delete({ 
+      userId: this.testUserId
     });
-    console.log(`🗑️ Deleted ${consentDeleteResult.deletedCount} test consents`);
+    console.log(`🗑️ Deleted ${consentDeleteResult.affected || 0} test consents`);
     
-    const remainingConsents = await consentsCollection.countDocuments({});
+    const remainingConsents = await consentRepository.count({});
     console.log(`📊 Remaining consents in database: ${remainingConsents}`);
     
     if (remainingConsents > 0) {
       console.log('⚠️ Warning: Non-test consents remain in database');
-      const allConsents = await consentsCollection.find({}).toArray();
+      const allConsents = await consentRepository.find({});
       console.log('📋 All remaining consents:', allConsents.map(c => ({ 
-        id: c._id, 
+        id: c.id, 
         userId: c.userId, 
         type: c.consentType 
       })));
@@ -149,16 +146,16 @@ class E2ETestSetup {
   }
 }
 
-const setupE2EEnvironment = async (mongoUri) => {
-  const uri = mongoUri || process.env.MONGO_URI || 'mongodb://localhost:27017';
-  const setup = new E2ETestSetup(uri);
+const setupE2EEnvironment = async (databaseUrl) => {
+  const url = databaseUrl || process.env.DATABASE_URL || 'postgresql://postgres:password@localhost:5432/portal_test';
+  const setup = new E2ETestSetup(url);
   
   return await setup.setupCompleteTestEnvironment();
 };
 
-const cleanupE2EEnvironment = async (mongoUri) => {
-  const uri = mongoUri || process.env.MONGO_URI || 'mongodb://localhost:27017';
-  const setup = new E2ETestSetup(uri);
+const cleanupE2EEnvironment = async (databaseUrl) => {
+  const url = databaseUrl || process.env.DATABASE_URL || 'postgresql://postgres:password@localhost:5432/portal_test';
+  const setup = new E2ETestSetup(url);
   
   await setup.connect();
   await setup.cleanupTestData();

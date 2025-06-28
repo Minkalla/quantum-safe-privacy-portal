@@ -14,15 +14,16 @@
  */
 
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { CreateConsentDto } from './dto/create-consent.dto';
-import { IConsent } from '../models/Consent';
+import { Consent } from '../models/Consent';
 
 @Injectable()
 export class ConsentService {
   constructor(
-    @InjectModel('Consent') private readonly consentModel: Model<IConsent>,
+    @InjectRepository(Consent)
+    private readonly consentRepository: Repository<Consent>,
   ) {}
 
   /**
@@ -31,10 +32,12 @@ export class ConsentService {
    * @returns Created or updated consent record.
    * @throws ConflictException if attempting to create duplicate consent with different granted status.
    */
-  async createConsent(createConsentDto: CreateConsentDto): Promise<IConsent> {
+  async createConsent(createConsentDto: CreateConsentDto): Promise<Consent> {
     const { userId, consentType, granted, ipAddress, userAgent } = createConsentDto;
 
-    const existingConsent = await this.consentModel.findOne({ userId, consentType });
+    const existingConsent = await this.consentRepository.findOne({
+      where: { userId, consentType },
+    });
 
     if (existingConsent) {
       if (existingConsent.granted === granted) {
@@ -49,28 +52,18 @@ export class ConsentService {
         existingConsent.userAgent = userAgent;
       }
 
-      const updatedConsent = await existingConsent.save();
-
-      return updatedConsent;
+      return await this.consentRepository.save(existingConsent);
     }
 
-    const consentData: any = {
+    const newConsent = this.consentRepository.create({
       userId,
       consentType,
       granted,
-    };
+      ipAddress,
+      userAgent,
+    });
 
-    if (ipAddress !== undefined) {
-      consentData.ipAddress = ipAddress;
-    }
-    if (userAgent !== undefined) {
-      consentData.userAgent = userAgent;
-    }
-    const newConsent = new this.consentModel(consentData);
-
-    const savedConsent = await newConsent.save();
-
-    return savedConsent;
+    return await this.consentRepository.save(newConsent);
   }
 
   /**
@@ -79,8 +72,8 @@ export class ConsentService {
    * @returns Array of consent records for the user.
    * @throws NotFoundException if no consents found for the user.
    */
-  async getConsentByUserId(userId: string): Promise<IConsent[]> {
-    const consents = await this.consentModel.find({ userId });
+  async getConsentByUserId(userId: string): Promise<Consent[]> {
+    const consents = await this.consentRepository.find({ where: { userId } });
 
     if (!consents || consents.length === 0) {
       throw new NotFoundException('No consent records found for this user');

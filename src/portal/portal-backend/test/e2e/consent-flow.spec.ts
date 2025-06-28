@@ -2,10 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { ConfigModule } from '@nestjs/config';
-import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConsentModule } from '../../src/consent/consent.module';
 import { AuthModule } from '../../src/auth/auth.module';
 import { JwtModule } from '../../src/jwt/jwt.module';
+import { Consent } from '../../src/models/Consent';
+import { User } from '../../src/models/User';
 import { PQCFeatureFlagsService } from '../../src/pqc/pqc-feature-flags.service';
 import { PQCMonitoringService } from '../../src/pqc/pqc-monitoring.service';
 import { ConsentType } from '../../src/consent/dto/create-consent.dto';
@@ -18,12 +20,11 @@ describe('E2E Consent Flow Tests', () => {
   let validAccessToken: string;
 
   beforeAll(async () => {
-    const mongoUri = (global as any).__MONGO_URI__;
-
     process.env['AWS_REGION'] = 'us-east-1';
     process.env['SKIP_SECRETS_MANAGER'] = 'true';
     process.env['JWT_ACCESS_SECRET_ID'] = 'test-access-secret';
     process.env['JWT_REFRESH_SECRET_ID'] = 'test-refresh-secret';
+    process.env['DATABASE_URL'] = 'postgresql://postgres:password@localhost:5432/portal_test';
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
@@ -31,7 +32,17 @@ describe('E2E Consent Flow Tests', () => {
           isGlobal: true,
           envFilePath: '.env.test',
         }),
-        MongooseModule.forRoot(mongoUri),
+        TypeOrmModule.forRoot({
+          type: 'postgres',
+          host: 'localhost',
+          port: 5432,
+          username: 'postgres',
+          password: 'password',
+          database: 'portal_test',
+          entities: [Consent, User],
+          synchronize: true,
+          dropSchema: true,
+        }),
         ConsentModule,
         AuthModule,
         JwtModule,
@@ -64,7 +75,7 @@ describe('E2E Consent Flow Tests', () => {
     app.setGlobalPrefix('portal');
     app.useGlobalPipes(new ValidationPipe());
 
-    testUserId = '60d5ec49f1a23c001c8a4d7d';
+    testUserId = '60d5ec49-f1a2-3c00-1c8a-4d7d12345678';
     validAccessToken = 'e2e-access-token';
 
     await app.init();
@@ -77,13 +88,10 @@ describe('E2E Consent Flow Tests', () => {
   });
 
   afterEach(async () => {
-    const connection = (global as any).__MONGO_CONNECTION__;
-    if (connection) {
-      const db = connection.db();
-      const collections = await db.collections();
-      for (const collection of collections) {
-        await collection.deleteMany({});
-      }
+    const dataSource = (global as any).__DATA_SOURCE__;
+    if (dataSource) {
+      await dataSource.getRepository(Consent).clear();
+      await dataSource.getRepository(User).clear();
     }
   });
 

@@ -3,8 +3,9 @@ import { AuthService } from './auth.service';
 import { JwtService } from '../jwt/jwt.service';
 import { PQCFeatureFlagsService } from '../pqc/pqc-feature-flags.service';
 import { PQCMonitoringService } from '../pqc/pqc-monitoring.service';
-import { getModelToken } from '@nestjs/mongoose';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConflictException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import { User } from '../models/User';
 import * as bcrypt from 'bcryptjs';
 
 describe('AuthService', () => {
@@ -12,14 +13,15 @@ describe('AuthService', () => {
   let userModel: any;
 
   const mockUser = {
-    _id: '507f1f77bcf86cd799439011',
+    id: '507f1f77-bcf8-6cd7-9943-9011abcdef12',
     email: 'test@example.com',
     password: '$2a$10$hashedPassword',
     failedLoginAttempts: 0,
     lockUntil: null,
     lastLoginAt: new Date(),
     refreshTokenHash: null,
-    save: jest.fn().mockResolvedValue(true),
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   beforeEach(async () => {
@@ -48,23 +50,22 @@ describe('AuthService', () => {
           },
         },
         {
-          provide: getModelToken('User'),
-          useValue: Object.assign(
-            jest.fn().mockImplementation((userData) => ({
+          provide: getRepositoryToken(User),
+          useValue: {
+            findOne: jest.fn(),
+            create: jest.fn().mockImplementation((userData) => ({
               ...mockUser,
               ...userData,
-              save: jest.fn().mockResolvedValue({ ...mockUser, ...userData }),
             })),
-            {
-              findOne: jest.fn(),
-            },
-          ),
+            save: jest.fn().mockResolvedValue(mockUser),
+            update: jest.fn().mockResolvedValue({ affected: 1 }),
+          },
         },
       ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    userModel = module.get(getModelToken('User'));
+    userModel = module.get(getRepositoryToken(User));
   });
 
   it('should be defined', () => {
@@ -97,9 +98,7 @@ describe('AuthService', () => {
     it('should login user with correct credentials', async () => {
       const loginDto = { email: 'test@example.com', password: 'password123', rememberMe: true };
 
-      userModel.findOne.mockReturnValue({
-        select: jest.fn().mockResolvedValue(mockUser),
-      });
+      userModel.findOne.mockResolvedValue(mockUser);
       jest.spyOn(bcrypt, 'compare').mockResolvedValue(true as never);
       jest.spyOn(bcrypt, 'hash').mockResolvedValue('hashedRefreshToken' as never);
 
@@ -114,9 +113,7 @@ describe('AuthService', () => {
     it('should login user without refreshToken when rememberMe is false', async () => {
       const loginDto = { email: 'test@example.com', password: 'password123', rememberMe: false };
 
-      userModel.findOne.mockReturnValue({
-        select: jest.fn().mockResolvedValue(mockUser),
-      });
+      userModel.findOne.mockResolvedValue(mockUser);
       jest.spyOn(bcrypt, 'compare').mockResolvedValue(true as never);
       jest.spyOn(bcrypt, 'hash').mockResolvedValue('hashedRefreshToken' as never);
 
@@ -131,9 +128,7 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException for invalid credentials', async () => {
       const loginDto = { email: 'test@example.com', password: 'wrongpassword', rememberMe: false };
 
-      userModel.findOne.mockReturnValue({
-        select: jest.fn().mockResolvedValue(null),
-      });
+      userModel.findOne.mockResolvedValue(null);
 
       await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
     });
@@ -142,9 +137,7 @@ describe('AuthService', () => {
       const loginDto = { email: 'test@example.com', password: 'password123', rememberMe: false };
       const lockedUser = { ...mockUser, lockUntil: new Date(Date.now() + 60000) };
 
-      userModel.findOne.mockReturnValue({
-        select: jest.fn().mockResolvedValue(lockedUser),
-      });
+      userModel.findOne.mockResolvedValue(lockedUser);
 
       await expect(service.login(loginDto)).rejects.toThrow(ForbiddenException);
     });

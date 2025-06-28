@@ -15,11 +15,13 @@
  */
 
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 
 import { AppConfigService } from './config/config.service';
+import { Consent } from './models/Consent';
+import { User } from './models/User';
 
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
@@ -37,18 +39,19 @@ import { QualityModule } from './quality/quality.module';
 @Module({
   imports: [
     ConfigModule,
-    MongooseModule.forRootAsync({
+    TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (appConfigService: AppConfigService) => {
-        const mongoUri = appConfigService.get<string>('MONGO_URI');
-        if (!mongoUri) {
-          throw new Error('MONGO_URI environment variable is not defined or invalid. Check .env and AppConfigService validation.');
+        const databaseUrl = appConfigService.get<string>('DATABASE_URL');
+        if (!databaseUrl) {
+          throw new Error('DATABASE_URL environment variable is not defined or invalid.');
         }
-
-        // REMOVED: X-Ray MongoDB capture logic from here to defer as per plan.
-
         return {
-          uri: mongoUri,
+          type: 'postgres',
+          url: databaseUrl,
+          entities: [Consent, User],
+          synchronize: process.env['NODE_ENV'] !== 'production',
+          logging: process.env['NODE_ENV'] === 'development',
         };
       },
       inject: [AppConfigService],

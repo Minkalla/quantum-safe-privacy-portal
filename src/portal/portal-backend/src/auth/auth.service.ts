@@ -16,16 +16,15 @@
  */
 
 import { Injectable, ConflictException, UnauthorizedException, ForbiddenException, Logger } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { IUser } from '../models/User';
+import { User } from '../models/User';
 import { JwtService } from '../jwt/jwt.service';
 import { PQCFeatureFlagsService } from '../pqc/pqc-feature-flags.service';
 import { PQCMonitoringService } from '../pqc/pqc-monitoring.service';
-import { ObjectId } from 'mongodb';
 
 // Brute-force protection settings
 const MAX_FAILED_ATTEMPTS = 5;
@@ -36,7 +35,8 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
-    @InjectModel('User') private readonly userModel: Model<IUser>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     private readonly jwtService: JwtService,
     private readonly pqcFeatureFlags: PQCFeatureFlagsService,
     private readonly pqcMonitoring: PQCMonitoringService,
@@ -51,20 +51,20 @@ export class AuthService {
   async register(registerDto: RegisterDto): Promise<{ userId: string; email: string }> {
     const { email, password } = registerDto;
 
-    const existingUser = await this.userModel.findOne({ email });
+    const existingUser = await this.userRepository.findOne({ where: { email } });
     if (existingUser) {
       throw new ConflictException('Email already registered');
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const newUser = new this.userModel({
+    const newUser = this.userRepository.create({
       email,
       password: hashedPassword,
     });
 
-    const savedUser = await newUser.save();
-    const userId = (savedUser._id as ObjectId).toString();
+    const savedUser = await this.userRepository.save(newUser);
+    const userId = savedUser.id;
 
     const usePQC = this.pqcFeatureFlags.isEnabled('pqc_user_registration', userId);
     if (usePQC) {
@@ -82,7 +82,7 @@ export class AuthService {
       const pqcPublicKey = this.generatePlaceholderKey('kyber768_public', userId);
       const pqcSigningKey = this.generatePlaceholderKey('dilithium3_private', userId);
 
-      await this.userModel.findByIdAndUpdate(userId, {
+      await this.userRepository.update(userId, {
         pqcPublicKey,
         pqcSigningKey,
         pqcKeyGeneratedAt: new Date(),
@@ -115,9 +115,11 @@ export class AuthService {
   async login(loginDto: LoginDto): Promise<{ accessToken: string; refreshToken?: string; user: { id: string; email: string } }> {
     const { email, password, rememberMe } = loginDto;
 
-    const user = await this.userModel
-      .findOne({ email })
-      .select('+password +failedLoginAttempts +lockUntil +refreshTokenHash');
+    const user = await this.userRepository
+      .findOne({
+        where: { email },
+        select: ['id', 'email', 'password', 'failedLoginAttempts', 'lockUntil', 'refreshTokenHash', 'lastLoginAt'],
+      });
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -137,27 +139,27 @@ export class AuthService {
         user.lockUntil = new Date(Date.now() + LOCK_TIME_MINUTES * 60 * 1000);
         user.failedLoginAttempts = 0;
       }
-      await user.save();
+      await this.userRepository.save(user);
       throw new UnauthorizedException('Invalid credentials');
     }
+
     user.failedLoginAttempts = 0;
     user.lockUntil = null;
     user.lastLoginAt = new Date();
 
-    // CHANGED: Explicitly cast user._id to ObjectId for .toString() method
-    const tokenPayload = { userId: (user._id as ObjectId).toString(), email: user.email };
+    const tokenPayload = { userId: user.id, email: user.email };
 
     const { accessToken, refreshToken } = this.jwtService.generateTokens(tokenPayload, rememberMe);
 
     const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
     user.refreshTokenHash = hashedRefreshToken;
 
-    await user.save();
+    await this.userRepository.save(user);
 
     const response: any = {
       accessToken,
       user: {
-        id: (user._id as ObjectId).toString(), // CHANGED: Explicitly cast user._id to ObjectId for .toString() method
+        id: user.id,
         email: user.email,
       },
     };

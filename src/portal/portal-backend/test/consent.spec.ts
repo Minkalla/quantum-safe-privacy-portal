@@ -16,10 +16,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
-import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConsentModule } from '../src/consent/consent.module';
 import { ConsentService } from '../src/consent/consent.service';
 import { JwtService } from '../src/jwt/jwt.service';
+import { Consent } from '../src/models/Consent';
 import { PQCFeatureFlagsService } from '../src/pqc/pqc-feature-flags.service';
 import { PQCMonitoringService } from '../src/pqc/pqc-monitoring.service';
 import { ConsentType } from '../src/consent/dto/create-consent.dto';
@@ -44,7 +45,13 @@ describe('POST /portal/consent (Integration Tests)', () => {
           isGlobal: true,
           envFilePath: '.env.test',
         }),
-        MongooseModule.forRoot(mongoUri),
+        TypeOrmModule.forRoot({
+          type: 'postgres',
+          url: (global as any).__DATABASE_URL__,
+          entities: [Consent],
+          synchronize: true,
+          dropSchema: true,
+        }),
         ConsentModule,
       ],
     })

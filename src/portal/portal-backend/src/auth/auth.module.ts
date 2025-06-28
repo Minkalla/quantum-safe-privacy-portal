@@ -16,16 +16,16 @@
  */
 
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { UserSchema } from '../models/User';
+import { User } from '../models/User';
 import { JwtModule } from '../jwt/jwt.module';
 import { PQCFeatureFlagsModule } from '../pqc/pqc-feature-flags.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]),
+    TypeOrmModule.forFeature([User]),
     JwtModule,
     PQCFeatureFlagsModule,
   ],

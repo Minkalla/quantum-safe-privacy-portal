@@ -1,24 +1,29 @@
-import { MongoMemoryServer } from 'mongodb-memory-server';
-import { MongoClient } from 'mongodb';
+import { DataSource } from 'typeorm';
+import { Consent } from '../src/models/Consent';
+import { User } from '../src/models/User';
 
-let mongoServer: MongoMemoryServer;
-let mongoConnection: MongoClient;
+let dataSource: DataSource;
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const mongoUri = mongoServer.getUri();
-  mongoConnection = new MongoClient(mongoUri);
-  await mongoConnection.connect();
+  dataSource = new DataSource({
+    type: 'postgres',
+    host: 'localhost',
+    port: 5432,
+    username: 'postgres',
+    password: 'password',
+    database: 'portal_test',
+    entities: [Consent, User],
+    synchronize: true,
+    dropSchema: true,
+  });
 
-  (global as any).__MONGO_URI__ = mongoUri;
-  (global as any).__MONGO_CONNECTION__ = mongoConnection;
+  await dataSource.initialize();
+  (global as any).__DATA_SOURCE__ = dataSource;
+  (global as any).__DATABASE_URL__ = 'postgresql://postgres:password@localhost:5432/portal_test';
 });
 
 afterAll(async () => {
-  if (mongoConnection) {
-    await mongoConnection.close();
-  }
-  if (mongoServer) {
-    await mongoServer.stop();
+  if (dataSource) {
+    await dataSource.destroy();
   }
 });
