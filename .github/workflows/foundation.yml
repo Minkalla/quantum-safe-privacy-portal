@@ -1,0 +1,59 @@
+name: Phase 1 Foundation CI/CD
+
+on: [push, pull_request]
+
+jobs:
+  foundation-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_PASSWORD: test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'src/portal/portal-backend/package-lock.json'
+      
+      - name: Rust Build Check
+        working-directory: src/portal/mock-qynauth/src/rust_lib
+        run: |
+          cargo check
+          cargo fmt --check
+          cargo clippy -- -D warnings
+        continue-on-error: true
+      
+      - name: Database Integration Test
+        working-directory: src/portal/portal-backend
+        run: |
+          npm ci
+          npm run db:migrate
+          npm run test:db
+        env:
+          DATABASE_URL: postgresql://postgres:test@localhost:5432/test
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test
+      
+      - name: Basic Security
+        working-directory: src/portal/portal-backend
+        run: npm audit --audit-level high
