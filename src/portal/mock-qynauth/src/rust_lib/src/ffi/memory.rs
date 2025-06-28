@@ -2,6 +2,7 @@ use std::alloc::{alloc, dealloc, Layout};
 use std::ffi::CString;
 use std::os::raw::c_char;
 use std::ptr;
+use libc::size_t;
 use zeroize::Zeroize;
 
 #[repr(C)]
@@ -15,6 +16,21 @@ pub enum FFIErrorCode {
     NullPointer = -5,
     InvalidKeyFormat = -6,
     SignatureVerificationFailed = -7,
+}
+
+impl std::fmt::Display for FFIErrorCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FFIErrorCode::Success => write!(f, "Success"),
+            FFIErrorCode::InvalidInput => write!(f, "Invalid input"),
+            FFIErrorCode::AllocationFailed => write!(f, "Allocation failed"),
+            FFIErrorCode::CryptoError => write!(f, "Crypto error"),
+            FFIErrorCode::BufferTooSmall => write!(f, "Buffer too small"),
+            FFIErrorCode::NullPointer => write!(f, "Null pointer"),
+            FFIErrorCode::InvalidKeyFormat => write!(f, "Invalid key format"),
+            FFIErrorCode::SignatureVerificationFailed => write!(f, "Signature verification failed"),
+        }
+    }
 }
 
 static mut LAST_FFI_ERROR: Option<CString> = None;
@@ -50,6 +66,20 @@ pub enum FFIError {
     NullPointer,
     InvalidKeyFormat,
     SignatureVerificationFailed,
+}
+
+impl std::fmt::Display for FFIError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FFIError::InvalidInput => write!(f, "Invalid input provided"),
+            FFIError::AllocationFailed => write!(f, "Memory allocation failed"),
+            FFIError::CryptoError => write!(f, "Cryptographic operation failed"),
+            FFIError::BufferTooSmall => write!(f, "Buffer too small for operation"),
+            FFIError::NullPointer => write!(f, "Null pointer encountered"),
+            FFIError::InvalidKeyFormat => write!(f, "Invalid key format"),
+            FFIError::SignatureVerificationFailed => write!(f, "Signature verification failed"),
+        }
+    }
 }
 
 impl From<FFIError> for FFIErrorCode {
@@ -95,6 +125,10 @@ impl FFIBuffer {
         })
     }
 
+    pub fn as_mut_ptr(&mut self) -> *mut u8 {
+        self.ptr
+    }
+
     pub fn as_ptr(&self) -> *mut u8 {
         self.ptr
     }
@@ -128,18 +162,10 @@ impl FFIBuffer {
         unsafe { std::slice::from_raw_parts(self.ptr, self.len) }
     }
 
-    pub fn zeroize_and_free(mut self) {
-        if !self.ptr.is_null() {
-            unsafe {
-                let slice = std::slice::from_raw_parts_mut(self.ptr, self.capacity);
-                slice.zeroize();
-                let layout = Layout::from_size_align_unchecked(self.capacity, 1);
-                dealloc(self.ptr, layout);
-            }
-            self.ptr = ptr::null_mut();
-            self.len = 0;
-            self.capacity = 0;
-        }
+    pub fn into_raw(self) -> *mut u8 {
+        let ptr = self.ptr;
+        std::mem::forget(self);
+        ptr
     }
 
     pub fn secure_free(mut self) {
@@ -185,78 +211,23 @@ pub fn validate_buffer_params(ptr: *const u8, len: usize) -> Result<(), FFIError
     Ok(())
 }
 
-pub fn validate_buffer_params_with_error(ptr: *const u8, len: usize) -> Result<(), FFIError> {
-    if ptr.is_null() {
-        set_last_ffi_error("Buffer pointer is null");
-        return Err(FFIError::NullPointer);
-    }
-    if len == 0 {
-        set_last_ffi_error("Buffer length cannot be zero");
-        return Err(FFIError::InvalidInput);
-    }
-    Ok(())
-}
-
 pub fn safe_slice_from_raw<'a>(ptr: *const u8, len: usize) -> Result<&'a [u8], FFIErrorCode> {
     validate_buffer_params(ptr, len)?;
     unsafe { Ok(std::slice::from_raw_parts(ptr, len)) }
 }
 
-pub fn safe_slice_from_raw_with_error<'a>(
-    ptr: *const u8,
-    len: usize,
-) -> Result<&'a [u8], FFIError> {
-    validate_buffer_params_with_error(ptr, len)?;
-    unsafe { Ok(std::slice::from_raw_parts(ptr, len)) }
+pub fn set_last_error(error: &str) {
+    set_last_ffi_error(error);
 }
 
-pub fn secure_allocate(size: usize) -> Result<*mut u8, FFIErrorCode> {
-    if size == 0 {
-        set_last_ffi_error("Allocation size cannot be zero");
-        return Err(FFIErrorCode::InvalidInput);
+#[no_mangle]
+pub extern "C" fn ffi_buffer_free(ptr: *mut u8, len: size_t) {
+    if !ptr.is_null() && len > 0 {
+        unsafe {
+            let layout = std::alloc::Layout::array::<u8>(len).unwrap();
+            let slice = std::slice::from_raw_parts_mut(ptr, len);
+            slice.zeroize();
+            std::alloc::dealloc(ptr, layout);
+        }
     }
-
-    let layout = Layout::from_size_align(size, 1).map_err(|_| {
-        set_last_ffi_error("Failed to create memory layout for allocation");
-        FFIErrorCode::AllocationFailed
-    })?;
-
-    let ptr = unsafe { alloc(layout) };
-    if ptr.is_null() {
-        set_last_ffi_error("Memory allocation failed - out of memory");
-        return Err(FFIErrorCode::AllocationFailed);
-    }
-
-    unsafe {
-        ptr::write_bytes(ptr, 0, size);
-    }
-
-    Ok(ptr)
-}
-
-pub fn secure_deallocate(ptr: *mut u8, size: usize) {
-    if ptr.is_null() || size == 0 {
-        return;
-    }
-
-    unsafe {
-        let slice = std::slice::from_raw_parts_mut(ptr, size);
-        slice.zeroize();
-        let layout = Layout::from_size_align_unchecked(size, 1);
-        dealloc(ptr, layout);
-    }
-}
-
-pub fn create_secure_buffer(data: &[u8]) -> Result<FFIBuffer, FFIError> {
-    let mut buffer = FFIBuffer::new(data.len())?;
-    buffer.write_data(data)?;
-    Ok(buffer)
-}
-
-pub fn copy_to_ffi_buffer(data: &[u8]) -> Result<(*mut u8, usize), FFIErrorCode> {
-    let ptr = secure_allocate(data.len())?;
-    unsafe {
-        ptr::copy_nonoverlapping(data.as_ptr(), ptr, data.len());
-    }
-    Ok((ptr, data.len()))
 }

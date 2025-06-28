@@ -56,7 +56,7 @@ pub enum PQCError {
 pub type PQCResult<T> = Result<T, PQCError>;
 
 pub mod key_management;
-pub use key_management::{HSMConfig, KeyMetadata, KeyStatistics, KeyStatus, SecureKeyManager};
+pub use key_management::{SecureKeyManager, KeyMetadata, KeyStatus, HSMConfig, KeyStatistics};
 
 pub struct PQCKeyPair {
     pub public_key: Vec<u8>,
@@ -622,8 +622,7 @@ pub unsafe extern "C" fn perform_quantum_safe_operation_placeholder(
     let input_str = String::from_utf8_lossy(input_slice);
 
     let mock_result = format!(
-        "Rust PQC Real Implementation: Received '{}' ({} bytes). ML-KEM-768 + ML-DSA-65 Ready!",
-        input_str, input_len
+        "Rust PQC Real Implementation: Received '{input_str}' ({input_len} bytes). ML-KEM-768 + ML-DSA-65 Ready!"
     );
     let c_string = CString::new(mock_result).expect("CString::new failed");
     c_string.into_raw() as *mut c_char

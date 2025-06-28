@@ -151,13 +151,10 @@ impl SecureKeyManager {
 
         self.user_keys
             .entry(user_id.to_string())
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(key_id.clone());
 
-        info!(
-            "Successfully generated and stored key {} for user {}",
-            key_id, user_id
-        );
+        info!("Successfully generated and stored key {key_id} for user {user_id}");
         Ok(key_id)
     }
 
@@ -187,10 +184,7 @@ impl SecureKeyManager {
             new_metadata.rotation_count = old_metadata.rotation_count + 1;
         }
 
-        info!(
-            "Successfully rotated key {} to new key {}",
-            key_id, new_key_id
-        );
+        info!("Successfully rotated key {key_id} to new key {new_key_id}");
         Ok(new_key_id)
     }
 
@@ -242,10 +236,9 @@ impl SecureKeyManager {
             }
         }
 
-        Err(PQCError::KeyNotFound(format!(
-            "No active {} key found for user {}",
-            algorithm, user_id
-        )))
+        Err(PQCError::KeyNotFound(
+            format!("No active {algorithm} key found for user {user_id}")
+        ))
     }
 
     pub fn get_key_by_id(&self, key_id: &str) -> PQCResult<(&PQCKeyPair, &KeyMetadata)> {
@@ -412,10 +405,7 @@ impl SecureKeyManager {
     }
 
     fn remove_key_from_hsm(&self, hsm_reference: &str) -> PQCResult<()> {
-        info!(
-            "Simulating HSM key removal for reference: {}",
-            hsm_reference
-        );
+        info!("Simulating HSM key removal for reference: {hsm_reference}");
         Ok(())
     }
 

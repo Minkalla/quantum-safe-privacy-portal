@@ -58,33 +58,31 @@ Every WBS CI pipeline includes these two lightweight jobs:
 - **Focus**: Operational excellence and maintenance procedures
 - **Key Tests**: Performance monitoring, alerting, backup/recovery
 
-## Streamlined Approval Process
+## User-Authorized Testing Process
 
-### Before PR Submission
-1. **Engineer creates minimal CI pipeline** following this streamlined strategy
-2. **Optional user notification** for complex WBS tasks only
-3. **Focus on functional delivery** over CI approval bureaucracy
+### Before Any Testing
+1. **Complete task implementation** following WBS requirements
+2. **Inform USER when task is done** - no testing without authorization
+3. **Wait for USER to provide test authorization** before running any CI
 
-### Simplified Notification Format (Optional)
+### User Authorization Required Format
 ```
-**Minimal CI Pipeline for WBS X.X.X**
+**Task Completion Notification for WBS X.X.X**
 
-Pipeline: WBS-X.X.X-minimal-vX.yml
-Objective: [Brief description]
+Implementation: [Brief description of completed work]
+Status: COMPLETE - Ready for testing
 
-**Two-Job Structure:**
-1. Typecheck & Lint: Basic code quality (5 min)
-2. Build & Test: Core functionality verification (5 min)
+**Deliverables:**
+- ✅ [Deliverable 1]
+- ✅ [Deliverable 2]
+- ✅ [Deliverable 3]
 
-**Focus Areas:**
-- ✅ Code compiles and runs
-- ✅ Core functionality works
-- 🔄 Security/performance testing deferred
-
-Total CI time: ~10 minutes (vs 45+ minutes with full pipeline)
+**Testing Request:**
+Awaiting USER authorization to run validation tests.
+No CI tests will be executed without explicit USER approval.
 ```
 
-**Philosophy**: Ship working code fast, optimize CI later.
+**Policy**: Once task is done, inform USER so USER will provide the test to run. No CI test should be run unless authorized by USER.
 
 ## Quality Gates and Pass Criteria
 
@@ -171,12 +169,12 @@ jobs:
 2. **Lint Failures**: Run `cargo fmt` and `cargo clippy` locally
 3. **Unit Test Failures**: Focus on core logic, not edge cases initially
 
-### Escalation Process (Streamlined)
-1. **First Attempt**: Fix locally with `cargo check` and `cargo test`
-2. **Second Attempt**: Check for environment-specific issues
-3. **Skip CI temporarily**: If CI blocks development, merge with manual verification and fix CI later
+### Escalation Process (User-Authorized)
+1. **Complete Implementation**: Finish all task requirements locally
+2. **Inform USER**: Notify USER of task completion and request test authorization
+3. **Wait for Authorization**: No testing until USER provides explicit approval
 
-**Priority**: Working code > Perfect CI. CI should enable development, not block it.
+**Priority**: Complete implementation > Testing. Testing only occurs with USER authorization.
 
 ## Compliance and Audit
 
@@ -214,6 +212,8 @@ jobs:
 
 ---
 
-**Philosophy**: This minimal strategy prioritizes shipping working code over perfect CI  
-**Updates**: Strategy evolves with product maturity, not bureaucratic requirements  
+**Philosophy**: This user-authorized strategy prioritizes complete implementation before any testing  
+**Updates**: No CI testing without explicit USER authorization  
 **Contact**: @ronakminkalla for questions or clarifications
+
+**CRITICAL POLICY**: Once task is done, inform USER so USER will provide the test to run. No CI test should be run unless authorized by USER.

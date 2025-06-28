@@ -340,7 +340,7 @@ mod key_management_tests {
     #[test]
     fn test_key_id_uniqueness() {
         let mut manager = create_test_manager();
-        let user_id = "test_user_uniqueness";
+            assert!(!key_ids.contains(&key_id), "Duplicate key ID generated: {key_id}");
         let mut key_ids = std::collections::HashSet::new();
 
         for i in 0..10 {
@@ -350,12 +350,8 @@ mod key_management_tests {
                 "Dilithium-3"
             };
             let key_id = manager.generate_and_store_key(user_id, algorithm).unwrap();
-
-            assert!(
-                !key_ids.contains(&key_id),
-                "Duplicate key ID generated: {}",
-                key_id
-            );
+            
+            assert!(!key_ids.contains(&key_id), "Duplicate key ID generated: {key_id}");
             key_ids.insert(key_id);
         }
 
