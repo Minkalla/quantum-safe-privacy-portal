@@ -1,8 +1,8 @@
-use crate::{PQCError, PQCResult, PQCKeyPair};
+use crate::{PQCError, PQCKeyPair, PQCResult};
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
-use log::{info, error};
 use uuid::Uuid;
 
 #[cfg(test)]
@@ -94,7 +94,7 @@ impl Default for HSMConfig {
 pub struct SecureKeyManager {
     pub keys: HashMap<String, (PQCKeyPair, KeyMetadata)>,
     user_keys: HashMap<String, Vec<String>>, // user_id -> key_ids
-    rotation_interval: u64, // seconds
+    rotation_interval: u64,                  // seconds
     hsm_config: HSMConfig,
     max_keys_per_user: usize,
 }
@@ -125,26 +125,24 @@ impl SecureKeyManager {
 
         if self.user_keys.get(user_id).map_or(0, |keys| keys.len()) >= self.max_keys_per_user {
             return Err(PQCError::KeyGenerationFailed(
-                "Maximum keys per user exceeded".to_string()
+                "Maximum keys per user exceeded".to_string(),
             ));
         }
 
         let mut metadata = KeyMetadata::new(user_id.to_string(), algorithm.to_string());
 
         let keypair = match algorithm {
-            "Kyber-768" | "ML-KEM-768" => {
-                crate::generate_mlkem_keypair()?
-            },
-            "Dilithium-3" | "ML-DSA-65" => {
-                crate::generate_mldsa_keypair()?
-            },
+            "Kyber-768" | "ML-KEM-768" => crate::generate_mlkem_keypair()?,
+            "Dilithium-3" | "ML-DSA-65" => crate::generate_mldsa_keypair()?,
             _ => return Err(PQCError::UnsupportedAlgorithm(algorithm.to_string())),
         };
 
         if self.hsm_config.enabled {
             metadata.hsm_reference = Some(self.store_key_in_hsm(&keypair, &metadata)?);
-            info!("Key {} stored in HSM with reference: {:?}",
-                  metadata.key_id, metadata.hsm_reference);
+            info!(
+                "Key {} stored in HSM with reference: {:?}",
+                metadata.key_id, metadata.hsm_reference
+            );
         }
 
         let key_id = metadata.key_id.clone();
@@ -156,33 +154,43 @@ impl SecureKeyManager {
             .or_insert_with(Vec::new)
             .push(key_id.clone());
 
-        info!("Successfully generated and stored key {} for user {}", key_id, user_id);
+        info!(
+            "Successfully generated and stored key {} for user {}",
+            key_id, user_id
+        );
         Ok(key_id)
     }
 
     pub fn rotate_key(&mut self, key_id: &str) -> PQCResult<String> {
         info!("Rotating key {}", key_id);
 
-        let (old_keypair, mut old_metadata) = self.keys.remove(key_id)
+        let (old_keypair, mut old_metadata) = self
+            .keys
+            .remove(key_id)
             .ok_or_else(|| PQCError::KeyNotFound(key_id.to_string()))?;
 
         if old_metadata.status != KeyStatus::Active {
-            return Err(PQCError::InvalidKeyState(
-                format!("Cannot rotate key in status: {:?}", old_metadata.status)
-            ));
+            return Err(PQCError::InvalidKeyState(format!(
+                "Cannot rotate key in status: {:?}",
+                old_metadata.status
+            )));
         }
 
         old_metadata.status = KeyStatus::Rotating;
-        self.keys.insert(key_id.to_string(), (old_keypair, old_metadata.clone()));
+        self.keys
+            .insert(key_id.to_string(), (old_keypair, old_metadata.clone()));
 
-        let new_key_id = self.generate_and_store_key(&old_metadata.user_id, &old_metadata.algorithm)?;
+        let new_key_id =
+            self.generate_and_store_key(&old_metadata.user_id, &old_metadata.algorithm)?;
 
         if let Some((_, new_metadata)) = self.keys.get_mut(&new_key_id) {
             new_metadata.rotation_count = old_metadata.rotation_count + 1;
         }
 
-
-        info!("Successfully rotated key {} to new key {}", key_id, new_key_id);
+        info!(
+            "Successfully rotated key {} to new key {}",
+            key_id, new_key_id
+        );
         Ok(new_key_id)
     }
 
@@ -213,27 +221,36 @@ impl SecureKeyManager {
         }
     }
 
-    pub fn get_active_key(&self, user_id: &str, algorithm: &str) -> PQCResult<(&PQCKeyPair, &KeyMetadata)> {
-        let user_key_ids = self.user_keys.get(user_id)
+    pub fn get_active_key(
+        &self,
+        user_id: &str,
+        algorithm: &str,
+    ) -> PQCResult<(&PQCKeyPair, &KeyMetadata)> {
+        let user_key_ids = self
+            .user_keys
+            .get(user_id)
             .ok_or_else(|| PQCError::KeyNotFound(format!("No keys for user {}", user_id)))?;
 
         for key_id in user_key_ids {
             if let Some((keypair, metadata)) = self.keys.get(key_id) {
-                if metadata.algorithm == algorithm &&
-                   metadata.status == KeyStatus::Active &&
-                   !metadata.is_expired() {
+                if metadata.algorithm == algorithm
+                    && metadata.status == KeyStatus::Active
+                    && !metadata.is_expired()
+                {
                     return Ok((keypair, metadata));
                 }
             }
         }
 
-        Err(PQCError::KeyNotFound(
-            format!("No active {} key found for user {}", algorithm, user_id)
-        ))
+        Err(PQCError::KeyNotFound(format!(
+            "No active {} key found for user {}",
+            algorithm, user_id
+        )))
     }
 
     pub fn get_key_by_id(&self, key_id: &str) -> PQCResult<(&PQCKeyPair, &KeyMetadata)> {
-        self.keys.get(key_id)
+        self.keys
+            .get(key_id)
             .map(|(keypair, metadata)| (keypair, metadata))
             .ok_or_else(|| PQCError::KeyNotFound(key_id.to_string()))
     }
@@ -294,8 +311,9 @@ impl SecureKeyManager {
         let mut keys_to_rotate = Vec::new();
 
         for (key_id, (_, metadata)) in &self.keys {
-            if metadata.status == KeyStatus::Active &&
-               metadata.should_rotate(self.rotation_interval) {
+            if metadata.status == KeyStatus::Active
+                && metadata.should_rotate(self.rotation_interval)
+            {
                 keys_to_rotate.push(key_id.clone());
             }
         }
@@ -304,7 +322,7 @@ impl SecureKeyManager {
             match self.rotate_key(&old_key_id) {
                 Ok(new_key_id) => {
                     rotated_keys.push((old_key_id, new_key_id));
-                },
+                }
                 Err(e) => {
                     error!("Failed to rotate key {}: {}", old_key_id, e);
                 }
@@ -316,9 +334,11 @@ impl SecureKeyManager {
     }
 
     pub fn get_user_keys(&self, user_id: &str) -> Vec<&KeyMetadata> {
-        self.user_keys.get(user_id)
+        self.user_keys
+            .get(user_id)
             .map(|key_ids| {
-                key_ids.iter()
+                key_ids
+                    .iter()
                     .filter_map(|key_id| self.keys.get(key_id).map(|(_, metadata)| metadata))
                     .collect()
             })
@@ -361,9 +381,11 @@ impl SecureKeyManager {
     }
 
     pub fn get_active_keys_for_user(&self, user_id: &str) -> Vec<&KeyMetadata> {
-        self.user_keys.get(user_id)
+        self.user_keys
+            .get(user_id)
             .map(|key_ids| {
-                key_ids.iter()
+                key_ids
+                    .iter()
                     .filter_map(|key_id| self.keys.get(key_id))
                     .map(|(_, metadata)| metadata)
                     .filter(|metadata| metadata.status == KeyStatus::Active)
@@ -377,10 +399,12 @@ impl SecureKeyManager {
             return Err(PQCError::HSMError("HSM not enabled".to_string()));
         }
 
-        let hsm_reference = format!("hsm://{}:{}/{}",
-                                   self.hsm_config.provider,
-                                   self.hsm_config.key_slot.unwrap_or(0),
-                                   metadata.key_id);
+        let hsm_reference = format!(
+            "hsm://{}:{}/{}",
+            self.hsm_config.provider,
+            self.hsm_config.key_slot.unwrap_or(0),
+            metadata.key_id
+        );
 
         info!("Simulating HSM key storage for key {}", metadata.key_id);
 
@@ -388,7 +412,10 @@ impl SecureKeyManager {
     }
 
     fn remove_key_from_hsm(&self, hsm_reference: &str) -> PQCResult<()> {
-        info!("Simulating HSM key removal for reference: {}", hsm_reference);
+        info!(
+            "Simulating HSM key removal for reference: {}",
+            hsm_reference
+        );
         Ok(())
     }
 
