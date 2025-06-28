@@ -439,16 +439,20 @@ pipeline_order:
 ### For WBS 1.2 Containerization Session
 1. **Start with**: Verify PR #41 CI passes completely (all checks green)
 2. **Build on**: Existing PostgreSQL setup in `docs/LOCAL_POSTGRESQL_SETUP.md`
-3. **Create**: Basic Dockerfiles for all three microservices (focus on functionality over optimization)
-4. **Implement**: Simple Docker Compose for local development
-5. **Basic Testing**: Ensure containers start and services communicate
-6. **Document**: Basic containerization setup guide
+3. **Implement**: Phase 1 "Fast & Functional" CI/CD pipeline for containerization
+4. **Create**: Basic Dockerfiles for all three microservices (focus on functionality over optimization)
+5. **Implement**: Simple Docker Compose for local development
+6. **Basic Testing**: Ensure containers start and services communicate
+7. **CI/CD Setup**: Basic GitHub Actions with lint, unit tests, build validation (allow failures in non-critical areas)
+8. **Document**: Basic containerization setup guide with CI/CD integration
 
 ### Critical Success Factors (Development-First Approach)
 - **PostgreSQL Foundation**: Ensure database migration is fully validated before containerization
 - **Service Functionality**: Focus on getting containers working, optimize later
 - **Development Experience**: Simple Docker setup for local development
 - **Basic Security**: Essential security practices, comprehensive hardening later
+- **Progressive CI/CD**: Implement Phase 1 pipeline - basic validation without blocking development
+- **Velocity Protection**: Use "continue-on-error: true" for non-critical checks during development phase
 
 ---
 
