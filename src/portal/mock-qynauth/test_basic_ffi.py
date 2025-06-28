@@ -11,7 +11,7 @@ try:
     
     kp = KyberKeyPair()
     print("✅ Kyber keypair generation working")
-    print(f"Public key length: {len(kp.public_key)} bytes")
+    print(f"Kyber public key length: {len(kp.public_key)} bytes")
     
     shared_secret, ciphertext = kp.encapsulate()
     print("✅ Kyber encapsulation working")
@@ -22,7 +22,23 @@ try:
     print("✅ Kyber decapsulation working")
     print(f"Secrets match: {shared_secret == recovered_secret}")
     
-    print("🎯 FFI working!")
+    dp = DilithiumKeyPair()
+    print("✅ Dilithium keypair generation working")
+    print(f"Dilithium public key length: {len(dp.public_key)} bytes")
+    
+    message = b"Hello, Quantum-Safe World!"
+    signature = dp.sign(message)
+    print("✅ Dilithium signing working")
+    print(f"Signature length: {len(signature)} bytes")
+    
+    is_valid = dp.verify(message, signature)
+    print("✅ Dilithium verification working")
+    print(f"Signature valid: {is_valid}")
+    
+    invalid_signature = dp.verify(b"Different message", signature)
+    print(f"Invalid signature correctly rejected: {not invalid_signature}")
+    
+    print("🎯 Complete FFI working!")
     
 except Exception as e:
     print(f"❌ FFI issue: {e}")

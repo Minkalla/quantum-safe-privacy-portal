@@ -63,6 +63,40 @@ lib.kyber_buffer_free.argtypes = [POINTER(ctypes.c_uint8), c_size_t]
 lib.kyber_get_last_error.restype = c_char_p
 lib.kyber_get_last_error.argtypes = []
 
+class CDilithiumKeyPair(Structure):
+    _fields_ = [
+        ("public_key_ptr", POINTER(ctypes.c_uint8)),
+        ("public_key_len", c_size_t),
+        ("secret_key_ptr", POINTER(ctypes.c_uint8)),
+        ("secret_key_len", c_size_t),
+    ]
+
+lib.dilithium_keypair_generate.restype = POINTER(CDilithiumKeyPair)
+lib.dilithium_keypair_generate.argtypes = []
+
+lib.dilithium_sign.restype = c_int
+lib.dilithium_sign.argtypes = [
+    POINTER(ctypes.c_uint8), c_size_t,  # secret_key_ptr, secret_key_len
+    POINTER(ctypes.c_uint8), c_size_t,  # message_ptr, message_len
+    POINTER(POINTER(ctypes.c_uint8)), POINTER(c_size_t),  # signature_out, signature_len_out
+]
+
+lib.dilithium_verify.restype = c_int
+lib.dilithium_verify.argtypes = [
+    POINTER(ctypes.c_uint8), c_size_t,  # public_key_ptr, public_key_len
+    POINTER(ctypes.c_uint8), c_size_t,  # message_ptr, message_len
+    POINTER(ctypes.c_uint8), c_size_t,  # signature_ptr, signature_len
+]
+
+lib.dilithium_keypair_free.restype = None
+lib.dilithium_keypair_free.argtypes = [POINTER(CDilithiumKeyPair)]
+
+lib.dilithium_buffer_free.restype = None
+lib.dilithium_buffer_free.argtypes = [POINTER(ctypes.c_uint8), c_size_t]
+
+lib.dilithium_get_last_error.restype = c_char_p
+lib.dilithium_get_last_error.argtypes = []
+
 class KyberKeyPair:
     """High-level Python interface for Kyber ML-KEM-768 operations"""
     
@@ -155,23 +189,97 @@ class KyberKeyPair:
             lib.kyber_buffer_free(shared_secret_ptr, shared_secret_len.value)
 
 class DilithiumKeyPair:
-    """Placeholder for Dilithium operations - to be implemented in WBS 2.3.2"""
+    """High-level Python interface for Dilithium ML-DSA-65 operations"""
     
     def __init__(self):
-        raise DilithiumError("Dilithium FFI not yet implemented - coming in WBS 2.3.2")
+        """Generate a new Dilithium key pair"""
+        self._keypair_ptr = lib.dilithium_keypair_generate()
+        if not self._keypair_ptr:
+            error_msg = lib.dilithium_get_last_error()
+            if error_msg:
+                raise DilithiumError(f"Key generation failed: {error_msg.decode('utf-8')}")
+            else:
+                raise DilithiumError("Key generation failed: Unknown error")
+        
+        keypair = self._keypair_ptr.contents
+        self.public_key = ctypes.string_at(keypair.public_key_ptr, keypair.public_key_len)
+        self._secret_key = ctypes.string_at(keypair.secret_key_ptr, keypair.secret_key_len)
+    
+    def __del__(self):
+        """Clean up the key pair"""
+        if hasattr(self, '_keypair_ptr') and self._keypair_ptr:
+            lib.dilithium_keypair_free(self._keypair_ptr)
+            self._keypair_ptr = None
     
     def sign(self, message: bytes) -> bytes:
-        raise DilithiumError("Dilithium FFI not yet implemented - coming in WBS 2.3.2")
+        """
+        Sign a message with the secret key
+        Args: message: bytes to sign
+        Returns: signature: bytes
+        """
+        if not self._keypair_ptr:
+            raise DilithiumError("Key pair has been freed")
+        
+        keypair = self._keypair_ptr.contents
+        message_ptr = (ctypes.c_uint8 * len(message)).from_buffer_copy(message)
+        signature_ptr = POINTER(ctypes.c_uint8)()
+        signature_len = c_size_t()
+        
+        result = lib.dilithium_sign(
+            keypair.secret_key_ptr, keypair.secret_key_len,
+            ctypes.cast(message_ptr, POINTER(ctypes.c_uint8)), len(message),
+            ctypes.byref(signature_ptr), ctypes.byref(signature_len)
+        )
+        
+        if result != 0:
+            error_msg = lib.dilithium_get_last_error()
+            if error_msg:
+                raise DilithiumError(f"Signing failed: {error_msg.decode('utf-8')}")
+            else:
+                raise DilithiumError(f"Signing failed with error code: {result}")
+        
+        try:
+            signature = ctypes.string_at(signature_ptr, signature_len.value)
+            return signature
+        finally:
+            lib.dilithium_buffer_free(signature_ptr, signature_len.value)
     
     def verify(self, message: bytes, signature: bytes) -> bool:
-        raise DilithiumError("Dilithium FFI not yet implemented - coming in WBS 2.3.2")
+        """
+        Verify a signature against a message using the public key
+        Args: message: bytes, signature: bytes
+        Returns: bool indicating if signature is valid
+        """
+        if not self._keypair_ptr:
+            raise DilithiumError("Key pair has been freed")
+        
+        keypair = self._keypair_ptr.contents
+        message_ptr = (ctypes.c_uint8 * len(message)).from_buffer_copy(message)
+        signature_ptr = (ctypes.c_uint8 * len(signature)).from_buffer_copy(signature)
+        
+        result = lib.dilithium_verify(
+            keypair.public_key_ptr, keypair.public_key_len,
+            ctypes.cast(message_ptr, POINTER(ctypes.c_uint8)), len(message),
+            ctypes.cast(signature_ptr, POINTER(ctypes.c_uint8)), len(signature)
+        )
+        
+        if result == 0:
+            return True
+        elif result == -7:  # FFIErrorCode::SignatureVerificationFailed
+            return False
+        else:
+            error_msg = lib.dilithium_get_last_error()
+            if error_msg:
+                raise DilithiumError(f"Verification failed: {error_msg.decode('utf-8')}")
+            else:
+                raise DilithiumError(f"Verification failed with error code: {result}")
 
 def generate_kyber_keypair():
     """Generate a new Kyber key pair"""
     return KyberKeyPair()
 
 def generate_dilithium_keypair():
-    """Generate a new Dilithium key pair - placeholder"""
+    """Generate a new Dilithium key pair"""
     return DilithiumKeyPair()
 
 def kyber_kem_demo():
@@ -195,8 +303,22 @@ def kyber_kem_demo():
         }
 
 def dilithium_signature_demo():
-    """Demonstrate Dilithium signature operations - placeholder"""
-    return {
-        'success': False,
-        'error': 'Dilithium FFI not yet implemented - coming in WBS 2.3.2'
-    }
+    """Demonstrate Dilithium signature operations"""
+    try:
+        dp = DilithiumKeyPair()
+        message = b"Hello, Quantum-Safe World!"
+        signature = dp.sign(message)
+        is_valid = dp.verify(message, signature)
+        
+        return {
+            'success': True,
+            'public_key_len': len(dp.public_key),
+            'signature_len': len(signature),
+            'message': message.decode('utf-8'),
+            'signature_valid': is_valid
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e)
+        }
