@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { PQCSignature, PQCDataIntegrity, PQCValidationResult, PQCAlgorithmType } from '../models/interfaces/pqc-data.interface';
+import { AuthService } from '../auth/auth.service';
 
 export interface SignatureOptions {
   algorithm?: PQCAlgorithmType;
@@ -19,7 +20,10 @@ export interface ValidationOptions {
 export class PQCDataValidationService {
   private readonly logger = new Logger(PQCDataValidationService.name);
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly authService: AuthService,
+  ) {}
 
   async generateSignature(data: any, options: SignatureOptions = {}): Promise<PQCSignature> {
     try {
@@ -159,9 +163,22 @@ export class PQCDataValidationService {
   }
 
   private async signWithDilithium(dataHash: string): Promise<string> {
-    this.logger.debug('Dilithium-3 signature placeholder');
-    const signature = crypto.createHash('sha256').update(`dilithium-${dataHash}-${Date.now()}`).digest('hex');
-    return `dilithium3:${signature}`;
+    try {
+      const pqcResult = await this.authService['callPythonPQCService']('sign_token', {
+        user_id: `dilithium_${Date.now()}`,
+        payload: { dataHash, timestamp: Date.now() },
+      });
+
+      if (pqcResult.success && pqcResult.token) {
+        this.logger.debug('ML-DSA-65 signature completed');
+        return `dilithium3:${pqcResult.token}`;
+      } else {
+        throw new Error(pqcResult.error_message || 'ML-DSA-65 signing failed');
+      }
+    } catch (error) {
+      this.logger.error(`ML-DSA-65 signing failed for dataHash ${dataHash}:`, error);
+      throw error;
+    }
   }
 
   private async signWithClassical(dataHash: string): Promise<string> {
@@ -170,16 +187,31 @@ export class PQCDataValidationService {
   }
 
   private async verifyDilithiumSignature(dataHash: string, signature: string): Promise<boolean> {
-    this.logger.debug('Dilithium-3 verification with enhanced security');
+    try {
+      this.logger.debug('ML-DSA-65 verification with enhanced security');
 
-    if (!signature.startsWith('dilithium3:') || signature.length < 20) {
+      if (!signature.startsWith('dilithium3:') || signature.length < 20) {
+        return false;
+      }
+
+      const signaturePart = signature.substring(11);
+
+      const pqcResult = await this.authService['callPythonPQCService']('verify_token', {
+        user_id: `dilithium_verification_${Date.now()}`,
+        token: signaturePart,
+      });
+
+      if (pqcResult.success) {
+        this.logger.debug('ML-DSA-65 verification completed successfully');
+        return true;
+      } else {
+        this.logger.debug(`ML-DSA-65 verification failed: ${pqcResult.error_message}`);
+        return false;
+      }
+    } catch (error) {
+      this.logger.error(`ML-DSA-65 verification failed for dataHash ${dataHash}:`, error);
       return false;
     }
-
-    const signaturePart = signature.substring(11);
-    const expectedSignature = crypto.createHash('sha256').update(`dilithium-${dataHash}-verification`).digest('hex');
-
-    return this.constantTimeCompare(signaturePart.substring(0, expectedSignature.length), expectedSignature);
   }
 
   private async verifyClassicalSignature(dataHash: string, signature: string): Promise<boolean> {

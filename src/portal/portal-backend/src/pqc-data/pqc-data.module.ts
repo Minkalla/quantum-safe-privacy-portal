@@ -11,10 +11,12 @@ import { ConsentPQCRepository } from '../repositories/consent-pqc.repository';
 import { DataMigrationService } from '../services/data-migration.service';
 import { DataAccessPerformanceService } from '../services/data-access-performance.service';
 import { PQCDataController } from '../controllers/pqc-data.controller';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
     ConfigModule,
+    AuthModule,
     MongooseModule.forFeature([
       { name: Consent.name, schema: ConsentSchema },
     ]),

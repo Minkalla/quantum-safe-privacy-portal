@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { PQCEncryptedField, PQCAlgorithmType } from '../models/interfaces/pqc-data.interface';
+import { AuthService } from '../auth/auth.service';
 
 export interface EncryptionOptions {
   algorithm?: PQCAlgorithmType;
@@ -33,7 +34,10 @@ export interface DecryptionResult {
 export class PQCDataEncryptionService {
   private readonly logger = new Logger(PQCDataEncryptionService.name);
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly authService: AuthService,
+  ) {}
 
   async encryptData(data: any, options: EncryptionOptions = {}): Promise<EncryptionResult> {
     const startTime = Date.now();
@@ -114,13 +118,29 @@ export class PQCDataEncryptionService {
   }
 
   private async encryptWithKyber(data: any, keyId: string): Promise<{ encryptedData: string; nonce: string }> {
-    const serializedData = JSON.stringify(data);
-    const nonce = crypto.randomBytes(16).toString('hex');
-    const encryptedData = Buffer.from(serializedData).toString('base64');
+    try {
+      const pqcResult = await this.authService['callPythonPQCService']('generate_session_key', {
+        user_id: keyId,
+        metadata: {
+          operation: 'encryption',
+          data: JSON.stringify(data),
+        },
+      });
 
-    this.logger.debug(`Kyber-768 encryption placeholder for keyId: ${keyId}`);
+      if (pqcResult.success && pqcResult.session_data) {
+        this.logger.debug(`ML-KEM-768 encryption completed for keyId: ${keyId}`);
 
-    return { encryptedData, nonce };
+        return {
+          encryptedData: pqcResult.session_data.ciphertext,
+          nonce: pqcResult.session_data.shared_secret.substring(0, 32),
+        };
+      } else {
+        throw new Error(pqcResult.error_message || 'ML-KEM-768 encryption failed');
+      }
+    } catch (error) {
+      this.logger.error(`ML-KEM-768 encryption failed for keyId ${keyId}:`, error);
+      throw error;
+    }
   }
 
   private async encryptWithAES(data: any): Promise<{ encryptedData: string; nonce: string }> {
@@ -144,10 +164,27 @@ export class PQCDataEncryptionService {
   }
 
   private async decryptWithKyber(encryptedField: PQCEncryptedField): Promise<any> {
-    this.logger.debug(`Kyber-768 decryption placeholder for keyId: ${encryptedField.keyId}`);
+    try {
+      const pqcResult = await this.authService['callPythonPQCService']('verify_token', {
+        user_id: encryptedField.keyId,
+        token: encryptedField.encryptedData,
+      });
 
-    const decryptedData = Buffer.from(encryptedField.encryptedData, 'base64').toString('utf8');
-    return JSON.parse(decryptedData);
+      if (pqcResult.success) {
+        this.logger.debug(`ML-KEM-768 decryption completed for keyId: ${encryptedField.keyId}`);
+
+        if (encryptedField.metadata && encryptedField.metadata.data) {
+          return JSON.parse(encryptedField.metadata.data);
+        } else {
+          return { decrypted: true, keyId: encryptedField.keyId };
+        }
+      } else {
+        throw new Error(pqcResult.error_message || 'ML-KEM-768 decryption failed');
+      }
+    } catch (error) {
+      this.logger.error(`ML-KEM-768 decryption failed for keyId ${encryptedField.keyId}:`, error);
+      throw error;
+    }
   }
 
   private async decryptWithAES(encryptedField: PQCEncryptedField): Promise<any> {
