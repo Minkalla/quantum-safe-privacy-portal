@@ -44,9 +44,13 @@ export interface PQCAuthResult {
 export interface HybridAuthConfig {
   enableClassical: boolean;
   enablePQC: boolean;
+  pqcEnabled: boolean;
+  classicalFallback: boolean;
+  hybridMode: boolean;
   preferredMode: AuthenticationMode;
   fallbackToClassical: boolean;
   pqcThreshold: number;
+  supportedAlgorithms: PQCAlgorithm[];
 }
 
 export interface AuthenticationRequest {

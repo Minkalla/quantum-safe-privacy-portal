@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
 import { spawn } from 'child_process';
 import * as path from 'path';
-import { PQCLoginDto, PQCRegisterDto } from './dto/pqc-auth.dto';
+import { PQCLoginDto, PQCRegisterDto, PQCTokenVerificationDto } from './dto/pqc-auth.dto';
 import { IUser } from '../models/User';
 import { JwtService } from '../jwt/jwt.service';
 import { PQCFeatureFlagsService } from '../pqc/pqc-feature-flags.service';
@@ -27,9 +27,13 @@ export class EnhancedAuthService {
   private readonly hybridConfig: HybridAuthConfig = {
     enableClassical: true,
     enablePQC: true,
+    pqcEnabled: true,
+    classicalFallback: true,
+    hybridMode: true,
     preferredMode: AuthenticationMode.HYBRID,
     fallbackToClassical: true,
     pqcThreshold: 0.8,
+    supportedAlgorithms: [PQCAlgorithm.KYBER_768, PQCAlgorithm.DILITHIUM_3],
   };
 
   constructor(
@@ -322,8 +326,39 @@ export class EnhancedAuthService {
     });
   }
 
-  async verifyPQCToken(token: string, userId: string): Promise<PQCAuthResult> {
+  async verifyPQCToken(verificationDto: PQCTokenVerificationDto): Promise<PQCAuthResult> {
+    const { token, userId } = verificationDto;
+    
     try {
+      if (!this.validateTokenStructure(token)) {
+        return {
+          success: false,
+          errorMessage: 'Invalid token structure',
+        };
+      }
+
+      if (!this.isPQCToken(token)) {
+        return {
+          success: false,
+          errorMessage: 'Token is not a PQC token',
+        };
+      }
+
+      if (!this.validateTokenExpiry(token)) {
+        return {
+          success: false,
+          errorMessage: 'Token expired',
+        };
+      }
+
+      const signatureValid = await this.verifyPQCSignature(token, userId);
+      if (!signatureValid) {
+        return {
+          success: false,
+          errorMessage: 'Signature verification failed',
+        };
+      }
+
       const result = await this.callPythonPQCService('verify_token', {
         token,
         user_id: userId,
@@ -339,8 +374,87 @@ export class EnhancedAuthService {
     }
   }
 
+  private validateTokenStructure(token: string): boolean {
+    try {
+      const parsed = JSON.parse(token);
+      const requiredFields = ['userId', 'email', 'sessionId', 'algorithm', 'pqc', 'keyId', 'iat', 'exp'];
+      
+      return requiredFields.every(field => field in parsed);
+    } catch (error) {
+      return false;
+    }
+  }
+
+  private isPQCToken(token: string): boolean {
+    try {
+      const parsed = JSON.parse(token);
+      return parsed.pqc === true && parsed.algorithm && parsed.keyId;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  private validateTokenExpiry(token: string): boolean {
+    try {
+      const parsed = JSON.parse(token);
+      const now = Math.floor(Date.now() / 1000);
+      return parsed.exp && parsed.exp > now;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  private async verifyPQCSignature(token: string, userId: string): Promise<boolean> {
+    try {
+      const result = await this.callPythonPQCService('verify_signature', {
+        token,
+        user_id: userId,
+      });
+      
+      return result.success && result.signatureValid;
+    } catch (error) {
+      this.logger.error('PQC signature verification failed:', error);
+      return false;
+    }
+  }
+
+  private async validatePQCToken(token: string, userId: string): Promise<boolean> {
+    return this.validateTokenStructure(token) && 
+           this.isPQCToken(token) && 
+           this.validateTokenExpiry(token) &&
+           await this.verifyPQCSignature(token, userId);
+  }
+
+  private async verifySignature(token: string, userId: string): Promise<boolean> {
+    return await this.verifyPQCSignature(token, userId);
+  }
+
+  private checkTokenExpiry(token: string): boolean {
+    return this.validateTokenExpiry(token);
+  }
+
+  private isTokenExpired(token: string): boolean {
+    return !this.validateTokenExpiry(token);
+  }
+
   getHybridConfig(): HybridAuthConfig {
-    return { ...this.hybridConfig };
+    const config = { ...this.hybridConfig };
+    
+    if (this.pqcFeatureFlags) {
+      config.pqcEnabled = this.pqcFeatureFlags.isEnabled('pqc_authentication') && config.enablePQC;
+      config.classicalFallback = config.fallbackToClassical;
+      config.hybridMode = config.preferredMode === AuthenticationMode.HYBRID;
+    }
+    
+    return config;
+  }
+
+  isPQCEnabled(): boolean {
+    return this.hybridConfig.pqcEnabled && this.pqcFeatureFlags?.isEnabled('pqc_authentication');
+  }
+
+  get featureFlags() {
+    return this.pqcFeatureFlags;
   }
 
   updateHybridConfig(config: Partial<HybridAuthConfig>): void {

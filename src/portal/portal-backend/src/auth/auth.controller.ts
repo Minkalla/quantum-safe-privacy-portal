@@ -318,11 +318,11 @@ export class AuthController {
   @ApiBody({ type: PQCTokenVerificationDto })
   @ApiResponse({ status: 200, description: 'Token verification result.' })
   @ApiResponse({ status: 400, description: 'Validation failed.' })
+  @ApiResponse({ status: 401, description: 'Invalid token.' })
+  @ApiResponse({ status: 403, description: 'Token expired.' })
+  @ApiResponse({ status: 401, description: 'Signature verification failed.' })
   async verifyPQCToken(@Body() verificationDto: PQCTokenVerificationDto) {
-    const result = await this.enhancedAuthService.verifyPQCToken(
-      verificationDto.token,
-      verificationDto.userId
-    );
+    const result = await this.enhancedAuthService.verifyPQCToken(verificationDto);
 
     return {
       message: 'Token verification completed',
