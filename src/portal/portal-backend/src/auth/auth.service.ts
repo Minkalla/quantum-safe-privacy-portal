@@ -189,43 +189,109 @@ export class AuthService {
 
   /**
    * Call Python PQC service for enhanced cryptographic operations
+   * Implements secure parameter handling to prevent command injection
    */
   private async callPythonPQCService(operation: string, params: any): Promise<any> {
     const { spawn } = require('child_process');
     const path = require('path');
+    const fs = require('fs');
+    const os = require('os');
+
+    const allowedOperations = ['generate_session_key', 'sign_token', 'verify_token', 'get_status'];
+    if (!allowedOperations.includes(operation)) {
+      throw new Error(`Invalid operation: ${operation}`);
+    }
+
+    const sanitizedParams = this.sanitizePQCParams(params);
 
     return new Promise((resolve, reject) => {
       const pythonScriptPath = path.join(__dirname, '../../../mock-qynauth/src/python_app/pqc_service_bridge.py');
-      const pythonProcess = spawn('python3', [pythonScriptPath, operation, JSON.stringify(params)]);
+      
+      const tempFile = path.join(os.tmpdir(), `pqc_params_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.json`);
+      
+      try {
+        fs.writeFileSync(tempFile, JSON.stringify(sanitizedParams), { mode: 0o600 });
+        
+        const pythonProcess = spawn('python3', [pythonScriptPath, operation, tempFile], {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          shell: false // Explicitly disable shell to prevent injection
+        });
 
-      let stdout = '';
-      let stderr = '';
+        let stdout = '';
+        let stderr = '';
 
-      pythonProcess.stdout.on('data', (data) => {
-        stdout += data.toString();
-      });
+        pythonProcess.stdout.on('data', (data) => {
+          stdout += data.toString();
+        });
 
-      pythonProcess.stderr.on('data', (data) => {
-        stderr += data.toString();
-      });
+        pythonProcess.stderr.on('data', (data) => {
+          stderr += data.toString();
+        });
 
-      pythonProcess.on('close', (code) => {
-        if (code === 0) {
+        pythonProcess.on('close', (code) => {
           try {
-            const result = JSON.parse(stdout);
-            resolve(result);
-          } catch (parseError: any) {
-            reject(new Error(`Failed to parse Python service response: ${parseError.message}`));
+            fs.unlinkSync(tempFile);
+          } catch (cleanupError) {
+            this.logger.warn(`Failed to cleanup temp file: ${cleanupError.message}`);
           }
-        } else {
-          reject(new Error(`Python PQC service failed with code ${code}: ${stderr}`));
-        }
-      });
 
-      pythonProcess.on('error', (error) => {
-        reject(new Error(`Failed to spawn Python process: ${error.message}`));
-      });
+          if (code === 0) {
+            try {
+              const result = JSON.parse(stdout);
+              resolve(result);
+            } catch (parseError: any) {
+              reject(new Error(`Failed to parse Python service response: ${parseError.message}`));
+            }
+          } else {
+            reject(new Error(`Python PQC service failed with code ${code}: ${stderr}`));
+          }
+        });
+
+        pythonProcess.on('error', (error) => {
+          try {
+            fs.unlinkSync(tempFile);
+          } catch (cleanupError) {
+            this.logger.warn(`Failed to cleanup temp file: ${cleanupError.message}`);
+          }
+          reject(new Error(`Failed to spawn Python process: ${error.message}`));
+        });
+      } catch (fileError: any) {
+        reject(new Error(`Failed to create secure parameter file: ${fileError.message}`));
+      }
     });
+  }
+
+  /**
+   * Sanitize PQC service parameters to prevent injection attacks
+   */
+  private sanitizePQCParams(params: any): any {
+    if (!params || typeof params !== 'object') {
+      return {};
+    }
+
+    const sanitized: any = {};
+    const allowedFields = ['user_id', 'payload', 'token', 'metadata', 'operation_id'];
+    
+    for (const [key, value] of Object.entries(params)) {
+      if (!allowedFields.includes(key)) {
+        continue;
+      }
+
+      if (typeof value === 'string') {
+        const sanitizedValue = value
+          .replace(/[;&|`$(){}[\]\\]/g, '') // Remove shell metacharacters
+          .replace(/\x00/g, '') // Remove null bytes
+          .trim();
+        
+        sanitized[key] = sanitizedValue.substring(0, 1000);
+      } else if (typeof value === 'object' && value !== null) {
+        sanitized[key] = this.sanitizePQCParams(value);
+      } else if (typeof value === 'number' || typeof value === 'boolean') {
+        sanitized[key] = value;
+      }
+    }
+
+    return sanitized;
   }
 
   /**
