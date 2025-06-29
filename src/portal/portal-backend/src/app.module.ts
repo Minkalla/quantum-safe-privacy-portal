@@ -44,7 +44,9 @@ import { CryptoServicesModule } from './services/crypto-services.module';
       useFactory: async (appConfigService: AppConfigService) => {
         const mongoUri = appConfigService.get<string>('MONGO_URI');
         if (!mongoUri) {
-          throw new Error('MONGO_URI environment variable is not defined or invalid. Check .env and AppConfigService validation.');
+          throw new Error(
+            'MONGO_URI environment variable is not defined or invalid. Check .env and AppConfigService validation.',
+          );
         }
 
         // REMOVED: X-Ray MongoDB capture logic from here to defer as per plan.
