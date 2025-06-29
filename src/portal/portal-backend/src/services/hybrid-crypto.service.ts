@@ -117,20 +117,20 @@ export class HybridCryptoService {
     const now = Date.now();
 
     switch (this.circuitBreaker.state) {
-      case 'OPEN':
-        if (now - this.circuitBreaker.lastFailureTime > this.config.circuitBreakerTimeout) {
-          this.circuitBreaker.state = 'HALF_OPEN';
-          this.logger.log('Circuit breaker transitioning to HALF_OPEN');
-          return true;
-        }
-        return false;
-
-      case 'HALF_OPEN':
-      case 'CLOSED':
+    case 'OPEN':
+      if (now - this.circuitBreaker.lastFailureTime > this.config.circuitBreakerTimeout) {
+        this.circuitBreaker.state = 'HALF_OPEN';
+        this.logger.log('Circuit breaker transitioning to HALF_OPEN');
         return true;
+      }
+      return false;
 
-      default:
-        return false;
+    case 'HALF_OPEN':
+    case 'CLOSED':
+      return true;
+
+    default:
+      return false;
     }
   }
 
@@ -181,7 +181,8 @@ export class HybridCryptoService {
   }
 
   private async encryptRSA(data: string, publicKey?: string): Promise<string> {
-    const key = publicKey || this.generateDefaultRSAKey();
+    const keyPair = this.getOrGenerateRSAKeyPair();
+    const key = publicKey || keyPair.publicKey;
     const buffer = Buffer.from(data, 'utf8');
     const encrypted = crypto.publicEncrypt(
       {
@@ -195,7 +196,8 @@ export class HybridCryptoService {
   }
 
   private async decryptRSA(ciphertext: string, privateKey?: string): Promise<string> {
-    const key = privateKey || this.generateDefaultRSAKey();
+    const keyPair = this.getOrGenerateRSAKeyPair();
+    const key = privateKey || keyPair.privateKey;
     const buffer = Buffer.from(ciphertext, 'base64');
     const decrypted = crypto.privateDecrypt(
       {
@@ -242,13 +244,17 @@ export class HybridCryptoService {
     }
   }
 
-  private generateDefaultRSAKey(): string {
-    const { publicKey } = crypto.generateKeyPairSync('rsa', {
-      modulusLength: this.config.rsaKeySize,
-      publicKeyEncoding: { type: 'spki', format: 'pem' },
-      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
-    });
-    return publicKey;
+  private rsaKeyPair: { publicKey: string; privateKey: string } | null = null;
+
+  private getOrGenerateRSAKeyPair(): { publicKey: string; privateKey: string } {
+    if (!this.rsaKeyPair) {
+      this.rsaKeyPair = crypto.generateKeyPairSync('rsa', {
+        modulusLength: this.config.rsaKeySize,
+        publicKeyEncoding: { type: 'spki', format: 'pem' },
+        privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+      });
+    }
+    return this.rsaKeyPair;
   }
 
   getCircuitBreakerStatus(): CircuitBreakerState {
