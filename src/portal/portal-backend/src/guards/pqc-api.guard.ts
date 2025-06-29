@@ -33,13 +33,23 @@ export class PQCApiGuard implements CanActivate {
     }
 
     try {
-      const mockSession = {
-        userId: 'mock-user-id',
+      const tokenVerificationResult = await this.enhancedAuthService.verifyPQCToken({
+        token: sessionToken,
+        userId: 'token_verification',
+      });
+      
+      if (!tokenVerificationResult.success) {
+        throw new UnauthorizedException(`Invalid PQC session: ${tokenVerificationResult.errorMessage}`);
+      }
+
+      const tokenPayload = JSON.parse(sessionToken);
+      const session = {
+        userId: tokenPayload.userId,
         valid: true,
-        expiresAt: new Date(Date.now() + 3600000),
+        expiresAt: new Date(tokenPayload.exp * 1000),
       };
-      const session = mockSession;
-      if (!session) {
+      
+      if (!session || !session.valid) {
         throw new UnauthorizedException('Invalid PQC session');
       }
 
