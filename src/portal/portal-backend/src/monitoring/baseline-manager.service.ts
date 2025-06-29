@@ -281,11 +281,11 @@ export class BaselineManagerService {
     checkOperation('ML-DSA Verification', currentMetrics.mldsaVerifyLatency, this.pqcSLAThresholds.mldsaVerify);
 
     if (currentMetrics.errorRate > this.pqcSLAThresholds.errorRate.emergency) {
-      violations.push({ 
-        operation: 'Error Rate', 
-        severity: 'emergency', 
-        current: currentMetrics.errorRate * 100, 
-        threshold: this.pqcSLAThresholds.errorRate.emergency * 100 
+      violations.push({
+        operation: 'Error Rate',
+        severity: 'emergency',
+        current: currentMetrics.errorRate * 100,
+        threshold: this.pqcSLAThresholds.errorRate.emergency * 100,
       });
       shouldRollback = true;
     }

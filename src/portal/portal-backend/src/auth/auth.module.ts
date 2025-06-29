@@ -19,6 +19,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { EnhancedAuthService } from './enhanced-auth.service';
 import { UserSchema } from '../models/User';
 import { JwtModule } from '../jwt/jwt.module';
 import { PQCFeatureFlagsModule } from '../pqc/pqc-feature-flags.module';
@@ -30,7 +31,7 @@ import { PQCFeatureFlagsModule } from '../pqc/pqc-feature-flags.module';
     PQCFeatureFlagsModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService],
-  exports: [AuthService],
+  providers: [AuthService, EnhancedAuthService],
+  exports: [AuthService, EnhancedAuthService],
 })
 export class AuthModule {}

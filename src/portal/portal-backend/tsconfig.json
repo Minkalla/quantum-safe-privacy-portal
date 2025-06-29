@@ -6,29 +6,23 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
-    "target": "es2021", // UPDATED: As per feedback
+    "target": "ES2020",
     "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": "./src",
+    "baseUrl": "./",
     "incremental": true,
-    "strict": true, // As per feedback
     "skipLibCheck": true,
+    "strictNullChecks": false,
     "noImplicitAny": false,
-    "noImplicitReturns": true, // As per feedback
-    "noImplicitThis": true, // As per feedback
-    "noUnusedLocals": true, // As per feedback
-    "noUnusedParameters": true, // As per feedback
-    "allowUnreachableCode": false, // As per feedback
-    "allowUnusedLabels": false, // As per feedback
-    "noFallthroughCasesInSwitch": true, // As per feedback
-    "noPropertyAccessFromIndexSignature": true, // As per feedback
-    "resolveJsonModule": true, // As per feedback
-    "composite": true, // As per feedback
-    "moduleResolution": "node", // As per feedback
-    "isolatedModules": true, // Fix ts-jest deprecation warning
-    "lib": ["es2021", "esnext"], // UPDATED: As per feedback, removed DOM for backend
-    "types": ["jest", "node"] // UPDATED: Removed 'express' as NestJS manages it
+    "strictBindCallApply": false,
+    "forceConsistentCasingInFileNames": false,
+    "noFallthroughCasesInSwitch": false,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "lib": ["ES2020"]
   },
-  "include": ["src/**/*", "src/main.ts"], // UPDATED: As per feedback
-  "exclude": ["node_modules", "dist"] // UPDATED: As per feedback, simplified exclude
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

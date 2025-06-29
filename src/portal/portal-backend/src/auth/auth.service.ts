@@ -113,16 +113,16 @@ export class AuthService {
   async generatePQCToken(userId: string): Promise<any> {
     try {
       this.logger.log(`Generating PQC token for user: ${userId}`);
-      
+
       const startTime = Date.now();
-      
+
       let pqcResult;
       try {
         pqcResult = await this.callPythonPQCService('generate_session_key', { user_id: userId });
-        
+
         if (pqcResult.success) {
           this.logger.log(`Enhanced PQC session key generated for user: ${userId}`);
-          
+
           const payload = {
             sub: userId,
             pqc: true,
@@ -130,7 +130,7 @@ export class AuthService {
             session_id: pqcResult.session_data?.session_id,
             keyId: pqcResult.session_data?.public_key_hash,
             iat: Math.floor(Date.now() / 1000),
-            exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour
+            exp: Math.floor(Date.now() / 1000) + (60 * 60), // 1 hour
           };
 
           await this.pqcMonitoring.recordPQCKeyGeneration(userId, startTime, true);
@@ -140,7 +140,7 @@ export class AuthService {
             pqc_enabled: true,
             algorithm: pqcResult.algorithm,
             session_data: pqcResult.session_data,
-            performance_metrics: pqcResult.performance_metrics
+            performance_metrics: pqcResult.performance_metrics,
           };
         }
       } catch (pythonError: any) {
@@ -152,7 +152,7 @@ export class AuthService {
         privateKey: this.generatePlaceholderKey('kyber768_private', userId),
         algorithm: 'Kyber-768',
         keySize: 1184,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       const payload = {
@@ -161,13 +161,13 @@ export class AuthService {
         algorithm: 'Kyber-768',
         keyId: pqcKeyData.publicKey.substring(0, 16),
         iat: Math.floor(Date.now() / 1000),
-        exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour
+        exp: Math.floor(Date.now() / 1000) + (60 * 60), // 1 hour
       };
 
       await this.pqcMonitoring.recordPQCKeyGeneration(userId, startTime, true);
 
       this.logger.log(`PQC token generated successfully for user: ${userId} (fallback mode)`);
-      
+
       return {
         access_token: payload,
         pqc_enabled: true,
@@ -175,9 +175,9 @@ export class AuthService {
         key_metadata: {
           algorithm: pqcKeyData.algorithm,
           keySize: pqcKeyData.keySize,
-          timestamp: pqcKeyData.timestamp
+          timestamp: pqcKeyData.timestamp,
         },
-        fallback_used: true
+        fallback_used: true,
       };
 
     } catch (error) {
@@ -193,22 +193,22 @@ export class AuthService {
   private async callPythonPQCService(operation: string, params: any): Promise<any> {
     const { spawn } = require('child_process');
     const path = require('path');
-    
+
     return new Promise((resolve, reject) => {
       const pythonScriptPath = path.join(__dirname, '../../../mock-qynauth/src/python_app/pqc_service_bridge.py');
       const pythonProcess = spawn('python3', [pythonScriptPath, operation, JSON.stringify(params)]);
-      
+
       let stdout = '';
       let stderr = '';
-      
+
       pythonProcess.stdout.on('data', (data) => {
         stdout += data.toString();
       });
-      
+
       pythonProcess.stderr.on('data', (data) => {
         stderr += data.toString();
       });
-      
+
       pythonProcess.on('close', (code) => {
         if (code === 0) {
           try {
@@ -221,7 +221,7 @@ export class AuthService {
           reject(new Error(`Python PQC service failed with code ${code}: ${stderr}`));
         }
       });
-      
+
       pythonProcess.on('error', (error) => {
         reject(new Error(`Failed to spawn Python process: ${error.message}`));
       });

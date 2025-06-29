@@ -273,7 +273,7 @@ export class PQCMonitoringService {
     report: string;
   }> {
     const violations: Array<{ metric: string; current: number; target: number; severity: string }> = [];
-    
+
     const slaTargets = {
       mlkemKeyGenLatency: 50,
       mlkemEncapLatency: 25,
@@ -293,7 +293,7 @@ export class PQCMonitoringService {
     }
 
     const report = this.generateSLAComplianceReport(violations);
-    
+
     return {
       compliant: violations.length === 0,
       violations,
@@ -310,7 +310,7 @@ export class PQCMonitoringService {
       report += 'All Post-Quantum Cryptography operations are performing within SLA targets.\n\n';
     } else {
       report += `⚠️ SLA VIOLATIONS DETECTED: ${violations.length}\n\n`;
-      
+
       violations.forEach(violation => {
         const emoji = violation.severity === 'emergency' ? '🚨' : violation.severity === 'critical' ? '⚠️' : '📊';
         report += `${emoji} ${violation.metric}: ${violation.current}ms (target: ${violation.target}ms) - ${violation.severity.toUpperCase()}\n`;
