@@ -5,7 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "src" / "python_app"))
 
 try:
-    from pqc_bindings import (
+    from pqc_bindings.utils import (
         secure_buffer, get_last_error, get_kyber_last_error, get_dilithium_last_error,
         kyber_keypair_context, dilithium_keypair_context, safe_bytes_to_ctypes,
         validate_key_sizes

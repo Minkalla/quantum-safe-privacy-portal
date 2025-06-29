@@ -1,5 +1,7 @@
 import time
-from pqc_bindings import PQCLibraryV2, KyberKeyPair, DilithiumKeyPair
+from pqc_bindings.legacy import LegacyPQCLibraryV2 as PQCLibraryV2
+from pqc_bindings.kyber import KyberKeyPair
+from pqc_bindings.dilithium import DilithiumKeyPair
 
 def test_crypto_operations():
     """Test individual crypto operations to isolate the issue"""

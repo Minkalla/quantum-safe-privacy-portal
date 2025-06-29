@@ -13,6 +13,9 @@ from pathlib import Path
 python_app_path = str(Path(__file__).parent / "src" / "python_app")
 sys.path.insert(0, python_app_path)
 
+pqc_bindings_path = str(Path(__file__).parent / "src" / "python_app" / "pqc_bindings")
+sys.path.insert(0, pqc_bindings_path)
+
 parent_path = str(Path(__file__).parent)
 if parent_path not in sys.path:
     sys.path.insert(0, parent_path)
@@ -43,6 +46,13 @@ class WBS31FinalTest:
             from pqc_bindings.kyber import KyberKeyPair
             from pqc_bindings.dilithium import DilithiumKeyPair
             from pqc_bindings.legacy import LegacyPQCLibraryV2 as PQCLibraryV2
+        except ImportError:
+            try:
+                from kyber import KyberKeyPair
+                from dilithium import DilithiumKeyPair
+                from legacy import LegacyPQCLibraryV2 as PQCLibraryV2
+            except ImportError:
+                from pqc_bindings import PQCLibraryV2, KyberKeyPair, DilithiumKeyPair
             
             lib = PQCLibraryV2()
             
@@ -94,6 +104,13 @@ class WBS31FinalTest:
             from pqc_bindings.kyber import KyberKeyPair
             from pqc_bindings.dilithium import DilithiumKeyPair
             from pqc_bindings.legacy import LegacyPQCLibraryV2 as PQCLibraryV2
+        except ImportError:
+            try:
+                from kyber import KyberKeyPair
+                from dilithium import DilithiumKeyPair
+                from legacy import LegacyPQCLibraryV2 as PQCLibraryV2
+            except ImportError:
+                from pqc_bindings import PQCLibraryV2, KyberKeyPair, DilithiumKeyPair
             
             lib = PQCLibraryV2()
             kyber_kp = KyberKeyPair(lib)
@@ -133,6 +150,13 @@ class WBS31FinalTest:
             from pqc_bindings.kyber import KyberKeyPair
             from pqc_bindings.dilithium import DilithiumKeyPair
             from pqc_bindings.legacy import LegacyPQCLibraryV2 as PQCLibraryV2
+        except ImportError:
+            try:
+                from kyber import KyberKeyPair
+                from dilithium import DilithiumKeyPair
+                from legacy import LegacyPQCLibraryV2 as PQCLibraryV2
+            except ImportError:
+                from pqc_bindings import PQCLibraryV2, KyberKeyPair, DilithiumKeyPair
             
             lib = PQCLibraryV2()
             
@@ -271,6 +295,10 @@ class WBS31FinalTest:
             print("🚀 Ready for WBS 3.2: Authentication System Updates")
         else:
             print(f"\n⚠️  WBS 3.1: {len(tests) - passed_tests} tests need attention")
+            print("🔧 Failed test details:")
+            for result in self.results:
+                if not result['passed']:
+                    print(f"   ❌ {result['test']}: {result['details']}")
             print("🔧 Review test details above for specific issues")
         
         print("=" * 75)
