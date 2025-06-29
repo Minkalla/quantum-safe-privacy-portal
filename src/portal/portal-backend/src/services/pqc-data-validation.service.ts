@@ -1,13 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
-import { PQCSignature, PQCDataIntegrity, PQCValidationResult, PQCAlgorithmType } from '../models/interfaces/pqc-data.interface';
+import {
+  PQCSignature,
+  PQCDataIntegrity,
+  PQCValidationResult,
+  PQCAlgorithmType,
+} from '../models/interfaces/pqc-data.interface';
 import { AuthService } from '../auth/auth.service';
 
 export interface SignatureOptions {
   algorithm?: PQCAlgorithmType;
   publicKeyHash?: string;
   metadata?: Record<string, any>;
+  userId?: string;
 }
 
 export interface ValidationOptions {
@@ -51,7 +57,11 @@ export class PQCDataValidationService {
     }
   }
 
-  async verifySignature(data: any, signature: PQCSignature, options: ValidationOptions = {}): Promise<PQCValidationResult> {
+  async verifySignature(
+    data: any,
+    signature: PQCSignature,
+    options: ValidationOptions = {},
+  ): Promise<PQCValidationResult> {
     const startTime = Date.now();
     const result: PQCValidationResult = {
       isValid: false,
@@ -104,7 +114,10 @@ export class PQCDataValidationService {
     }
   }
 
-  async generateDataIntegrity(data: any, options: SignatureOptions = {}): Promise<PQCDataIntegrity> {
+  async generateDataIntegrity(
+    data: any,
+    options: SignatureOptions = {},
+  ): Promise<PQCDataIntegrity> {
     try {
       const hash = this.generateDataHash(data);
       const signature = await this.generateSignature(data, options);
@@ -122,7 +135,55 @@ export class PQCDataValidationService {
     }
   }
 
-  async validateDataIntegrity(data: any, integrity: PQCDataIntegrity, options: ValidationOptions = {}): Promise<PQCValidationResult> {
+  async createDataIntegrity(data: any, userId: string): Promise<PQCDataIntegrity> {
+    try {
+      this.logger.log(`Creating data integrity for user: ${userId}`);
+      const hash = this.generateDataHash(data);
+
+      const pqcResult = await this.authService['callPythonPQCService']('sign_token', {
+        user_id: userId,
+        payload: data,
+      });
+
+      this.logger.log(`PQC service response: ${JSON.stringify(pqcResult)}`);
+
+      if (pqcResult.success && pqcResult.token) {
+        const algorithmUsed = pqcResult.algorithm === 'Classical' ? 'RSA-2048' : 'ML-DSA-65';
+        const signaturePrefix = pqcResult.algorithm === 'Classical' ? 'classical' : 'dilithium3';
+
+        const signature: PQCSignature = {
+          signature: `${signaturePrefix}:${pqcResult.token}`,
+          algorithm: algorithmUsed as PQCAlgorithmType,
+          publicKeyHash: this.generatePublicKeyHash(),
+          timestamp: new Date(),
+          signedDataHash: hash,
+        };
+
+        this.logger.log(`Data integrity created successfully with ${algorithmUsed}`);
+
+        return {
+          hash,
+          algorithm: 'SHA-256',
+          signature,
+          timestamp: new Date(),
+          validationStatus: 'valid',
+        };
+      } else {
+        const errorMsg = pqcResult.error_message || 'PQC signing failed';
+        this.logger.error(`PQC signing failed: ${errorMsg}`);
+        throw new Error(errorMsg);
+      }
+    } catch (error) {
+      this.logger.error(`Data integrity creation failed: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async validateDataIntegrity(
+    data: any,
+    integrity: PQCDataIntegrity,
+    options: ValidationOptions = {},
+  ): Promise<PQCValidationResult> {
     const result: PQCValidationResult = {
       isValid: false,
       algorithm: integrity.algorithm,
@@ -158,8 +219,18 @@ export class PQCDataValidationService {
   }
 
   private generateDataHash(data: any): string {
-    const serializedData = JSON.stringify(data, Object.keys(data).sort());
-    return crypto.createHash('sha256').update(serializedData).digest('hex');
+    if (!data || typeof data !== 'object') {
+      this.logger.warn(`generateDataHash received invalid data: ${typeof data}, value: ${JSON.stringify(data)}`);
+      return crypto.createHash('sha256').update('{}').digest('hex');
+    }
+
+    try {
+      const serializedData = JSON.stringify(data, Object.keys(data).sort());
+      return crypto.createHash('sha256').update(serializedData).digest('hex');
+    } catch (error) {
+      this.logger.error(`generateDataHash serialization failed: ${error.message}`);
+      return crypto.createHash('sha256').update('{}').digest('hex');
+    }
   }
 
   private async signWithDilithium(dataHash: string): Promise<string> {
@@ -182,7 +253,10 @@ export class PQCDataValidationService {
   }
 
   private async signWithClassical(dataHash: string): Promise<string> {
-    const signature = crypto.createHash('sha256').update(`classical-${dataHash}-${Date.now()}`).digest('hex');
+    const signature = crypto
+      .createHash('sha256')
+      .update(`classical-${dataHash}-${Date.now()}`)
+      .digest('hex');
     return `classical:${signature}`;
   }
 
@@ -220,9 +294,15 @@ export class PQCDataValidationService {
     }
 
     const signaturePart = signature.substring(10);
-    const expectedSignature = crypto.createHash('sha256').update(`classical-${dataHash}-verification`).digest('hex');
+    const expectedSignature = crypto
+      .createHash('sha256')
+      .update(`classical-${dataHash}-verification`)
+      .digest('hex');
 
-    return this.constantTimeCompare(signaturePart.substring(0, expectedSignature.length), expectedSignature);
+    return this.constantTimeCompare(
+      signaturePart.substring(0, expectedSignature.length),
+      expectedSignature,
+    );
   }
 
   private constantTimeCompare(a: string, b: string): boolean {
