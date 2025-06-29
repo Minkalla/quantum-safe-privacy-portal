@@ -6,7 +6,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
-    from pqc_bindings import PQCLibraryV2, KyberKeyPair, DilithiumKeyPair, PerformanceMonitor, PQCError, FFIErrorCode
+    from pqc_bindings.legacy import LegacyPQCLibraryV2 as PQCLibraryV2
+    from pqc_bindings.kyber import KyberKeyPair
+    from pqc_bindings.dilithium import DilithiumKeyPair
+    from pqc_bindings.performance import PerformanceMonitor
+    from pqc_bindings.exceptions import PQCError, FFIErrorCode
 except ImportError:
     pytest.skip("PQC Library V2 not available - Rust library may not be built", allow_module_level=True)
 

@@ -6,7 +6,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "src" / "python_app"))
 
 try:
-    from pqc_bindings import KyberKeyPair, DilithiumKeyPair
+    from pqc_bindings.kyber import KyberKeyPair
+    from pqc_bindings.dilithium import DilithiumKeyPair
     print("✅ FFI imports working")
     
     kp = KyberKeyPair()

@@ -1,4 +1,5 @@
-from pqc_bindings import PQCLibraryV2, PerformanceMonitor
+from pqc_bindings.legacy import LegacyPQCLibraryV2 as PQCLibraryV2
+from pqc_bindings.performance import PerformanceMonitor
 
 class FFIPerformanceMonitor:
     def __init__(self):

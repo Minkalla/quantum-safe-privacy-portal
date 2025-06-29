@@ -6,8 +6,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src" / "python_app"))
 
-from pqc_bindings import (
-    KyberKeyPair, DilithiumKeyPair, PQCError, KyberError, DilithiumError,
+from pqc_bindings.kyber import KyberKeyPair
+from pqc_bindings.dilithium import DilithiumKeyPair
+from pqc_bindings.exceptions import PQCError, KyberError, DilithiumError
+from pqc_bindings.utils import (
     secure_buffer, get_last_error, get_kyber_last_error, get_dilithium_last_error,
     kyber_keypair_context, dilithium_keypair_context, safe_bytes_to_ctypes,
     validate_key_sizes
