@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PQCDataEncryptionService, EncryptionResult, DecryptionResult } from './pqc-data-encryption.service';
 import { ClassicalCryptoService } from './classical-crypto.service';
+import { CircuitBreakerService } from './circuit-breaker.service';
 import { PQCEncryptedField, PQCAlgorithmType } from '../models/interfaces/pqc-data.interface';
 
 export interface HybridEncryptionResult {
@@ -30,38 +31,46 @@ export class HybridCryptoService {
   constructor(
     private readonly pqcService: PQCDataEncryptionService,
     private readonly classicalService: ClassicalCryptoService,
+    private readonly circuitBreaker: CircuitBreakerService,
   ) {}
 
   async encryptWithFallback(data: string, publicKey: string): Promise<HybridEncryptionResult> {
     try {
-      this.logger.debug('Attempting PQC encryption with ML-KEM-768');
-      
-      const pqcResult = await this.pqcService.encryptData(data, {
-        algorithm: PQCAlgorithmType.ML_KEM_768,
-        keyId: publicKey,
-      });
+      this.logger.debug('Attempting PQC encryption with ML-KEM-768 via circuit breaker');
 
-      if (pqcResult.success && pqcResult.encryptedField) {
-        this.logger.log('PQC encryption successful with ML-KEM-768');
-        
-        return {
-          algorithm: 'ML-KEM-768',
-          ciphertext: pqcResult.encryptedField.encryptedData,
-          fallbackUsed: false,
-          metadata: {
-            keyId: pqcResult.encryptedField.keyId,
-            timestamp: new Date().toISOString(),
-            performance: pqcResult.performanceMetrics,
-          },
-        };
-      } else {
-        throw new Error(pqcResult.error || 'PQC encryption failed');
-      }
+      const pqcOperation = async () => {
+        const pqcResult = await this.pqcService.encryptData(data, {
+          algorithm: PQCAlgorithmType.ML_KEM_768,
+          keyId: publicKey,
+        });
+
+        if (pqcResult.success && pqcResult.encryptedField) {
+          this.logger.log('PQC encryption successful with ML-KEM-768');
+          return {
+            algorithm: 'ML-KEM-768' as const,
+            ciphertext: pqcResult.encryptedField.encryptedData,
+            fallbackUsed: false,
+            metadata: {
+              keyId: pqcResult.encryptedField.keyId,
+              timestamp: new Date().toISOString(),
+              performance: pqcResult.performanceMetrics,
+            },
+          };
+        } else {
+          throw new Error(pqcResult.error || 'PQC encryption failed');
+        }
+      };
+
+      return await this.circuitBreaker.executeWithCircuitBreaker<HybridEncryptionResult>(
+        'pqc-encryption',
+        pqcOperation,
+      );
+
     } catch (error) {
       this.logger.warn(`PQC encryption failed, falling back to RSA: ${error.message}`);
-      
+
       const classicalResult = await this.classicalService.encryptRSA(data, publicKey);
-      
+
       return {
         algorithm: 'RSA-2048',
         ciphertext: classicalResult.encryptedData,
@@ -79,7 +88,7 @@ export class HybridCryptoService {
     if (encryptedData.algorithm === 'ML-KEM-768') {
       try {
         this.logger.debug('Attempting PQC decryption with ML-KEM-768');
-        
+
         const pqcField: PQCEncryptedField = {
           encryptedData: encryptedData.ciphertext,
           algorithm: PQCAlgorithmType.ML_KEM_768.toString(),
@@ -88,9 +97,9 @@ export class HybridCryptoService {
           timestamp: new Date(),
           metadata: encryptedData.metadata,
         };
-        
+
         const result = await this.pqcService.decryptData(pqcField);
-        
+
         if (result.success && result.decryptedData) {
           this.logger.log('PQC decryption successful');
           return typeof result.decryptedData === 'string' ? result.decryptedData : JSON.stringify(result.decryptedData);
@@ -104,9 +113,9 @@ export class HybridCryptoService {
     } else if (encryptedData.algorithm === 'RSA-2048') {
       try {
         this.logger.debug('Attempting classical RSA decryption');
-        
+
         const result = await this.classicalService.decryptRSA(encryptedData.ciphertext, privateKey);
-        
+
         this.logger.log('Classical RSA decryption successful');
         return result.encryptedData; // Note: this is actually decrypted data due to interface reuse
       } catch (error) {
@@ -114,7 +123,7 @@ export class HybridCryptoService {
         throw new Error(`RSA decryption failed: ${error.message}`);
       }
     }
-    
+
     throw new Error(`Unknown encryption algorithm: ${encryptedData.algorithm}`);
   }
 
@@ -122,16 +131,16 @@ export class HybridCryptoService {
     try {
       this.logger.debug('Attempting PQC signing with ML-DSA-65');
       this.logger.warn('PQC signing not yet implemented in PQCDataEncryptionService, falling back to RSA');
-      
+
       throw new Error('PQC signing not yet available');
     } catch (error) {
       this.logger.warn(`PQC signing failed, falling back to RSA: ${error.message}`);
-      
+
       try {
         const classicalResult = await this.classicalService.signRSA(message, privateKey);
-        
+
         this.logger.log('Classical RSA signing successful as fallback');
-        
+
         return {
           algorithm: 'RSA-2048',
           signature: classicalResult.signature,
@@ -154,7 +163,7 @@ export class HybridCryptoService {
       try {
         this.logger.debug('Attempting PQC signature verification with ML-DSA-65');
         this.logger.warn('PQC signature verification not yet implemented, returning false');
-        
+
         return false;
       } catch (error) {
         this.logger.error(`PQC signature verification failed: ${error.message}`);
@@ -163,9 +172,9 @@ export class HybridCryptoService {
     } else if (signature.algorithm === 'RSA-2048') {
       try {
         this.logger.debug('Attempting classical RSA signature verification');
-        
+
         const result = await this.classicalService.verifyRSA(signature.signature, message, publicKey);
-        
+
         this.logger.log('Classical RSA signature verification completed');
         return result.isValid;
       } catch (error) {
@@ -173,7 +182,7 @@ export class HybridCryptoService {
         throw new Error(`RSA signature verification failed: ${error.message}`);
       }
     }
-    
+
     throw new Error(`Unknown signature algorithm: ${signature.algorithm}`);
   }
 
@@ -181,16 +190,16 @@ export class HybridCryptoService {
     try {
       this.logger.debug('Attempting PQC key pair generation with ML-KEM-768');
       this.logger.warn('PQC key pair generation not yet implemented in PQCDataEncryptionService, falling back to RSA');
-      
+
       throw new Error('PQC key pair generation not yet available');
     } catch (error) {
       this.logger.warn(`PQC key generation failed, falling back to RSA: ${error.message}`);
-      
+
       try {
         const classicalResult = await this.classicalService.generateRSAKeyPair();
-        
+
         this.logger.log('Classical RSA key pair generation successful as fallback');
-        
+
         return {
           publicKey: classicalResult.publicKey,
           privateKey: classicalResult.privateKey,

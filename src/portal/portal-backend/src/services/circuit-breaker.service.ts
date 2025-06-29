@@ -57,14 +57,14 @@ export class CircuitBreakerService {
       failureCount: 0,
       successCount: 0,
     });
-    
+
     this.logger.debug(`Registered circuit breaker: ${name} with config:`, config);
   }
 
   async executeWithCircuitBreaker<T>(
     circuitName: string,
     operation: () => Promise<T>,
-    fallback?: () => Promise<T>
+    fallback?: () => Promise<T>,
   ): Promise<T> {
     const circuit = this.circuits.get(circuitName);
     const config = this.configs.get(circuitName);
@@ -75,12 +75,12 @@ export class CircuitBreakerService {
 
     if (this.shouldRejectRequest(circuit, config)) {
       this.logger.warn(`Circuit breaker ${circuitName} is OPEN, rejecting request`);
-      
+
       if (fallback) {
         this.logger.debug(`Executing fallback for circuit: ${circuitName}`);
         return await fallback();
       }
-      
+
       throw new Error(`Circuit breaker ${circuitName} is OPEN - service temporarily unavailable`);
     }
 
@@ -90,12 +90,12 @@ export class CircuitBreakerService {
       return result;
     } catch (error) {
       this.recordFailure(circuitName);
-      
+
       if (fallback && this.circuits.get(circuitName)?.state === CircuitState.OPEN) {
         this.logger.debug(`Circuit opened, executing fallback for: ${circuitName}`);
         return await fallback();
       }
-      
+
       throw error;
     }
   }
@@ -104,22 +104,22 @@ export class CircuitBreakerService {
     const now = new Date();
 
     switch (circuit.state) {
-      case CircuitState.CLOSED:
-        return false;
+    case CircuitState.CLOSED:
+      return false;
 
-      case CircuitState.OPEN:
-        if (circuit.nextAttemptTime && now >= circuit.nextAttemptTime) {
-          circuit.state = CircuitState.HALF_OPEN;
-          this.logger.debug(`Circuit transitioning to HALF_OPEN state`);
-          return false;
-        }
-        return true;
-
-      case CircuitState.HALF_OPEN:
+    case CircuitState.OPEN:
+      if (circuit.nextAttemptTime && now >= circuit.nextAttemptTime) {
+        circuit.state = CircuitState.HALF_OPEN;
+        this.logger.debug('Circuit transitioning to HALF_OPEN state');
         return false;
+      }
+      return true;
 
-      default:
-        return false;
+    case CircuitState.HALF_OPEN:
+      return false;
+
+    default:
+      return false;
     }
   }
 
@@ -141,7 +141,7 @@ export class CircuitBreakerService {
   private recordFailure(circuitName: string): void {
     const circuit = this.circuits.get(circuitName);
     const config = this.configs.get(circuitName);
-    
+
     if (!circuit || !config) return;
 
     circuit.failureCount++;
@@ -150,10 +150,10 @@ export class CircuitBreakerService {
     if (circuit.failureCount >= config.failureThreshold) {
       circuit.state = CircuitState.OPEN;
       circuit.nextAttemptTime = new Date(Date.now() + config.resetTimeout);
-      
+
       this.logger.warn(
         `Circuit breaker ${circuitName} OPENED after ${circuit.failureCount} failures. ` +
-        `Next attempt allowed at: ${circuit.nextAttemptTime.toISOString()}`
+        `Next attempt allowed at: ${circuit.nextAttemptTime.toISOString()}`,
       );
     }
 
@@ -194,15 +194,15 @@ export class CircuitBreakerService {
 
     for (const [name, circuit] of this.circuits.entries()) {
       switch (circuit.state) {
-        case CircuitState.CLOSED:
-          healthy.push(name);
-          break;
-        case CircuitState.OPEN:
-          unhealthy.push(name);
-          break;
-        case CircuitState.HALF_OPEN:
-          halfOpen.push(name);
-          break;
+      case CircuitState.CLOSED:
+        healthy.push(name);
+        break;
+      case CircuitState.OPEN:
+        unhealthy.push(name);
+        break;
+      case CircuitState.HALF_OPEN:
+        halfOpen.push(name);
+        break;
       }
     }
 

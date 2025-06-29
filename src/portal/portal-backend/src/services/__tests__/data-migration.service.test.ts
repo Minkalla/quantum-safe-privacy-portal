@@ -6,7 +6,7 @@ import { HybridCryptoService } from '../hybrid-crypto.service';
 import { PQCDataEncryptionService } from '../pqc-data-encryption.service';
 import { BulkEncryptionService } from '../bulk-encryption.service';
 import { IUser } from '../../models/User';
-import { IConsent } from '../../models/Consent';
+import Consent, { IConsent } from '../../models/Consent';
 
 describe('DataMigrationService', () => {
   let service: DataMigrationService;
@@ -51,7 +51,7 @@ describe('DataMigrationService', () => {
       providers: [
         DataMigrationService,
         { provide: getModelToken('User'), useValue: mockUserModel },
-        { provide: getModelToken('Consent'), useValue: mockConsentModel },
+        { provide: getModelToken(Consent.name), useValue: mockConsentModel },
         { provide: HybridCryptoService, useValue: mockHybridCryptoService },
         { provide: PQCDataEncryptionService, useValue: mockPqcService },
         { provide: BulkEncryptionService, useValue: mockBulkEncryption },
@@ -60,7 +60,7 @@ describe('DataMigrationService', () => {
 
     service = module.get<DataMigrationService>(DataMigrationService);
     userModel = module.get(getModelToken('User'));
-    consentModel = module.get(getModelToken('Consent'));
+    consentModel = module.get(getModelToken(Consent.name));
     hybridCryptoService = module.get(HybridCryptoService);
     pqcService = module.get(PQCDataEncryptionService);
     bulkEncryption = module.get(BulkEncryptionService);
@@ -82,12 +82,14 @@ describe('DataMigrationService', () => {
 
     it('should migrate users and consents when enabled', async () => {
       process.env.MIGRATION_ENABLED = 'true';
-      
+
+      (service as any).migrationEnabled = true;
+
       const mockUsers = [
         { _id: 'user1', email: 'user1@test.com', cryptoVersion: 'placeholder' },
         { _id: 'user2', email: 'user2@test.com', cryptoVersion: 'placeholder' },
       ];
-      
+
       const mockConsents = [
         { _id: 'consent1', userId: 'user1', cryptoVersion: 'placeholder' },
       ];
@@ -125,12 +127,19 @@ describe('DataMigrationService', () => {
         cryptoVersion: 'placeholder',
         encryptedEmail: 'old-encrypted-email',
         encryptedPersonalData: 'old-encrypted-data',
+        toObject: jest.fn().mockReturnValue({
+          _id: userId,
+          email: 'test@example.com',
+          cryptoVersion: 'placeholder',
+          encryptedEmail: 'old-encrypted-email',
+          encryptedPersonalData: 'old-encrypted-data',
+        }),
       };
 
       const mockKeyPair = {
         publicKey: 'new-public-key',
         privateKey: 'new-private-key',
-        algorithm: 'RSA-2048',
+        algorithm: 'ML-KEM-768',
       };
 
       const mockEncryptionResult = {
@@ -156,7 +165,7 @@ describe('DataMigrationService', () => {
           backupCryptoVersion: 'placeholder',
           cryptoAlgorithm: 'ML-KEM-768',
           migrationDate: expect.any(Date),
-        })
+        }),
       );
     });
 
@@ -182,7 +191,11 @@ describe('DataMigrationService', () => {
       const userId = 'non-existent-user';
       userModel.findById.mockResolvedValue(null);
 
-      await expect(service.migrateUserData(userId)).rejects.toThrow('User not found: non-existent-user');
+      const result = await service.migrateUserData(userId);
+
+      expect(result.success).toBe(false);
+      expect(result.algorithm).toBe('migration-failed');
+      expect(result.errors).toContain('User not found: non-existent-user');
     });
   });
 
@@ -191,7 +204,7 @@ describe('DataMigrationService', () => {
       const mockUsers = [
         { _id: 'user1', cryptoVersion: 'pqc-real', backupCryptoVersion: 'placeholder' },
       ];
-      
+
       const mockConsents = [
         { _id: 'consent1', cryptoVersion: 'pqc-real', backupCryptoVersion: 'placeholder' },
       ];

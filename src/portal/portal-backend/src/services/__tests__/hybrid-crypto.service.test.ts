@@ -2,12 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { HybridCryptoService } from '../hybrid-crypto.service';
 import { PQCDataEncryptionService } from '../pqc-data-encryption.service';
 import { ClassicalCryptoService } from '../classical-crypto.service';
+import { CircuitBreakerService } from '../circuit-breaker.service';
 import { PQCAlgorithmType } from '../../models/interfaces/pqc-data.interface';
 
 describe('HybridCryptoService', () => {
   let service: HybridCryptoService;
   let pqcService: jest.Mocked<PQCDataEncryptionService>;
   let classicalService: jest.Mocked<ClassicalCryptoService>;
+  let circuitBreakerService: jest.Mocked<CircuitBreakerService>;
 
   beforeEach(async () => {
     const mockPqcService = {
@@ -24,17 +26,27 @@ describe('HybridCryptoService', () => {
       healthCheck: jest.fn(),
     };
 
+    const mockCircuitBreakerService = {
+      executeWithCircuitBreaker: jest.fn(),
+      recordSuccess: jest.fn(),
+      recordFailure: jest.fn(),
+      getState: jest.fn(),
+      isOpen: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         HybridCryptoService,
         { provide: PQCDataEncryptionService, useValue: mockPqcService },
         { provide: ClassicalCryptoService, useValue: mockClassicalService },
+        { provide: CircuitBreakerService, useValue: mockCircuitBreakerService },
       ],
     }).compile();
 
     service = module.get<HybridCryptoService>(HybridCryptoService);
     pqcService = module.get(PQCDataEncryptionService);
     classicalService = module.get(ClassicalCryptoService);
+    circuitBreakerService = module.get(CircuitBreakerService);
   });
 
   it('should be defined', () => {
@@ -60,7 +72,18 @@ describe('HybridCryptoService', () => {
         },
       };
 
-      pqcService.encryptData.mockResolvedValue(mockPqcResult);
+      const mockHybridResult = {
+        algorithm: 'ML-KEM-768' as const,
+        ciphertext: 'pqc-encrypted-data',
+        fallbackUsed: false,
+        metadata: {
+          keyId: 'test-key-id',
+          timestamp: expect.any(String),
+          performance: mockPqcResult.performanceMetrics,
+        },
+      };
+
+      circuitBreakerService.executeWithCircuitBreaker.mockResolvedValue(mockHybridResult);
 
       const result = await service.encryptWithFallback(testData, publicKey);
 
@@ -68,10 +91,10 @@ describe('HybridCryptoService', () => {
       expect(result.ciphertext).toBe('pqc-encrypted-data');
       expect(result.fallbackUsed).toBe(false);
       expect(result.metadata.keyId).toBe('test-key-id');
-      expect(pqcService.encryptData).toHaveBeenCalledWith(testData, {
-        algorithm: PQCAlgorithmType.ML_KEM_768,
-        keyId: publicKey,
-      });
+      expect(circuitBreakerService.executeWithCircuitBreaker).toHaveBeenCalledWith(
+        'pqc-encryption',
+        expect.any(Function),
+      );
     });
 
     it('should fallback to RSA when PQC fails', async () => {
@@ -82,7 +105,7 @@ describe('HybridCryptoService', () => {
         algorithm: 'RSA-2048',
       };
 
-      pqcService.encryptData.mockRejectedValue(new Error('PQC service unavailable'));
+      circuitBreakerService.executeWithCircuitBreaker.mockRejectedValue(new Error('PQC service unavailable'));
       classicalService.encryptRSA.mockResolvedValue(mockClassicalResult);
 
       const result = await service.encryptWithFallback(testData, publicKey);
@@ -97,16 +120,12 @@ describe('HybridCryptoService', () => {
     it('should fallback to RSA when PQC returns unsuccessful result', async () => {
       const testData = 'test data';
       const publicKey = 'test-public-key';
-      const mockPqcResult = {
-        success: false,
-        error: 'Key generation failed',
-      };
       const mockClassicalResult = {
         encryptedData: 'rsa-encrypted-data',
         algorithm: 'RSA-2048',
       };
 
-      pqcService.encryptData.mockResolvedValue(mockPqcResult);
+      circuitBreakerService.executeWithCircuitBreaker.mockRejectedValue(new Error('Key generation failed'));
       classicalService.encryptRSA.mockResolvedValue(mockClassicalResult);
 
       const result = await service.encryptWithFallback(testData, publicKey);
@@ -199,7 +218,7 @@ describe('HybridCryptoService', () => {
     it('should return health status for both services', async () => {
       const mockPqcResult = {
         success: true,
-        encryptedField: { 
+        encryptedField: {
           encryptedData: 'test',
           algorithm: 'AES-256-GCM',
           keyId: 'test-key',

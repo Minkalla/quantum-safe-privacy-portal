@@ -80,23 +80,23 @@ export const getCryptoConfig = (): CryptoConfig => {
 
 export const validateCryptoConfig = (): { valid: boolean; errors: string[] } => {
   const errors: string[] = [];
-  
+
   if (CryptoConfig.classical.rsa.keySize < 2048) {
     errors.push('RSA key size must be at least 2048 bits for security');
   }
-  
+
   if (CryptoConfig.classical.aes.keySize !== 256) {
     errors.push('AES key size must be 256 bits for quantum-safe security');
   }
-  
+
   if (CryptoConfig.migration.batchSize > 1000) {
     errors.push('Migration batch size should not exceed 1000 for performance reasons');
   }
-  
+
   if (CryptoConfig.pqc.performanceThreshold > 5000) {
     errors.push('PQC performance threshold should not exceed 5000ms for user experience');
   }
-  
+
   return {
     valid: errors.length === 0,
     errors,
@@ -105,68 +105,68 @@ export const validateCryptoConfig = (): { valid: boolean; errors: string[] } => 
 
 export const getEnvironmentSpecificConfig = (): Partial<CryptoConfig> => {
   const env = process.env.NODE_ENV || 'development';
-  
+
   switch (env) {
-    case 'production':
-      return {
-        pqc: {
-          enabled: true,
-          fallbackEnabled: true,
-          algorithms: ['ML-KEM-768', 'ML-DSA-65'],
-          keyRotationInterval: 7 * 24 * 60 * 60 * 1000, // 7 days
-          performanceThreshold: 500, // Stricter in production
-        },
-        migration: {
-          batchSize: 50, // Smaller batches in production
-          enabled: true,
-          retryAttempts: 5,
-          delayBetweenBatches: 2000, // Longer delays in production
-        },
-        security: {
-          keyExpirationDays: 30, // Shorter expiration in production
-          auditLogEnabled: true,
-          encryptionAtRest: true,
-        },
-      };
-    
-    case 'staging':
-      return {
-        pqc: {
-          enabled: true,
-          fallbackEnabled: true,
-          algorithms: ['ML-KEM-768', 'ML-DSA-65'],
-          keyRotationInterval: 24 * 60 * 60 * 1000, // 1 day for testing
-          performanceThreshold: 1000,
-        },
-        migration: {
-          batchSize: 100,
-          enabled: true,
-          retryAttempts: 3,
-          delayBetweenBatches: 1000,
-        },
-      };
-    
-    case 'development':
-    default:
-      return {
-        pqc: {
-          enabled: process.env.PQC_ENABLED === 'true',
-          fallbackEnabled: true,
-          algorithms: ['ML-KEM-768', 'ML-DSA-65'],
-          keyRotationInterval: 60 * 60 * 1000, // 1 hour for development
-          performanceThreshold: 2000, // More lenient in development
-        },
-        migration: {
-          batchSize: 10, // Small batches for development testing
-          enabled: process.env.MIGRATION_ENABLED === 'true',
-          retryAttempts: 1,
-          delayBetweenBatches: 500,
-        },
-        security: {
-          keyExpirationDays: 7, // Short expiration for development
-          auditLogEnabled: false,
-          encryptionAtRest: false,
-        },
-      };
+  case 'production':
+    return {
+      pqc: {
+        enabled: true,
+        fallbackEnabled: true,
+        algorithms: ['ML-KEM-768', 'ML-DSA-65'],
+        keyRotationInterval: 7 * 24 * 60 * 60 * 1000, // 7 days
+        performanceThreshold: 500, // Stricter in production
+      },
+      migration: {
+        batchSize: 50, // Smaller batches in production
+        enabled: true,
+        retryAttempts: 5,
+        delayBetweenBatches: 2000, // Longer delays in production
+      },
+      security: {
+        keyExpirationDays: 30, // Shorter expiration in production
+        auditLogEnabled: true,
+        encryptionAtRest: true,
+      },
+    };
+
+  case 'staging':
+    return {
+      pqc: {
+        enabled: true,
+        fallbackEnabled: true,
+        algorithms: ['ML-KEM-768', 'ML-DSA-65'],
+        keyRotationInterval: 24 * 60 * 60 * 1000, // 1 day for testing
+        performanceThreshold: 1000,
+      },
+      migration: {
+        batchSize: 100,
+        enabled: true,
+        retryAttempts: 3,
+        delayBetweenBatches: 1000,
+      },
+    };
+
+  case 'development':
+  default:
+    return {
+      pqc: {
+        enabled: process.env.PQC_ENABLED === 'true',
+        fallbackEnabled: true,
+        algorithms: ['ML-KEM-768', 'ML-DSA-65'],
+        keyRotationInterval: 60 * 60 * 1000, // 1 hour for development
+        performanceThreshold: 2000, // More lenient in development
+      },
+      migration: {
+        batchSize: 10, // Small batches for development testing
+        enabled: process.env.MIGRATION_ENABLED === 'true',
+        retryAttempts: 1,
+        delayBetweenBatches: 500,
+      },
+      security: {
+        keyExpirationDays: 7, // Short expiration for development
+        auditLogEnabled: false,
+        encryptionAtRest: false,
+      },
+    };
   }
 };
