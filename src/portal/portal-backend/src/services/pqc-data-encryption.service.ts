@@ -125,18 +125,18 @@ export class PQCDataEncryptionService {
 
   private async encryptWithAES(data: any): Promise<{ encryptedData: string; nonce: string }> {
     const key = crypto.randomBytes(32);
-    const nonce = crypto.randomBytes(16);
-    const cipher = crypto.createCipher('aes-256-cbc', key.toString('hex'));
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
 
     const serializedData = JSON.stringify(data);
     let encrypted = cipher.update(serializedData, 'utf8', 'hex');
     encrypted += cipher.final('hex');
 
-    const encryptedData = `${key.toString('hex')}:${encrypted}`;
+    const encryptedData = `${key.toString('hex')}:${iv.toString('hex')}:${encrypted}`;
 
     return {
       encryptedData,
-      nonce: nonce.toString('hex'),
+      nonce: iv.toString('hex'),
     };
   }
 
@@ -148,9 +148,16 @@ export class PQCDataEncryptionService {
   }
 
   private async decryptWithAES(encryptedField: PQCEncryptedField): Promise<any> {
-    const [keyHex, encrypted] = encryptedField.encryptedData.split(':');
+    const parts = encryptedField.encryptedData.split(':');
+    if (parts.length !== 3) {
+      throw new Error('Invalid encrypted data format');
+    }
+    
+    const [keyHex, ivHex, encrypted] = parts;
+    const key = Buffer.from(keyHex, 'hex');
+    const iv = Buffer.from(ivHex, 'hex');
 
-    const decipher = crypto.createDecipher('aes-256-cbc', keyHex);
+    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
 
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
