@@ -5,7 +5,11 @@ import { PQCFeatureFlagsService } from '../pqc/pqc-feature-flags.service';
 import { PQCMonitoringService } from '../pqc/pqc-monitoring.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { ConflictException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
-import * as bcrypt from 'bcryptjs';
+
+jest.mock('bcryptjs', () => ({
+  hash: jest.fn(),
+  compare: jest.fn(),
+}));
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -23,6 +27,8 @@ describe('AuthService', () => {
   };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -67,6 +73,10 @@ describe('AuthService', () => {
     userModel = module.get(getModelToken('User'));
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
@@ -76,7 +86,8 @@ describe('AuthService', () => {
       const registerDto = { email: 'new@example.com', password: 'password123' };
 
       userModel.findOne.mockResolvedValue(null);
-      jest.spyOn(bcrypt, 'hash').mockResolvedValue('hashedPassword' as never);
+      const bcrypt = require('bcryptjs');
+      bcrypt.hash.mockResolvedValue('hashedPassword');
 
       const result = await service.register(registerDto);
 
@@ -100,8 +111,9 @@ describe('AuthService', () => {
       userModel.findOne.mockReturnValue({
         select: jest.fn().mockResolvedValue(mockUser),
       });
-      jest.spyOn(bcrypt, 'compare').mockResolvedValue(true as never);
-      jest.spyOn(bcrypt, 'hash').mockResolvedValue('hashedRefreshToken' as never);
+      const bcrypt = require('bcryptjs');
+      bcrypt.compare.mockResolvedValue(true);
+      bcrypt.hash.mockResolvedValue('hashedRefreshToken');
 
       const result = await service.login(loginDto);
 
@@ -117,8 +129,9 @@ describe('AuthService', () => {
       userModel.findOne.mockReturnValue({
         select: jest.fn().mockResolvedValue(mockUser),
       });
-      jest.spyOn(bcrypt, 'compare').mockResolvedValue(true as never);
-      jest.spyOn(bcrypt, 'hash').mockResolvedValue('hashedRefreshToken' as never);
+      const bcrypt = require('bcryptjs');
+      bcrypt.compare.mockResolvedValue(true);
+      bcrypt.hash.mockResolvedValue('hashedRefreshToken');
 
       const result = await service.login(loginDto);
 

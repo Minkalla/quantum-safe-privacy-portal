@@ -31,6 +31,7 @@ import { PQCFeatureFlagsModule } from './pqc/pqc-feature-flags.module';
 import { ABTestingModule } from './pqc/ab-testing.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { QualityModule } from './quality/quality.module';
+import { PQCDataModule } from './pqc-data/pqc-data.module';
 
 // Removed: import * as AWSXRay from 'aws-xray-sdk'; // REMOVED as per plan
 
@@ -73,6 +74,7 @@ import { QualityModule } from './quality/quality.module';
     ABTestingModule,
     MonitoringModule,
     QualityModule,
+    PQCDataModule,
   ],
   controllers: [],
   providers: [],
