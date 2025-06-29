@@ -127,7 +127,7 @@ export class PQCDataEncryptionService {
     const password = this.configService.get<string>('ENCRYPTION_PASSWORD') || 'default-secure-password-change-in-production';
     const salt = crypto.randomBytes(16);
     const iv = crypto.randomBytes(16);
-    
+
     const key = crypto.scryptSync(password, salt, 32);
     const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
 
@@ -155,11 +155,11 @@ export class PQCDataEncryptionService {
     if (parts.length !== 3) {
       throw new Error('Invalid encrypted data format');
     }
-    
+
     const [saltHex, ivHex, encrypted] = parts;
     const salt = Buffer.from(saltHex, 'hex');
     const iv = Buffer.from(ivHex, 'hex');
-    
+
     const password = this.configService.get<string>('ENCRYPTION_PASSWORD') || 'default-secure-password-change-in-production';
     const key = crypto.scryptSync(password, salt, 32);
 
