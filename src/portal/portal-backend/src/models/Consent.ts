@@ -49,6 +49,11 @@ export interface IConsent extends Document {
     keyId?: string;
     protectionLevel?: 'basic' | 'enhanced' | 'maximum';
   };
+  cryptoVersion?: string;
+  backupCryptoVersion?: string;
+  migrationDate?: Date;
+  rollbackDate?: Date;
+  cryptoAlgorithm?: string;
 }
 
 /**
@@ -155,6 +160,24 @@ export const ConsentSchema = new Schema<IConsent>(
         enum: ['basic', 'enhanced', 'maximum'],
         default: 'basic',
       },
+    },
+    cryptoVersion: {
+      type: String,
+      enum: ['placeholder', 'pqc-real', 'classical'],
+      default: 'placeholder',
+    },
+    backupCryptoVersion: {
+      type: String,
+      enum: ['placeholder', 'pqc-real', 'classical'],
+    },
+    migrationDate: {
+      type: Date,
+    },
+    rollbackDate: {
+      type: Date,
+    },
+    cryptoAlgorithm: {
+      type: String,
     },
   },
   {

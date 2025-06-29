@@ -56,6 +56,13 @@ export interface IUser extends Document {
     nextRotation?: Date;
     rotationInterval?: number;
   };
+  cryptoVersion?: string;
+  backupCryptoVersion?: string;
+  migrationDate?: Date;
+  rollbackDate?: Date;
+  cryptoAlgorithm?: string;
+  encryptedEmail?: string;
+  encryptedPersonalData?: string;
 }
 
 /**
@@ -163,6 +170,32 @@ export const UserSchema = new Schema<IUser>( // MODIFIED: Added 'export' here
       lastRotation: { type: Date },
       nextRotation: { type: Date },
       rotationInterval: { type: Number, default: 86400000 },
+    },
+    cryptoVersion: {
+      type: String,
+      enum: ['placeholder', 'pqc-real', 'classical'],
+      default: 'placeholder',
+    },
+    backupCryptoVersion: {
+      type: String,
+      enum: ['placeholder', 'pqc-real', 'classical'],
+    },
+    migrationDate: {
+      type: Date,
+    },
+    rollbackDate: {
+      type: Date,
+    },
+    cryptoAlgorithm: {
+      type: String,
+    },
+    encryptedEmail: {
+      type: String,
+      select: false,
+    },
+    encryptedPersonalData: {
+      type: String,
+      select: false,
     },
   },
   {
