@@ -14,17 +14,31 @@ import { HybridCryptoService } from '../services/hybrid-crypto.service';
 import { ClassicalCryptoService } from '../services/classical-crypto.service';
 import { CircuitBreakerService } from '../services/circuit-breaker.service';
 import { PQCDataController } from '../controllers/pqc-data.controller';
+import { PQCConsentController } from '../controllers/pqc-consent.controller';
+import { PQCUserController } from '../controllers/pqc-user.controller';
+import { PQCPerformanceController } from '../controllers/pqc-performance.controller';
+import { PQCApiMiddleware } from '../middleware/pqc-api.middleware';
+import { PQCApiGuard } from '../guards/pqc-api.guard';
+import { ApiPerformanceService } from '../services/api-performance.service';
+import { PerformanceMonitorInterceptor } from '../interceptors/performance-monitor.interceptor';
 import { AuthModule } from '../auth/auth.module';
+import { UserModule } from '../user/user.module';
+import { JwtModule } from '../jwt/jwt.module';
 
 @Module({
   imports: [
     ConfigModule,
     AuthModule,
-    MongooseModule.forFeature([
-      { name: Consent.name, schema: ConsentSchema },
-    ]),
+    UserModule,
+    JwtModule,
+    MongooseModule.forFeature([{ name: Consent.name, schema: ConsentSchema }]),
   ],
-  controllers: [PQCDataController],
+  controllers: [
+    PQCDataController,
+    PQCConsentController,
+    PQCUserController,
+    PQCPerformanceController,
+  ],
   providers: [
     PQCDataEncryptionService,
     FieldEncryptionService,
@@ -37,6 +51,10 @@ import { AuthModule } from '../auth/auth.module';
     HybridCryptoService,
     ClassicalCryptoService,
     CircuitBreakerService,
+    PQCApiMiddleware,
+    PQCApiGuard,
+    ApiPerformanceService,
+    PerformanceMonitorInterceptor,
   ],
   exports: [
     PQCDataEncryptionService,
@@ -50,6 +68,10 @@ import { AuthModule } from '../auth/auth.module';
     HybridCryptoService,
     ClassicalCryptoService,
     CircuitBreakerService,
+    PQCApiMiddleware,
+    PQCApiGuard,
+    ApiPerformanceService,
+    PerformanceMonitorInterceptor,
   ],
 })
 export class PQCDataModule {}
