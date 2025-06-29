@@ -294,25 +294,46 @@ export class EnhancedAuthService {
   private async callPythonPQCService(operation: string, params: any): Promise<any> {
     const fs = require('fs');
     const os = require('os');
+    const crypto = require('crypto');
+    const { spawn } = require('child_process');
 
-    const allowedOperations = ['generate_session_key', 'sign_token', 'verify_token', 'verify_signature', 'get_status'];
-    if (!allowedOperations.includes(operation)) {
+    const ALLOWED_OPERATIONS = Object.freeze([
+      'generate_session_key',
+      'sign_token',
+      'verify_token',
+      'verify_signature',
+      'get_status',
+    ] as const);
+
+    if (!ALLOWED_OPERATIONS.includes(operation as any)) {
       throw new Error(`Invalid operation: ${operation}`);
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(operation)) {
+      throw new Error(`Operation contains invalid characters: ${operation}`);
     }
 
     const sanitizedParams = this.sanitizePQCParams(params);
 
     return new Promise((resolve, reject) => {
-      const pythonScriptPath = path.join(__dirname, '../../../mock-qynauth/src/python_app/pqc_service_bridge.py');
+      const pythonScriptPath = require('path').resolve(__dirname, '../../../mock-qynauth/src/python_app/pqc_service_bridge.py');
 
-      const tempFile = path.join(os.tmpdir(), `pqc_params_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.json`);
+      if (!fs.existsSync(pythonScriptPath)) {
+        reject(new Error('Python script not found'));
+        return;
+      }
+
+      const randomBytes = crypto.randomBytes(16).toString('hex');
+      const tempFile = require('path').join(os.tmpdir(), `pqc_params_${Date.now()}_${randomBytes}.json`);
 
       try {
         fs.writeFileSync(tempFile, JSON.stringify(sanitizedParams), { mode: 0o600 });
 
         const pythonProcess = spawn('python3', [pythonScriptPath, operation, tempFile], {
           stdio: ['pipe', 'pipe', 'pipe'],
-          shell: false, // Explicitly disable shell to prevent injection
+          shell: false, // Critical: disable shell to prevent injection
+          timeout: 30000, // 30 second timeout
+          windowsHide: true, // Hide window on Windows
         });
 
         let stdout = '';
@@ -353,6 +374,17 @@ export class EnhancedAuthService {
           }
           reject(new Error(`Failed to spawn Python process: ${error.message}`));
         });
+
+        pythonProcess.on('timeout', () => {
+          pythonProcess.kill('SIGKILL');
+          try {
+            fs.unlinkSync(tempFile);
+          } catch (cleanupError) {
+            this.logger.warn(`Failed to cleanup temp file: ${cleanupError.message}`);
+          }
+          reject(new Error('Python PQC service timed out'));
+        });
+
       } catch (fileError: any) {
         reject(new Error(`Failed to create secure parameter file: ${fileError.message}`));
       }
@@ -377,9 +409,14 @@ export class EnhancedAuthService {
 
       if (typeof value === 'string') {
         const sanitizedValue = value
-          .replace(/[;&|`$(){}[\]\\]/g, '') // Remove shell metacharacters
+          .replace(/[;&|`$(){}[\]\\<>'"]/g, '') // Remove shell metacharacters and quotes
           .split('').filter(char => char.charCodeAt(0) !== 0).join('') // Remove null bytes
+          .replace(/[\r\n\t]/g, '') // Remove control characters
           .trim();
+
+        if (sanitizedValue.length < value.length * 0.8) {
+          throw new Error(`Parameter ${key} contains suspicious characters`);
+        }
 
         sanitized[key] = sanitizedValue.substring(0, 1000);
       } else if (typeof value === 'object' && value !== null) {
