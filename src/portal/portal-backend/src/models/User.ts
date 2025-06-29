@@ -26,7 +26,8 @@
  * @see {@link https://mongoosejs.com/docs/guide.html|Mongoose Documentation}
  */
 
-import { Schema, model, Document, Model } from 'mongoose'; // MODIFIED: Added 'Model' import for clarity
+import { Schema, model, Document, Model } from 'mongoose';
+import { PQCKeyPairMetadata, PQCProtectionMetadata } from './interfaces/pqc-data.interface';
 
 /**
  * @interface IUser
@@ -38,14 +39,23 @@ import { Schema, model, Document, Model } from 'mongoose'; // MODIFIED: Added 'M
 export interface IUser extends Document {
   email: string;
   password: string;
-  lastLoginAt?: Date | null; // MODIFIED: Allowed null
-  failedLoginAttempts?: number | null; // MODIFIED: Allowed null
-  lockUntil?: Date | null; // MODIFIED: Allowed null
-  refreshTokenHash?: string | null; // MODIFIED: Allowed null
-  pqcPublicKey?: string | null; // PQC public key for Kyber-768 KEM
-  pqcSigningKey?: string | null; // PQC signing key for Dilithium-3
-  pqcKeyGeneratedAt?: Date | null; // Timestamp of PQC key generation
-  usePQC?: boolean; // Flag indicating if user is enrolled in PQC
+  lastLoginAt?: Date | null;
+  failedLoginAttempts?: number | null;
+  lockUntil?: Date | null;
+  refreshTokenHash?: string | null;
+  pqcPublicKey?: string | null;
+  pqcSigningKey?: string | null;
+  pqcKeyGeneratedAt?: Date | null;
+  usePQC?: boolean;
+  supportedPQCAlgorithms?: string[];
+  pqcKeyPairs?: PQCKeyPairMetadata[];
+  pqcEnabledAt?: Date | null;
+  pqcProtectionSettings?: PQCProtectionMetadata;
+  pqcKeyRotationSchedule?: {
+    lastRotation?: Date;
+    nextRotation?: Date;
+    rotationInterval?: number;
+  };
 }
 
 /**
@@ -108,6 +118,51 @@ export const UserSchema = new Schema<IUser>( // MODIFIED: Added 'export' here
     usePQC: {
       type: Boolean,
       default: false,
+    },
+    supportedPQCAlgorithms: {
+      type: [String],
+      default: [],
+    },
+    pqcKeyPairs: [{
+      keyId: { type: String, required: true },
+      algorithm: { type: String, required: true },
+      keySize: { type: Number, required: true },
+      generatedAt: { type: Date, required: true },
+      expiresAt: { type: Date },
+      usage: {
+        type: String,
+        enum: ['encryption', 'signing', 'both'],
+        required: true,
+      },
+      status: {
+        type: String,
+        enum: ['active', 'revoked', 'expired'],
+        default: 'active',
+      },
+    }],
+    pqcEnabledAt: {
+      type: Date,
+      default: null,
+    },
+    pqcProtectionSettings: {
+      protectionMode: {
+        type: String,
+        enum: ['classical', 'pqc', 'hybrid'],
+        default: 'classical',
+      },
+      encryptionAlgorithm: { type: String },
+      signingAlgorithm: { type: String },
+      keyRotationSchedule: { type: String },
+      complianceLevel: {
+        type: String,
+        enum: ['basic', 'enhanced', 'maximum'],
+        default: 'basic',
+      },
+    },
+    pqcKeyRotationSchedule: {
+      lastRotation: { type: Date },
+      nextRotation: { type: Date },
+      rotationInterval: { type: Number, default: 86400000 },
     },
   },
   {

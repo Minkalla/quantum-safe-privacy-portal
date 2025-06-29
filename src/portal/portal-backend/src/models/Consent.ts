@@ -21,6 +21,7 @@
  */
 
 import { Schema, model, Document, Model } from 'mongoose';
+import { PQCEncryptedField, PQCSignature, PQCDataIntegrity } from './interfaces/pqc-data.interface';
 
 /**
  * @interface IConsent
@@ -36,6 +37,18 @@ export interface IConsent extends Document {
   userAgent?: string;
   createdAt: Date;
   updatedAt: Date;
+  consentData?: any;
+  encryptedConsentData?: PQCEncryptedField;
+  consentSignature?: PQCSignature;
+  dataIntegrity?: PQCDataIntegrity;
+  isPQCProtected?: boolean;
+  protectionMode?: 'classical' | 'pqc' | 'hybrid';
+  pqcMetadata?: {
+    encryptionAlgorithm?: string;
+    signingAlgorithm?: string;
+    keyId?: string;
+    protectionLevel?: 'basic' | 'enhanced' | 'maximum';
+  };
 }
 
 /**
@@ -85,6 +98,64 @@ export const ConsentSchema = new Schema<IConsent>(
       trim: true,
       maxlength: [500, 'User agent must not exceed 500 characters'],
     },
+    consentData: {
+      type: Schema.Types.Mixed,
+      default: null,
+    },
+    encryptedConsentData: {
+      encryptedData: { type: String },
+      algorithm: { type: String },
+      keyId: { type: String },
+      nonce: { type: String },
+      timestamp: { type: Date },
+      metadata: { type: Schema.Types.Mixed },
+    },
+    consentSignature: {
+      signature: { type: String },
+      algorithm: { type: String },
+      publicKeyHash: { type: String },
+      timestamp: { type: Date },
+      signedDataHash: { type: String },
+    },
+    dataIntegrity: {
+      hash: { type: String },
+      algorithm: { type: String },
+      signature: {
+        signature: { type: String },
+        algorithm: { type: String },
+        publicKeyHash: { type: String },
+        timestamp: { type: Date },
+        signedDataHash: { type: String },
+      },
+      timestamp: { type: Date },
+      validationStatus: {
+        type: String,
+        enum: ['valid', 'invalid', 'pending'],
+        default: 'pending',
+      },
+      lastValidated: { type: Date },
+    },
+    isPQCProtected: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    protectionMode: {
+      type: String,
+      enum: ['classical', 'pqc', 'hybrid'],
+      default: 'classical',
+      index: true,
+    },
+    pqcMetadata: {
+      encryptionAlgorithm: { type: String },
+      signingAlgorithm: { type: String },
+      keyId: { type: String },
+      protectionLevel: {
+        type: String,
+        enum: ['basic', 'enhanced', 'maximum'],
+        default: 'basic',
+      },
+    },
   },
   {
     timestamps: true,
@@ -93,6 +164,9 @@ export const ConsentSchema = new Schema<IConsent>(
 );
 
 ConsentSchema.index({ userId: 1, consentType: 1 }, { unique: true });
+ConsentSchema.index({ isPQCProtected: 1, protectionMode: 1 });
+ConsentSchema.index({ 'dataIntegrity.validationStatus': 1 });
+ConsentSchema.index({ 'pqcMetadata.keyId': 1 });
 
 /**
  * @constant {Model<IConsent>} Consent
