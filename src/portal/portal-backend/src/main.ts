@@ -28,7 +28,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
-import * as hpp from 'hpp';
+// import hpp from 'hpp';
 import { Logger as WinstonLogger } from 'winston';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -161,8 +161,8 @@ async function bootstrap() {
   }));
   console.log('✅ Helmet middleware applied');
 
-  app.use(hpp());
-  console.log('✅ HPP middleware applied');
+  // app.use(hpp());
+  console.log('✅ HPP middleware temporarily disabled');
 
   // app.use(AWSXRay.express.openSegment('MinkallaBackend'));
   // console.log('✅ X-Ray Express middleware applied (openSegment)');

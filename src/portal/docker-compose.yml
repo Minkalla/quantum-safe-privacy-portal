@@ -1,0 +1,84 @@
+
+services:
+  # MongoDB Database Service
+  mongo:
+    image: mongo:latest
+    container_name: portal-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: portal_dev
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - minkalla-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Portal Backend Service
+  portal-backend:
+    build:
+      context: ./portal-backend
+      dockerfile: Dockerfile
+    container_name: portal-backend
+    restart: unless-stopped
+    ports:
+      - "3001:8080"
+    environment:
+      - NODE_ENV=development
+      - PORT=8080
+      - MONGO_URI=mongodb://mongo:27017/portal_dev
+      - JWT_ACCESS_SECRET=dev_jwt_access_secret_key_32_chars
+      - JWT_REFRESH_SECRET=dev_jwt_refresh_secret_key_32_chars
+      - JWT_ACCESS_SECRET_ID=local-jwt-access-secret
+      - JWT_REFRESH_SECRET_ID=local-jwt-refresh-secret
+      - APP_VERSION=0.2.0
+      - ENABLE_SWAGGER_DOCS=true
+      - FRONTEND_URL=http://localhost:3000
+      - SKIP_SECRETS_MANAGER=true
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=dummy
+      - AWS_SECRET_ACCESS_KEY=dummy
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - minkalla-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # QynAuth PQC Service
+  qynauth:
+    build:
+      context: ./mock-qynauth
+      dockerfile: Dockerfile
+    container_name: qynauth-service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app/src/python_app
+      - ENVIRONMENT=development
+    networks:
+      - minkalla-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  minkalla-network:
+    driver: bridge
+    name: minkalla-network
+
+volumes:
+  mongo_data:
+    driver: local

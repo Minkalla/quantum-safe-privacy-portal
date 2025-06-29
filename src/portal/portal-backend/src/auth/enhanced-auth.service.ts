@@ -304,15 +304,15 @@ export class EnhancedAuthService {
 
     return new Promise((resolve, reject) => {
       const pythonScriptPath = path.join(__dirname, '../../../mock-qynauth/src/python_app/pqc_service_bridge.py');
-      
+
       const tempFile = path.join(os.tmpdir(), `pqc_params_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.json`);
-      
+
       try {
         fs.writeFileSync(tempFile, JSON.stringify(sanitizedParams), { mode: 0o600 });
-        
+
         const pythonProcess = spawn('python3', [pythonScriptPath, operation, tempFile], {
           stdio: ['pipe', 'pipe', 'pipe'],
-          shell: false // Explicitly disable shell to prevent injection
+          shell: false, // Explicitly disable shell to prevent injection
         });
 
         let stdout = '';
@@ -369,7 +369,7 @@ export class EnhancedAuthService {
 
     const sanitized: any = {};
     const allowedFields = ['user_id', 'payload', 'token', 'metadata', 'operation_id', 'email', 'session_id'];
-    
+
     for (const [key, value] of Object.entries(params)) {
       if (!allowedFields.includes(key)) {
         continue;
@@ -378,9 +378,9 @@ export class EnhancedAuthService {
       if (typeof value === 'string') {
         const sanitizedValue = value
           .replace(/[;&|`$(){}[\]\\]/g, '') // Remove shell metacharacters
-          .replace(/\x00/g, '') // Remove null bytes
+          .split('').filter(char => char.charCodeAt(0) !== 0).join('') // Remove null bytes
           .trim();
-        
+
         sanitized[key] = sanitizedValue.substring(0, 1000);
       } else if (typeof value === 'object' && value !== null) {
         sanitized[key] = this.sanitizePQCParams(value);
@@ -394,7 +394,7 @@ export class EnhancedAuthService {
 
   async verifyPQCToken(verificationDto: PQCTokenVerificationDto): Promise<PQCAuthResult> {
     const { token, userId } = verificationDto;
-    
+
     try {
       if (!this.validateTokenStructure(token)) {
         return {
@@ -444,7 +444,7 @@ export class EnhancedAuthService {
     try {
       const parsed = JSON.parse(token);
       const requiredFields = ['userId', 'email', 'sessionId', 'algorithm', 'pqc', 'keyId', 'iat', 'exp'];
-      
+
       return requiredFields.every(field => field in parsed);
     } catch (error) {
       return false;
@@ -476,7 +476,7 @@ export class EnhancedAuthService {
         token,
         user_id: userId,
       });
-      
+
       return result.success && result.signatureValid;
     } catch (error) {
       this.logger.error('PQC signature verification failed:', error);
@@ -485,8 +485,8 @@ export class EnhancedAuthService {
   }
 
   private async validatePQCToken(token: string, userId: string): Promise<boolean> {
-    return this.validateTokenStructure(token) && 
-           this.isPQCToken(token) && 
+    return this.validateTokenStructure(token) &&
+           this.isPQCToken(token) &&
            this.validateTokenExpiry(token) &&
            await this.verifyPQCSignature(token, userId);
   }
@@ -505,13 +505,13 @@ export class EnhancedAuthService {
 
   getHybridConfig(): HybridAuthConfig {
     const config = { ...this.hybridConfig };
-    
+
     if (this.pqcFeatureFlags) {
       config.pqcEnabled = this.pqcFeatureFlags.isEnabled('pqc_authentication') && config.enablePQC;
       config.classicalFallback = config.fallbackToClassical;
       config.hybridMode = config.preferredMode === AuthenticationMode.HYBRID;
     }
-    
+
     return config;
   }
 

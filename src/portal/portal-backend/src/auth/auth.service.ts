@@ -206,15 +206,15 @@ export class AuthService {
 
     return new Promise((resolve, reject) => {
       const pythonScriptPath = path.join(__dirname, '../../../mock-qynauth/src/python_app/pqc_service_bridge.py');
-      
+
       const tempFile = path.join(os.tmpdir(), `pqc_params_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.json`);
-      
+
       try {
         fs.writeFileSync(tempFile, JSON.stringify(sanitizedParams), { mode: 0o600 });
-        
+
         const pythonProcess = spawn('python3', [pythonScriptPath, operation, tempFile], {
           stdio: ['pipe', 'pipe', 'pipe'],
-          shell: false // Explicitly disable shell to prevent injection
+          shell: false, // Explicitly disable shell to prevent injection
         });
 
         let stdout = '';
@@ -271,7 +271,7 @@ export class AuthService {
 
     const sanitized: any = {};
     const allowedFields = ['user_id', 'payload', 'token', 'metadata', 'operation_id'];
-    
+
     for (const [key, value] of Object.entries(params)) {
       if (!allowedFields.includes(key)) {
         continue;
@@ -280,9 +280,9 @@ export class AuthService {
       if (typeof value === 'string') {
         const sanitizedValue = value
           .replace(/[;&|`$(){}[\]\\]/g, '') // Remove shell metacharacters
-          .replace(/\x00/g, '') // Remove null bytes
+          .split('').filter(char => char.charCodeAt(0) !== 0).join('') // Remove null bytes
           .trim();
-        
+
         sanitized[key] = sanitizedValue.substring(0, 1000);
       } else if (typeof value === 'object' && value !== null) {
         sanitized[key] = this.sanitizePQCParams(value);

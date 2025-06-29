@@ -28,7 +28,7 @@ import { ApiTags, ApiResponse, ApiBody, ApiOperation } from '@nestjs/swagger';
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly enhancedAuthService: EnhancedAuthService
+    private readonly enhancedAuthService: EnhancedAuthService,
   ) {}
 
   /**
@@ -256,7 +256,7 @@ export class AuthController {
     const result = await this.enhancedAuthService.registerWithPQC(registerDto);
     return {
       message: 'User registered successfully with PQC support',
-      ...result
+      ...result,
     };
   }
 
@@ -308,7 +308,7 @@ export class AuthController {
     return {
       status: 'success',
       message: 'Logged in successfully with PQC support',
-      ...result
+      ...result,
     };
   }
 
@@ -326,7 +326,7 @@ export class AuthController {
 
     return {
       message: 'Token verification completed',
-      ...result
+      ...result,
     };
   }
 
@@ -336,7 +336,7 @@ export class AuthController {
   getHybridConfig() {
     return {
       message: 'Current hybrid authentication configuration',
-      config: this.enhancedAuthService.getHybridConfig()
+      config: this.enhancedAuthService.getHybridConfig(),
     };
   }
 }
