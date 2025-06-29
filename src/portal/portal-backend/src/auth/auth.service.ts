@@ -113,16 +113,16 @@ export class AuthService {
   async generatePQCToken(userId: string): Promise<any> {
     try {
       this.logger.log(`Generating PQC token for user: ${userId}`);
-      
+
       const startTime = Date.now();
-      
+
       let pqcResult;
       try {
         pqcResult = await this.callPythonPQCService('generate_session_key', { user_id: userId });
-        
+
         if (pqcResult.success) {
           this.logger.log(`Enhanced PQC session key generated for user: ${userId}`);
-          
+
           const payload = {
             sub: userId,
             pqc: true,
@@ -130,7 +130,7 @@ export class AuthService {
             session_id: pqcResult.session_data?.session_id,
             keyId: pqcResult.session_data?.public_key_hash,
             iat: Math.floor(Date.now() / 1000),
-            exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour
+            exp: Math.floor(Date.now() / 1000) + (60 * 60), // 1 hour
           };
 
           await this.pqcMonitoring.recordPQCKeyGeneration(userId, startTime, true);
@@ -140,7 +140,7 @@ export class AuthService {
             pqc_enabled: true,
             algorithm: pqcResult.algorithm,
             session_data: pqcResult.session_data,
-            performance_metrics: pqcResult.performance_metrics
+            performance_metrics: pqcResult.performance_metrics,
           };
         }
       } catch (pythonError: any) {
@@ -152,7 +152,7 @@ export class AuthService {
         privateKey: this.generatePlaceholderKey('kyber768_private', userId),
         algorithm: 'Kyber-768',
         keySize: 1184,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       const payload = {
@@ -161,13 +161,13 @@ export class AuthService {
         algorithm: 'Kyber-768',
         keyId: pqcKeyData.publicKey.substring(0, 16),
         iat: Math.floor(Date.now() / 1000),
-        exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour
+        exp: Math.floor(Date.now() / 1000) + (60 * 60), // 1 hour
       };
 
       await this.pqcMonitoring.recordPQCKeyGeneration(userId, startTime, true);
 
       this.logger.log(`PQC token generated successfully for user: ${userId} (fallback mode)`);
-      
+
       return {
         access_token: payload,
         pqc_enabled: true,
@@ -175,9 +175,9 @@ export class AuthService {
         key_metadata: {
           algorithm: pqcKeyData.algorithm,
           keySize: pqcKeyData.keySize,
-          timestamp: pqcKeyData.timestamp
+          timestamp: pqcKeyData.timestamp,
         },
-        fallback_used: true
+        fallback_used: true,
       };
 
     } catch (error) {
@@ -189,43 +189,144 @@ export class AuthService {
 
   /**
    * Call Python PQC service for enhanced cryptographic operations
+   * Implements secure parameter handling to prevent command injection
    */
   private async callPythonPQCService(operation: string, params: any): Promise<any> {
     const { spawn } = require('child_process');
     const path = require('path');
-    
+    const fs = require('fs');
+    const os = require('os');
+    const crypto = require('crypto');
+
+    const ALLOWED_OPERATIONS = Object.freeze([
+      'generate_session_key',
+      'sign_token',
+      'verify_token',
+      'get_status',
+    ] as const);
+
+    if (!ALLOWED_OPERATIONS.includes(operation as any)) {
+      throw new Error(`Invalid operation: ${operation}`);
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(operation)) {
+      throw new Error(`Operation contains invalid characters: ${operation}`);
+    }
+
+    const sanitizedParams = this.sanitizePQCParams(params);
+
     return new Promise((resolve, reject) => {
-      const pythonScriptPath = path.join(__dirname, '../../../mock-qynauth/src/python_app/pqc_service_bridge.py');
-      const pythonProcess = spawn('python3', [pythonScriptPath, operation, JSON.stringify(params)]);
-      
-      let stdout = '';
-      let stderr = '';
-      
-      pythonProcess.stdout.on('data', (data) => {
-        stdout += data.toString();
-      });
-      
-      pythonProcess.stderr.on('data', (data) => {
-        stderr += data.toString();
-      });
-      
-      pythonProcess.on('close', (code) => {
-        if (code === 0) {
+      const pythonScriptPath = path.resolve(__dirname, '../../../mock-qynauth/src/python_app/pqc_service_bridge.py');
+
+      if (!fs.existsSync(pythonScriptPath)) {
+        reject(new Error('Python script not found'));
+        return;
+      }
+
+      const randomBytes = crypto.randomBytes(16).toString('hex');
+      const tempFile = path.join(os.tmpdir(), `pqc_params_${Date.now()}_${randomBytes}.json`);
+
+      try {
+        fs.writeFileSync(tempFile, JSON.stringify(sanitizedParams), { mode: 0o600 });
+
+        const pythonProcess = spawn('python3', [pythonScriptPath, operation, tempFile], {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          shell: false, // Critical: disable shell to prevent injection
+          timeout: 30000, // 30 second timeout
+          windowsHide: true, // Hide window on Windows
+        });
+
+        let stdout = '';
+        let stderr = '';
+
+        pythonProcess.stdout.on('data', (data) => {
+          stdout += data.toString();
+        });
+
+        pythonProcess.stderr.on('data', (data) => {
+          stderr += data.toString();
+        });
+
+        pythonProcess.on('close', (code) => {
           try {
-            const result = JSON.parse(stdout);
-            resolve(result);
-          } catch (parseError: any) {
-            reject(new Error(`Failed to parse Python service response: ${parseError.message}`));
+            fs.unlinkSync(tempFile);
+          } catch (cleanupError) {
+            this.logger.warn(`Failed to cleanup temp file: ${cleanupError.message}`);
           }
-        } else {
-          reject(new Error(`Python PQC service failed with code ${code}: ${stderr}`));
-        }
-      });
-      
-      pythonProcess.on('error', (error) => {
-        reject(new Error(`Failed to spawn Python process: ${error.message}`));
-      });
+
+          if (code === 0) {
+            try {
+              const result = JSON.parse(stdout);
+              resolve(result);
+            } catch (parseError: any) {
+              reject(new Error(`Failed to parse Python service response: ${parseError.message}`));
+            }
+          } else {
+            reject(new Error(`Python PQC service failed with code ${code}: ${stderr}`));
+          }
+        });
+
+        pythonProcess.on('error', (error) => {
+          try {
+            fs.unlinkSync(tempFile);
+          } catch (cleanupError) {
+            this.logger.warn(`Failed to cleanup temp file: ${cleanupError.message}`);
+          }
+          reject(new Error(`Failed to spawn Python process: ${error.message}`));
+        });
+
+        pythonProcess.on('timeout', () => {
+          pythonProcess.kill('SIGKILL');
+          try {
+            fs.unlinkSync(tempFile);
+          } catch (cleanupError) {
+            this.logger.warn(`Failed to cleanup temp file: ${cleanupError.message}`);
+          }
+          reject(new Error('Python PQC service timed out'));
+        });
+
+      } catch (fileError: any) {
+        reject(new Error(`Failed to create secure parameter file: ${fileError.message}`));
+      }
     });
+  }
+
+  /**
+   * Sanitize PQC service parameters to prevent injection attacks
+   */
+  private sanitizePQCParams(params: any): any {
+    if (!params || typeof params !== 'object') {
+      return {};
+    }
+
+    const sanitized: any = {};
+    const allowedFields = ['user_id', 'payload', 'token', 'metadata', 'operation_id'];
+
+    for (const [key, value] of Object.entries(params)) {
+      if (!allowedFields.includes(key)) {
+        continue;
+      }
+
+      if (typeof value === 'string') {
+        const sanitizedValue = value
+          .replace(/[;&|`$(){}[\]\\<>'"]/g, '') // Remove shell metacharacters and quotes
+          .split('').filter(char => char.charCodeAt(0) !== 0).join('') // Remove null bytes
+          .replace(/[\r\n\t]/g, '') // Remove control characters
+          .trim();
+
+        if (sanitizedValue.length < value.length * 0.8) {
+          throw new Error(`Parameter ${key} contains suspicious characters`);
+        }
+
+        sanitized[key] = sanitizedValue.substring(0, 1000);
+      } else if (typeof value === 'object' && value !== null) {
+        sanitized[key] = this.sanitizePQCParams(value);
+      } else if (typeof value === 'number' || typeof value === 'boolean') {
+        sanitized[key] = value;
+      }
+    }
+
+    return sanitized;
   }
 
   /**

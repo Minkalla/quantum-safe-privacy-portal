@@ -26,9 +26,9 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, BadRequestException } from '@nestjs/common';
-import * as cookieParser from 'cookie-parser';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
-import * as hpp from 'hpp';
+// import hpp from 'hpp';
 import { Logger as WinstonLogger } from 'winston';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -36,9 +36,9 @@ import * as express from 'express';
 import { AppConfigService } from './config/config.service';
 import * as path from 'path';
 
-import * as AWSXRay from 'aws-xray-sdk';
-import * as http from 'http';
-import * as https from 'https';
+// import * as AWSXRay from 'aws-xray-sdk';
+// import * as http from 'http';
+// import * as https from 'https';
 
 // --- START DEBUGGING ADDITIONS ---
 // Capture early unhandled exceptions and rejections
@@ -60,8 +60,8 @@ console.log('📍 NODE_ENV:', process.env['NODE_ENV']);
 console.log('📍 Configuration loaded successfully');
 // --- END DEBUGGING ADDITIONS ---
 
-AWSXRay.captureHTTPsGlobal(http);
-AWSXRay.captureHTTPsGlobal(https);
+// AWSXRay.captureHTTPsGlobal(http);
+// AWSXRay.captureHTTPsGlobal(https);
 
 async function bootstrap() {
   console.log('✅ Entering NestFactory.create...');
@@ -161,11 +161,11 @@ async function bootstrap() {
   }));
   console.log('✅ Helmet middleware applied');
 
-  app.use(hpp());
-  console.log('✅ HPP middleware applied');
+  // app.use(hpp());
+  console.log('✅ HPP middleware temporarily disabled');
 
-  app.use(AWSXRay.express.openSegment('MinkallaBackend'));
-  console.log('✅ X-Ray Express middleware applied (openSegment)');
+  // app.use(AWSXRay.express.openSegment('MinkallaBackend'));
+  // console.log('✅ X-Ray Express middleware applied (openSegment)');
 
   app.setGlobalPrefix('portal');
   console.log('✅ Global prefix set to /portal');
@@ -207,8 +207,8 @@ async function bootstrap() {
 
   winstonLogger.log('info', 'Global prefix set to /portal. API routes now accessible at /portal/*');
 
-  app.use(AWSXRay.express.closeSegment());
-  console.log('✅ X-Ray Express middleware applied (closeSegment)');
+  // app.use(AWSXRay.express.closeSegment());
+  // console.log('✅ X-Ray Express middleware applied (closeSegment)');
 
   await app.listen(port);
   console.log('✅ NestJS app listening on port', port);

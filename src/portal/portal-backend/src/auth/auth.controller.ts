@@ -14,17 +14,22 @@
  * for API documentation.
  */
 
-import { Controller, Post, Body, Res, HttpCode, HttpStatus, UnauthorizedException } from '@nestjs/common'; // Removed: UsePipes, ValidationPipe (unused imports)
+import { Controller, Post, Body, Res, HttpCode, HttpStatus, UnauthorizedException, Get } from '@nestjs/common';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
+import { EnhancedAuthService } from './enhanced-auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { ApiTags, ApiResponse, ApiBody, ApiOperation } from '@nestjs/swagger'; // Removed: ApiCookieAuth, ApiBearerAuth (unused imports)
+import { PQCLoginDto, PQCRegisterDto, PQCTokenVerificationDto } from './dto/pqc-auth.dto';
+import { ApiTags, ApiResponse, ApiBody, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Authentication') // Tag for Swagger UI
 @Controller('auth') // Base route for this controller: /portal/auth
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly enhancedAuthService: EnhancedAuthService,
+  ) {}
 
   /**
    * @swagger
@@ -238,5 +243,100 @@ export class AuthController {
     }
 
     return response;
+  }
+
+  @Post('pqc/register')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Register a new user with PQC support' })
+  @ApiBody({ type: PQCRegisterDto })
+  @ApiResponse({ status: 201, description: 'User successfully registered with PQC capabilities.' })
+  @ApiResponse({ status: 400, description: 'Validation failed.' })
+  @ApiResponse({ status: 409, description: 'Email already registered.' })
+  async registerPQC(@Body() registerDto: PQCRegisterDto) {
+    const result = await this.enhancedAuthService.registerWithPQC(registerDto);
+    return {
+      message: 'User registered successfully with PQC support',
+      ...result,
+    };
+  }
+
+  @Post('pqc/login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Authenticate user with hybrid PQC/Classical authentication' })
+  @ApiBody({ type: PQCLoginDto })
+  @ApiResponse({ status: 200, description: 'Successful authentication with PQC or classical fallback.' })
+  @ApiResponse({ status: 400, description: 'Validation failed.' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials.' })
+  @ApiResponse({ status: 403, description: 'Account locked.' })
+  async loginPQC(@Body() loginDto: PQCLoginDto, @Res({ passthrough: true }) res: Response) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const sqlInjectionPatterns = [
+      /('|(\\'))/i,
+      /(;|\\;)/i,
+      /(--|\\--)/i,
+      /(\bOR\b|\bAND\b)/i,
+      /(\bUNION\b|\bSELECT\b)/i,
+      /(\bINSERT\b|\bUPDATE\b|\bDELETE\b)/i,
+      /(\bDROP\b|\bCREATE\b|\bALTER\b)/i,
+      /(\/\*|\*\/)/i,
+      /(\bEXEC\b|\bEXECUTE\b)/i,
+    ];
+
+    const containsSqlInjection = (input: string) => {
+      return sqlInjectionPatterns.some(pattern => pattern.test(input));
+    };
+
+    if (!emailRegex.test(loginDto.email) ||
+        containsSqlInjection(loginDto.email) ||
+        containsSqlInjection(loginDto.password)) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const result = await this.enhancedAuthService.loginWithHybridAuth(loginDto);
+
+    const cookieOptions = {
+      expires: new Date(Date.now() + (loginDto.rememberMe ? 30 * 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000)),
+      httpOnly: true,
+      secure: process.env['NODE_ENV'] === 'production',
+      sameSite: 'strict' as const,
+    };
+
+    if (result.refreshToken) {
+      res.cookie('refreshToken', result.refreshToken, cookieOptions);
+    }
+
+    return {
+      status: 'success',
+      message: 'Logged in successfully with PQC support',
+      ...result,
+    };
+  }
+
+  @Post('pqc/verify')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify PQC-signed token' })
+  @ApiBody({ type: PQCTokenVerificationDto })
+  @ApiResponse({ status: 200, description: 'Token verification result.' })
+  @ApiResponse({ status: 400, description: 'Validation failed.' })
+  @ApiResponse({ status: 401, description: 'Invalid token.' })
+  @ApiResponse({ status: 403, description: 'Token expired.' })
+  @ApiResponse({ status: 401, description: 'Signature verification failed.' })
+  async verifyPQCToken(@Body() verificationDto: PQCTokenVerificationDto) {
+    const result = await this.enhancedAuthService.verifyPQCToken(verificationDto);
+
+    return {
+      message: 'Token verification completed',
+      ...result,
+    };
+  }
+
+  @Get('pqc/config')
+  @ApiOperation({ summary: 'Get current hybrid authentication configuration' })
+  @ApiResponse({ status: 200, description: 'Current hybrid authentication configuration.' })
+  getHybridConfig() {
+    return {
+      message: 'Current hybrid authentication configuration',
+      config: this.enhancedAuthService.getHybridConfig(),
+    };
   }
 }
