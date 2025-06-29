@@ -32,6 +32,7 @@ import { ABTestingModule } from './pqc/ab-testing.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { QualityModule } from './quality/quality.module';
 import { PQCDataModule } from './pqc-data/pqc-data.module';
+import { CryptoServicesModule } from './services/crypto-services.module';
 
 // Removed: import * as AWSXRay from 'aws-xray-sdk'; // REMOVED as per plan
 
@@ -75,6 +76,7 @@ import { PQCDataModule } from './pqc-data/pqc-data.module';
     MonitoringModule,
     QualityModule,
     PQCDataModule,
+    CryptoServicesModule,
   ],
   controllers: [],
   providers: [],

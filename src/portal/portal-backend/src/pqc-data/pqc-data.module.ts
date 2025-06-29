@@ -10,11 +10,16 @@ import { IntegrityCheckerService } from '../services/integrity-checker.service';
 import { ConsentPQCRepository } from '../repositories/consent-pqc.repository';
 import { DataMigrationService } from '../services/data-migration.service';
 import { DataAccessPerformanceService } from '../services/data-access-performance.service';
+import { HybridCryptoService } from '../services/hybrid-crypto.service';
+import { ClassicalCryptoService } from '../services/classical-crypto.service';
+import { CircuitBreakerService } from '../services/circuit-breaker.service';
 import { PQCDataController } from '../controllers/pqc-data.controller';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
     ConfigModule,
+    AuthModule,
     MongooseModule.forFeature([
       { name: Consent.name, schema: ConsentSchema },
     ]),
@@ -29,6 +34,9 @@ import { PQCDataController } from '../controllers/pqc-data.controller';
     ConsentPQCRepository,
     DataMigrationService,
     DataAccessPerformanceService,
+    HybridCryptoService,
+    ClassicalCryptoService,
+    CircuitBreakerService,
   ],
   exports: [
     PQCDataEncryptionService,
@@ -39,6 +47,9 @@ import { PQCDataController } from '../controllers/pqc-data.controller';
     ConsentPQCRepository,
     DataMigrationService,
     DataAccessPerformanceService,
+    HybridCryptoService,
+    ClassicalCryptoService,
+    CircuitBreakerService,
   ],
 })
 export class PQCDataModule {}

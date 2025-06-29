@@ -79,30 +79,30 @@ export class AuthService {
     let success = false;
 
     try {
-      const pqcPublicKey = this.generatePlaceholderKey('kyber768_public', userId);
-      const pqcSigningKey = this.generatePlaceholderKey('dilithium3_private', userId);
-
-      await this.userModel.findByIdAndUpdate(userId, {
-        pqcPublicKey,
-        pqcSigningKey,
-        pqcKeyGeneratedAt: new Date(),
-        usePQC: true,
+      const pqcResult = await this.callPythonPQCService('generate_session_key', {
+        user_id: userId,
+        metadata: { operation: 'key_generation' },
       });
 
-      success = true;
-      this.logger.log(`PQC keys generated and stored for user ${userId}`);
+      if (pqcResult.success && pqcResult.session_data) {
+        await this.userModel.findByIdAndUpdate(userId, {
+          pqcPublicKey: pqcResult.session_data.public_key_hash,
+          pqcSigningKey: pqcResult.session_data.ciphertext,
+          pqcKeyGeneratedAt: new Date(),
+          usePQC: true,
+        });
+
+        success = true;
+        this.logger.log(`Real PQC keys generated and stored for user ${userId} using ${pqcResult.algorithm}`);
+      } else {
+        throw new Error(pqcResult.error_message || 'PQC key generation failed');
+      }
     } catch (error) {
       this.logger.error(`Failed to generate PQC keys for user ${userId}:`, error);
       throw error;
     } finally {
       await this.pqcMonitoring.recordPQCKeyGeneration(userId, startTime, success);
     }
-  }
-
-  private generatePlaceholderKey(keyType: string, userId: string): string {
-    const timestamp = Date.now();
-    const hash = require('crypto').createHash('sha256').update(`${keyType}_${userId}_${timestamp}`).digest('hex');
-    return `${keyType}_${hash.substring(0, 32)}`;
   }
 
   /**
@@ -147,38 +147,7 @@ export class AuthService {
         this.logger.log(`Enhanced PQC bindings failed, falling back to placeholder: ${pythonError.message}`);
       }
 
-      const pqcKeyData = {
-        publicKey: this.generatePlaceholderKey('kyber768_public', userId),
-        privateKey: this.generatePlaceholderKey('kyber768_private', userId),
-        algorithm: 'Kyber-768',
-        keySize: 1184,
-        timestamp: new Date().toISOString(),
-      };
-
-      const payload = {
-        sub: userId,
-        pqc: true,
-        algorithm: 'Kyber-768',
-        keyId: pqcKeyData.publicKey.substring(0, 16),
-        iat: Math.floor(Date.now() / 1000),
-        exp: Math.floor(Date.now() / 1000) + (60 * 60), // 1 hour
-      };
-
-      await this.pqcMonitoring.recordPQCKeyGeneration(userId, startTime, true);
-
-      this.logger.log(`PQC token generated successfully for user: ${userId} (fallback mode)`);
-
-      return {
-        access_token: payload,
-        pqc_enabled: true,
-        algorithm: 'Kyber-768',
-        key_metadata: {
-          algorithm: pqcKeyData.algorithm,
-          keySize: pqcKeyData.keySize,
-          timestamp: pqcKeyData.timestamp,
-        },
-        fallback_used: true,
-      };
+      throw new Error('PQC service unavailable and no fallback configured');
 
     } catch (error) {
       this.logger.error(`PQC token generation failed for user ${userId}:`, error);
