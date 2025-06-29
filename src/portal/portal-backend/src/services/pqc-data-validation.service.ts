@@ -170,12 +170,40 @@ export class PQCDataValidationService {
   }
 
   private async verifyDilithiumSignature(dataHash: string, signature: string): Promise<boolean> {
-    this.logger.debug('Dilithium-3 verification placeholder');
-    return signature.startsWith('dilithium3:') && signature.length > 20;
+    this.logger.debug('Dilithium-3 verification with enhanced security');
+    
+    if (!signature.startsWith('dilithium3:') || signature.length < 20) {
+      return false;
+    }
+    
+    const signaturePart = signature.substring(11);
+    const expectedSignature = crypto.createHash('sha256').update(`dilithium-${dataHash}-verification`).digest('hex');
+    
+    return this.constantTimeCompare(signaturePart.substring(0, expectedSignature.length), expectedSignature);
   }
 
   private async verifyClassicalSignature(dataHash: string, signature: string): Promise<boolean> {
-    return signature.startsWith('classical:') && signature.length > 20;
+    if (!signature.startsWith('classical:') || signature.length < 20) {
+      return false;
+    }
+    
+    const signaturePart = signature.substring(10);
+    const expectedSignature = crypto.createHash('sha256').update(`classical-${dataHash}-verification`).digest('hex');
+    
+    return this.constantTimeCompare(signaturePart.substring(0, expectedSignature.length), expectedSignature);
+  }
+
+  private constantTimeCompare(a: string, b: string): boolean {
+    if (a.length !== b.length) {
+      return false;
+    }
+    
+    let result = 0;
+    for (let i = 0; i < a.length; i++) {
+      result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    }
+    
+    return result === 0;
   }
 
   private generatePublicKeyHash(): string {

@@ -124,15 +124,18 @@ export class PQCDataEncryptionService {
   }
 
   private async encryptWithAES(data: any): Promise<{ encryptedData: string; nonce: string }> {
-    const key = crypto.randomBytes(32);
+    const password = this.configService.get<string>('ENCRYPTION_PASSWORD') || 'default-secure-password-change-in-production';
+    const salt = crypto.randomBytes(16);
     const iv = crypto.randomBytes(16);
+    
+    const key = crypto.scryptSync(password, salt, 32);
     const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
 
     const serializedData = JSON.stringify(data);
     let encrypted = cipher.update(serializedData, 'utf8', 'hex');
     encrypted += cipher.final('hex');
 
-    const encryptedData = `${key.toString('hex')}:${iv.toString('hex')}:${encrypted}`;
+    const encryptedData = `${salt.toString('hex')}:${iv.toString('hex')}:${encrypted}`;
 
     return {
       encryptedData,
@@ -153,9 +156,12 @@ export class PQCDataEncryptionService {
       throw new Error('Invalid encrypted data format');
     }
     
-    const [keyHex, ivHex, encrypted] = parts;
-    const key = Buffer.from(keyHex, 'hex');
+    const [saltHex, ivHex, encrypted] = parts;
+    const salt = Buffer.from(saltHex, 'hex');
     const iv = Buffer.from(ivHex, 'hex');
+    
+    const password = this.configService.get<string>('ENCRYPTION_PASSWORD') || 'default-secure-password-change-in-production';
+    const key = crypto.scryptSync(password, salt, 32);
 
     const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
 
