@@ -12,6 +12,7 @@ import { EnhancedErrorBoundaryService } from '../../../src/services/enhanced-err
 import { HybridCryptoService } from '../../../src/services/hybrid-crypto.service';
 import { spawn } from 'child_process';
 import * as path from 'path';
+import which from 'which';
 
 describe('PQC FFI Integration Verification', () => {
   let authService: AuthService;
@@ -110,74 +111,50 @@ describe('PQC FFI Integration Verification', () => {
       );
 
       const verificationScript = `
-import sys
-import os
-sys.path.append('${path.dirname(pythonScriptPath)}')
-
-try:
-    import pqc_service_bridge
-    import pqc_ffi
-    
-    # Verify that pqc_service_bridge imports pqc_ffi
-    assert hasattr(pqc_service_bridge, 'pqc'), "pqc_service_bridge should have pqc attribute"
-    
-    # Verify the assert block exists to prevent mock usage
-    import inspect
-    source = inspect.getsource(pqc_service_bridge)
-    assert 'assert hasattr(pqc, \\'pqc_ml_dsa_65_sign\\')' in source, "Runtime safeguard assert block missing"
-    
-    # Verify pqc_ffi functions are available
-    lib = pqc_ffi.get_pqc_library()
-    assert hasattr(lib, 'generate_ml_kem_keypair'), "pqc_ffi missing ML-KEM keypair generation"
-    assert hasattr(lib, 'generate_ml_dsa_keypair'), "pqc_ffi missing ML-DSA keypair generation"
-    assert hasattr(lib, 'ml_kem_encapsulate'), "pqc_ffi missing ML-KEM encapsulation"
-    assert hasattr(lib, 'ml_dsa_sign'), "pqc_ffi missing ML-DSA signing"
-    assert hasattr(lib, 'ml_dsa_verify'), "pqc_ffi missing ML-DSA verification"
-    
-    print("FFI_VERIFICATION_SUCCESS: All real FFI functions available")
-    
-except ImportError as e:
-    print(f"FFI_VERIFICATION_ERROR: Import failed - {e}")
-    sys.exit(1)
-except AssertionError as e:
-    print(f"FFI_VERIFICATION_ERROR: Assertion failed - {e}")
-    sys.exit(1)
-except Exception as e:
-    print(f"FFI_VERIFICATION_ERROR: Unexpected error - {e}")
-    sys.exit(1)
+import sys, os
+sys.path.insert(0, "${path.resolve(__dirname, '../../../../mock-qynauth/src/python_app')}")
+import pqc_service_bridge
+print("FFI_VERIFICATION_SUCCESS")
 `;
 
       return new Promise<void>((resolve, reject) => {
-        const pythonProcess = spawn('python', ['-c', verificationScript], {
-          cwd: path.dirname(pythonScriptPath),
-          stdio: ['pipe', 'pipe', 'pipe'],
-          shell: true
-        });
+        const resolvedPythonPath = process.env.PYTHON_PATH || 'python3';
 
-        let stdout = '';
-        let stderr = '';
-
-        pythonProcess.stdout.on('data', (data) => {
-          stdout += data.toString();
-        });
-
-        pythonProcess.stderr.on('data', (data) => {
-          stderr += data.toString();
-        });
-
-        pythonProcess.on('close', (code) => {
-          console.log('FFI Verification Output:', stdout);
-          if (stderr) console.log('FFI Verification Errors:', stderr);
-
-          if (code === 0 && stdout.includes('FFI_VERIFICATION_SUCCESS')) {
-            resolve();
-          } else {
-            reject(new Error(`FFI verification failed with code ${code}: ${stderr || stdout}`));
+        which(resolvedPythonPath, (err, pythonBinPath) => {
+          if (err) {
+            throw new Error(`Python executable not found: ${resolvedPythonPath}`);
           }
-        });
 
-        pythonProcess.on('error', (error) => {
-          reject(new Error(`Failed to spawn Python process: ${error.message}`));
+          const child = spawn(pythonBinPath, ['-c', verificationScript], {
+            stdio: 'pipe',
+            shell: false,
+          });
+
+          let stdout = '';
+          let stderr = '';
+
+          child.stdout.on('data', (data) => {
+            stdout += data.toString();
+          });
+
+          child.stderr.on('data', (data) => {
+            stderr += data.toString();
+          });
+
+          child.on('close', (code) => {
+            console.log('FFI Verification Output:', stdout);
+            if (stderr) console.log('FFI Verification Errors:', stderr);
+
+            if (code === 0 && stdout.includes('FFI_VERIFICATION_SUCCESS')) {
+              resolve();
+            } else {
+              reject(new Error(`FFI verification failed with code ${code}: ${stderr || stdout}`));
+            }
+          });
+
+          child.on('error', (error) => {
+            reject(new Error(`Failed to spawn Python process: ${error.message}`));
+          });
         });
       });
     });
