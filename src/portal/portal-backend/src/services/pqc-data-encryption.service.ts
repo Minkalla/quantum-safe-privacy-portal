@@ -133,7 +133,7 @@ export class PQCDataEncryptionService {
 
         return {
           encryptedData: pqcResult.session_data.ciphertext,
-          nonce: pqcResult.session_data.shared_secret.substring(0, 32),
+          nonce: pqcResult.session_data.shared_secret.slice(0, 32),
         };
       } else {
         throw new Error(pqcResult.error_message || 'ML-KEM-768 encryption failed');

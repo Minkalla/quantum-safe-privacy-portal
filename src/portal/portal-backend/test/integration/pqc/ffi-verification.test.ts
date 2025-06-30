@@ -2,7 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from '../../../src/auth/auth.service';
 import { PQCDataValidationService } from '../../../src/services/pqc-data-validation.service';
 import { PQCDataEncryptionService } from '../../../src/services/pqc-data-encryption.service';
-import { JwtService } from '@nestjs/jwt';
+import { JwtModule } from '@nestjs/jwt';
+import { JwtService } from '../../../src/jwt/jwt.service';
+import { ConfigService } from '@nestjs/config';
+import { PQCFeatureFlagsService } from '../../../src/pqc/pqc-feature-flags.service';
+import { PQCMonitoringService } from '../../../src/pqc/pqc-monitoring.service';
+import { SecretsService } from '../../../src/secrets/secrets.service';
+import { EnhancedErrorBoundaryService } from '../../../src/services/enhanced-error-boundary.service';
+import { HybridCryptoService } from '../../../src/services/hybrid-crypto.service';
 import { spawn } from 'child_process';
 import * as path from 'path';
 
@@ -19,7 +26,24 @@ describe('PQC FFI Integration Verification', () => {
       save: jest.fn(),
     };
 
+    const mockConfigService = {
+      get: jest.fn().mockImplementation((key: string) => {
+        if (key === 'JWT_ACCESS_SECRET_ID') return 'test-access-secret-id';
+        if (key === 'JWT_REFRESH_SECRET_ID') return 'test-refresh-secret-id';
+        return 'test-value';
+      }),
+    };
+
+    const mockSecretsService = {
+      getSecret: jest.fn().mockResolvedValue('test-secret-value'),
+    };
+
     const mockJwtService = {
+      generateTokens: jest.fn().mockReturnValue({
+        accessToken: 'mock-access-token',
+        refreshToken: 'mock-refresh-token'
+      }),
+      verifyToken: jest.fn(),
       sign: jest.fn().mockReturnValue('mock-jwt-token'),
       verify: jest.fn(),
     };
@@ -33,15 +57,39 @@ describe('PQC FFI Integration Verification', () => {
       logEvent: jest.fn(),
     };
 
+    const mockPQCDataEncryptionService = {
+      encrypt: jest.fn(),
+      decrypt: jest.fn(),
+    };
+
+    const mockEnhancedErrorBoundaryService = {
+      executeWithErrorBoundary: jest.fn(),
+    };
+
+    const mockHybridCryptoService = {
+      encryptWithFallback: jest.fn(),
+      decryptWithFallback: jest.fn(),
+    };
+
     module = await Test.createTestingModule({
+      imports: [
+        JwtModule.register({
+          secret: 'test-secret',
+          signOptions: { expiresIn: '1h' },
+        }),
+      ],
       providers: [
         AuthService,
+        JwtService,
         PQCDataValidationService,
-        PQCDataEncryptionService,
+        { provide: PQCDataEncryptionService, useValue: mockPQCDataEncryptionService },
         { provide: 'UserModel', useValue: mockUserModel },
-        { provide: JwtService, useValue: mockJwtService },
-        { provide: 'PQCFeatureFlagsService', useValue: mockPQCFeatureFlagsService },
-        { provide: 'PQCMonitoringService', useValue: mockPQCMonitoringService },
+        { provide: ConfigService, useValue: mockConfigService },
+        { provide: SecretsService, useValue: mockSecretsService },
+        { provide: PQCFeatureFlagsService, useValue: mockPQCFeatureFlagsService },
+        { provide: PQCMonitoringService, useValue: mockPQCMonitoringService },
+        { provide: EnhancedErrorBoundaryService, useValue: mockEnhancedErrorBoundaryService },
+        { provide: HybridCryptoService, useValue: mockHybridCryptoService },
       ],
     }).compile();
 

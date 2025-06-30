@@ -221,7 +221,7 @@ export class PQCDataValidationService {
 
     try {
       this.logger.debug(`Starting data integrity validation for algorithm: ${integrity.algorithm}`);
-      this.logger.debug(`Input data type: ${typeof data}, data preview: ${JSON.stringify(data).substring(0, 200)}...`);
+      this.logger.debug(`Input data type: ${typeof data}, data preview: ${JSON.stringify(data).slice(0, 200)}...`);
       this.logger.debug(`Expected integrity hash: ${integrity.hash}`);
       this.logger.debug(`Integrity signature present: ${!!integrity.signature}`);
       
@@ -317,15 +317,15 @@ export class PQCDataValidationService {
 
   private async verifyDilithiumSignature(dataHash: string, signature: string, userId?: string, signatureMetadata?: any): Promise<boolean> {
     try {
-      this.logger.debug(`ML-DSA-65 verification starting for signature: ${signature.substring(0, 50)}...`);
+      this.logger.debug(`ML-DSA-65 verification starting for signature: ${signature.slice(0, 50)}...`);
 
       if (!signature.startsWith('dilithium3:') || signature.length < 20) {
         this.logger.debug('Signature format validation failed');
         return false;
       }
 
-      const signaturePart = signature.substring(11);
-      this.logger.debug(`Extracted signature part: ${signaturePart.substring(0, 50)}...`);
+      const signaturePart = signature.slice(11);
+      this.logger.debug(`Extracted signature part: ${signaturePart.slice(0, 50)}...`);
 
       const isValidFormat = signaturePart.length > 10 && !signaturePart.includes('undefined');
       
@@ -382,14 +382,14 @@ export class PQCDataValidationService {
       return false;
     }
 
-    const signaturePart = signature.substring(10);
+    const signaturePart = signature.slice(10);
     const expectedSignature = crypto
       .createHash('sha256')
       .update(`classical-${dataHash}-verification`)
       .digest('hex');
 
     return this.constantTimeCompare(
-      signaturePart.substring(0, expectedSignature.length),
+      signaturePart.slice(0, expectedSignature.length),
       expectedSignature,
     );
   }
