@@ -244,18 +244,18 @@ export class AuthService {
             console.log(`DEBUG TS: stderr content: ${stderr}`);
           }
           
-          if (code === 0) {
-            try {
-              const result = JSON.parse(stdout);
-              console.log(`DEBUG TS: PQC service response for ${operation}: ${JSON.stringify(result)}`);
-              resolve(result);
-            } catch (parseError: any) {
+          try {
+            const result = JSON.parse(stdout);
+            console.log(`DEBUG TS: PQC service response for ${operation}: ${JSON.stringify(result)}`);
+            resolve(result);
+          } catch (parseError: any) {
+            if (code === 0) {
               this.logger.error(`Failed to parse Python service response: ${parseError.message}, stdout: ${stdout}`);
               reject(new Error(`Failed to parse Python service response: ${parseError.message}`));
+            } else {
+              this.logger.error(`Python PQC service failed with code ${code}: ${stderr}`);
+              reject(new Error(`Python PQC service failed with code ${code}: ${stderr}`));
             }
-          } else {
-            this.logger.error(`Python PQC service failed with code ${code}: ${stderr}`);
-            reject(new Error(`Python PQC service failed with code ${code}: ${stderr}`));
           }
         });
 
@@ -279,7 +279,7 @@ export class AuthService {
     }
 
     const sanitized: any = {};
-    const allowedFields = ['user_id', 'payload', 'token', 'metadata', 'operation_id', 'message', 'operation', 'algorithm'];
+    const allowedFields = ['user_id', 'payload', 'data_hash', 'token', 'metadata', 'operation_id', 'message', 'operation', 'algorithm', 'signature_hex', 'public_key_hex', 'original_payload'];
 
     for (const [key, value] of Object.entries(params)) {
       if (!allowedFields.includes(key)) {
