@@ -3,6 +3,9 @@ import { ConfigService } from '@nestjs/config';
 import { PQCDataValidationService } from '../../../../src/services/pqc-data-validation.service';
 import { AuthService } from '../../../../src/auth/auth.service';
 import { PQCAlgorithmType } from '../../../../src/models/interfaces/pqc-data.interface';
+import { JwtService } from '../../../../src/jwt/jwt.service';
+import { PQCFeatureFlagsService } from '../../../../src/pqc/pqc-feature-flags.service';
+import { PQCMonitoringService } from '../../../../src/pqc/pqc-monitoring.service';
 
 describe('Dilithium-3 Algorithm Unit Tests - Real PQC Operations', () => {
   let validationService: PQCDataValidationService;
@@ -13,11 +16,33 @@ describe('Dilithium-3 Algorithm Unit Tests - Real PQC Operations', () => {
       get: jest.fn().mockReturnValue('test-value'),
     };
 
+    const mockUserModel = {
+      findOne: jest.fn(),
+      findByIdAndUpdate: jest.fn(),
+      create: jest.fn(),
+    };
+
+    const mockJwtService = {
+      generateTokens: jest.fn().mockReturnValue({ accessToken: 'test-token', refreshToken: 'test-refresh' }),
+    };
+
+    const mockPQCFeatureFlags = {
+      isEnabled: jest.fn().mockReturnValue(true),
+    };
+
+    const mockPQCMonitoring = {
+      recordPQCKeyGeneration: jest.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PQCDataValidationService,
         { provide: ConfigService, useValue: mockConfigService },
         { provide: AuthService, useClass: AuthService },
+        { provide: 'UserModel', useValue: mockUserModel },
+        { provide: JwtService, useValue: mockJwtService },
+        { provide: PQCFeatureFlagsService, useValue: mockPQCFeatureFlags },
+        { provide: PQCMonitoringService, useValue: mockPQCMonitoring },
       ],
     }).compile();
 

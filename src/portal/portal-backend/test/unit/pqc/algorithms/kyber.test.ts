@@ -3,6 +3,9 @@ import { ConfigService } from '@nestjs/config';
 import { PQCDataEncryptionService } from '../../../../src/services/pqc-data-encryption.service';
 import { AuthService } from '../../../../src/auth/auth.service';
 import { PQCAlgorithmType } from '../../../../src/models/interfaces/pqc-data.interface';
+import { JwtService } from '../../../../src/jwt/jwt.service';
+import { PQCFeatureFlagsService } from '../../../../src/pqc/pqc-feature-flags.service';
+import { PQCMonitoringService } from '../../../../src/pqc/pqc-monitoring.service';
 
 describe('Kyber-768 Algorithm Unit Tests - Real PQC Operations', () => {
   let encryptionService: PQCDataEncryptionService;
@@ -13,11 +16,33 @@ describe('Kyber-768 Algorithm Unit Tests - Real PQC Operations', () => {
       get: jest.fn().mockReturnValue('test-value'),
     };
 
+    const mockUserModel = {
+      findOne: jest.fn(),
+      findByIdAndUpdate: jest.fn(),
+      create: jest.fn(),
+    };
+
+    const mockJwtService = {
+      generateTokens: jest.fn().mockReturnValue({ accessToken: 'test-token', refreshToken: 'test-refresh' }),
+    };
+
+    const mockPQCFeatureFlags = {
+      isEnabled: jest.fn().mockReturnValue(true),
+    };
+
+    const mockPQCMonitoring = {
+      recordPQCKeyGeneration: jest.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PQCDataEncryptionService,
         { provide: ConfigService, useValue: mockConfigService },
         { provide: AuthService, useClass: AuthService },
+        { provide: 'UserModel', useValue: mockUserModel },
+        { provide: JwtService, useValue: mockJwtService },
+        { provide: PQCFeatureFlagsService, useValue: mockPQCFeatureFlags },
+        { provide: PQCMonitoringService, useValue: mockPQCMonitoring },
       ],
     }).compile();
 
@@ -41,7 +66,7 @@ describe('Kyber-768 Algorithm Unit Tests - Real PQC Operations', () => {
     });
 
     it('should generate unique key pairs on each real call', async () => {
-      const keyPairs = [];
+      const keyPairs: string[] = [];
       
       for (let i = 0; i < 3; i++) {
         const result = await encryptionService.encryptData('test data', {
@@ -91,7 +116,7 @@ describe('Kyber-768 Algorithm Unit Tests - Real PQC Operations', () => {
 
     it('should produce different ciphertexts for same plaintext with real operations', async () => {
       const plaintextData = 'identical plaintext';
-      const ciphertexts = [];
+      const ciphertexts: string[] = [];
 
       for (let i = 0; i < 3; i++) {
         const result = await encryptionService.encryptData(plaintextData, {
