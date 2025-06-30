@@ -10,6 +10,7 @@ import sys
 import json
 import logging
 import faulthandler
+import base64
 from typing import Dict, Any
 
 faulthandler.enable()
@@ -56,8 +57,13 @@ def handle_generate_session_key(params: Dict[str, Any]) -> Dict[str, Any]:
         
         logger.info(f"Generating ML-KEM-768 session key for user: {user_id}")
         
-        public_key, private_key = pqc_service.generate_ml_kem_keypair()
-        ciphertext, shared_secret = pqc_service.ml_kem_encapsulate(public_key)
+        keypair = pqc_service.generate_ml_kem_keypair()
+        public_key = keypair['public_key']
+        private_key = keypair['private_key']
+        
+        encaps_result = pqc_service.ml_kem_encapsulate(public_key)
+        ciphertext = encaps_result['ciphertext']
+        shared_secret = encaps_result['shared_secret']
         
         import time
         import uuid
@@ -65,15 +71,19 @@ def handle_generate_session_key(params: Dict[str, Any]) -> Dict[str, Any]:
         created_at = time.time()
         expires_at = created_at + 3600  # 1 hour expiry
         
+        shared_secret_b64 = base64.b64encode(bytes(shared_secret)).decode('utf-8') if isinstance(shared_secret, list) else shared_secret
+        ciphertext_b64 = base64.b64encode(bytes(ciphertext)).decode('utf-8') if isinstance(ciphertext, list) else ciphertext
+        public_key_hash_b64 = base64.b64encode(bytes(public_key[:32])).decode('utf-8') if isinstance(public_key, list) else public_key[:32]
+        
         session_dict = {
             'user_id': user_id,
             'session_id': session_id,
-            'shared_secret': shared_secret.hex(),
-            'ciphertext': ciphertext.hex(),
+            'shared_secret': shared_secret_b64,
+            'ciphertext': ciphertext_b64,
             'algorithm': 'ML-KEM-768',
             'created_at': created_at,
             'expires_at': expires_at,
-            'public_key_hash': public_key[:32].hex(),
+            'public_key_hash': public_key_hash_b64,
             'metadata': params.get('metadata', {})
         }
         
@@ -81,7 +91,7 @@ def handle_generate_session_key(params: Dict[str, Any]) -> Dict[str, Any]:
             'success': True,
             'user_id': user_id,
             'session_data': session_dict,
-            'token': f"mlkem768:{session_id}:{shared_secret.hex()[:32]}",
+            'token': f"mlkem768:{session_id}:{shared_secret_b64[:32]}",
             'algorithm': 'ML-KEM-768',
             'error_message': None,
             'performance_metrics': {'generation_time_ms': 0}
@@ -97,7 +107,12 @@ def handle_generate_session_key(params: Dict[str, Any]) -> Dict[str, Any]:
 def handle_sign_token(params: Dict[str, Any]) -> Dict[str, Any]:
     """Handle token signing request using real ML-DSA-65."""
     try:
+        logger.info(f"=== SIGN_TOKEN DEBUG START ===")
+        logger.info(f"Raw input params: {params}")
+        logger.info(f"Params type: {type(params)}")
+        
         if not pqc_service:
+            logger.error("PQC service not available")
             return {
                 'success': False,
                 'error_message': 'PQC service not available'
@@ -106,7 +121,13 @@ def handle_sign_token(params: Dict[str, Any]) -> Dict[str, Any]:
         user_id = params.get('user_id')
         payload = params.get('payload')
         
+        logger.info(f"User ID: {user_id} (type: {type(user_id)}, length: {len(str(user_id)) if user_id else 'None'})")
+        logger.info(f"Payload: {payload} (type: {type(payload)})")
+        if isinstance(payload, str):
+            logger.info(f"Payload hash preview: {payload[:100] if len(payload) > 100 else payload}")
+        
         if not user_id or not payload:
+            logger.error(f"Missing required parameters - user_id: {user_id}, payload: {payload}")
             return {
                 'success': False,
                 'error_message': 'user_id and payload parameters required'
@@ -114,34 +135,110 @@ def handle_sign_token(params: Dict[str, Any]) -> Dict[str, Any]:
         
         logger.info(f"Signing token with ML-DSA-65 for user: {user_id}")
         
-        public_key, private_key = pqc_service.generate_ml_dsa_keypair()
+        try:
+            logger.info("Calling generate_ml_dsa_keypair()...")
+            keypair = pqc_service.generate_ml_dsa_keypair()
+            logger.info(f"Keypair generation result type: {type(keypair)}")
+            logger.info(f"Keypair keys: {list(keypair.keys()) if isinstance(keypair, dict) else 'Not a dict'}")
+            
+            if not isinstance(keypair, dict) or 'public_key' not in keypair or 'private_key' not in keypair:
+                logger.error(f"Invalid keypair format: {keypair}")
+                return {
+                    'success': False,
+                    'error_message': f'Keypair generation failed - invalid format: {type(keypair)}'
+                }
+            
+            public_key = keypair['public_key']
+            private_key = keypair['private_key']
+            logger.info(f"Public key type: {type(public_key)}, length: {len(public_key) if hasattr(public_key, '__len__') else 'No length'}")
+            logger.info(f"Private key type: {type(private_key)}, length: {len(private_key) if hasattr(private_key, '__len__') else 'No length'}")
+            
+        except Exception as keypair_error:
+            logger.error(f"Keypair generation failed: {keypair_error}", exc_info=True)
+            return {
+                'success': False,
+                'error_message': f'Keypair generation failed: {str(keypair_error)}'
+            }
         
+        logger.info(f"Processing payload for signing...")
         if isinstance(payload, str):
             message_bytes = payload.encode('utf-8')
+            logger.info(f"Payload converted from string to bytes, length: {len(message_bytes)}")
         elif isinstance(payload, dict):
             import json
             message_bytes = json.dumps(payload, sort_keys=True).encode('utf-8')
+            logger.info(f"Payload converted from dict to bytes, length: {len(message_bytes)}")
         else:
             message_bytes = bytes(payload)
+            logger.info(f"Payload converted to bytes from {type(payload)}, length: {len(message_bytes)}")
         
-        signature = pqc_service.ml_dsa_sign(private_key, message_bytes)
+        try:
+            logger.info("Calling ml_dsa_sign()...")
+            sign_result = pqc_service.ml_dsa_sign(private_key, message_bytes)
+            logger.info(f"Sign result type: {type(sign_result)}")
+            logger.info(f"Sign result keys: {list(sign_result.keys()) if isinstance(sign_result, dict) else 'Not a dict'}")
+            
+            if not isinstance(sign_result, dict) or 'signature' not in sign_result:
+                logger.error(f"Invalid sign result format: {sign_result}")
+                return {
+                    'success': False,
+                    'error_message': f'Signature generation failed - invalid format: {type(sign_result)}'
+                }
+            
+            signature = sign_result['signature']
+            logger.info(f"Raw signature type: {type(signature)}, length: {len(signature) if hasattr(signature, '__len__') else 'No length'}")
+            
+            if not signature or (hasattr(signature, '__len__') and len(signature) == 0):
+                logger.error(f"Empty signature returned: {signature}")
+                return {
+                    'success': False,
+                    'error_message': 'Empty signature generated'
+                }
+            
+        except Exception as sign_error:
+            logger.error(f"Signature generation failed: {sign_error}", exc_info=True)
+            return {
+                'success': False,
+                'error_message': f'Signature generation failed: {str(sign_error)}'
+            }
         
-        import time
-        token = f"mldsa65:{user_id}:{signature.hex()[:64]}:{int(time.time())}"
-        
-        return {
-            'success': True,
-            'user_id': user_id,
-            'token': token,
-            'signature': signature.hex(),
-            'public_key': public_key.hex(),
-            'algorithm': 'ML-DSA-65',
-            'error_message': None,
-            'performance_metrics': {'signing_time_ms': 0}
-        }
+        try:
+            signature_b64 = base64.b64encode(bytes(signature)).decode('utf-8') if isinstance(signature, list) else signature
+            public_key_b64 = base64.b64encode(bytes(public_key)).decode('utf-8') if isinstance(public_key, list) else public_key
+            logger.info(f"Signature base64 length: {len(signature_b64)}")
+            logger.info(f"Public key base64 length: {len(public_key_b64)}")
+            
+            import time
+            token = f"mldsa65:{user_id}:{signature_b64[:64]}:{int(time.time())}"
+            logger.info(f"Generated token: {token}")
+            
+            result = {
+                'success': True,
+                'user_id': user_id,
+                'token': token,
+                'signature': signature_b64,
+                'public_key': public_key_b64,
+                'algorithm': 'ML-DSA-65',
+                'error_message': None,
+                'performance_metrics': {'signing_time_ms': 0}
+            }
+            
+            logger.info(f"=== SIGN_TOKEN SUCCESS ===")
+            logger.info(f"Final result success: {result['success']}")
+            return result
+            
+        except Exception as encoding_error:
+            logger.error(f"Signature encoding failed: {encoding_error}", exc_info=True)
+            return {
+                'success': False,
+                'error_message': f'Signature encoding failed: {str(encoding_error)}'
+            }
         
     except Exception as e:
-        logger.error(f"Token signing failed: {e}")
+        logger.error(f"=== SIGN_TOKEN EXCEPTION ===")
+        logger.error(f"Exception type: {type(e)}")
+        logger.error(f"Exception message: {str(e)}")
+        logger.error(f"Full exception details:", exc_info=True)
         return {
             'success': False,
             'error_message': f'Token signing failed: {str(e)}'

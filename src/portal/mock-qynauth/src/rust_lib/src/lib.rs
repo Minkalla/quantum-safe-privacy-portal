@@ -634,10 +634,12 @@ pub unsafe extern "C" fn perform_quantum_safe_operation_placeholder(
 #[no_mangle]
 pub unsafe extern "C" fn free_string(ptr: *mut c_char) {
     if ptr.is_null() {
+        eprintln!("⚠️ free_string() called with null pointer");
         return;
     }
-
+    eprintln!("🧹 free_string() freeing ptr at address: {:?}", ptr);
     let _ = CString::from_raw(ptr);
+    eprintln!("✅ free_string() completed successfully for ptr: {:?}", ptr);
 }
 
 #[cfg(test)]

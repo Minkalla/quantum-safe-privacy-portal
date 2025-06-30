@@ -60,27 +60,27 @@ class PQCLibrary:
         """Set up function signatures for all FFI functions."""
         
         self.lib.pqc_ml_kem_768_keygen.argtypes = []
-        self.lib.pqc_ml_kem_768_keygen.restype = c_char_p
+        self.lib.pqc_ml_kem_768_keygen.restype = ctypes.c_void_p
         
         self.lib.pqc_ml_kem_768_encaps.argtypes = [
             ctypes.POINTER(c_uint8), c_size_t  # public_key, public_key_len
         ]
-        self.lib.pqc_ml_kem_768_encaps.restype = c_char_p
+        self.lib.pqc_ml_kem_768_encaps.restype = ctypes.c_void_p
         
         self.lib.pqc_ml_kem_768_decaps.argtypes = [
             ctypes.POINTER(c_uint8), c_size_t,  # secret_key, secret_key_len
             ctypes.POINTER(c_uint8), c_size_t   # ciphertext, ciphertext_len
         ]
-        self.lib.pqc_ml_kem_768_decaps.restype = c_char_p
+        self.lib.pqc_ml_kem_768_decaps.restype = ctypes.c_void_p
         
         self.lib.pqc_ml_dsa_65_keygen.argtypes = []
-        self.lib.pqc_ml_dsa_65_keygen.restype = c_char_p
+        self.lib.pqc_ml_dsa_65_keygen.restype = ctypes.c_void_p
         
         self.lib.pqc_ml_dsa_65_sign.argtypes = [
             ctypes.POINTER(c_uint8), c_size_t,  # message, message_len
             ctypes.POINTER(c_uint8), c_size_t   # private_key, private_key_len
         ]
-        self.lib.pqc_ml_dsa_65_sign.restype = c_char_p
+        self.lib.pqc_ml_dsa_65_sign.restype = ctypes.c_void_p
         
         self.lib.pqc_ml_dsa_65_verify.argtypes = [
             ctypes.POINTER(c_uint8), c_size_t,  # signature, signature_len
@@ -99,36 +99,52 @@ class PQCLibrary:
         self.lib.pqc_key_manager_rotate_key.restype = c_char_p
         
         if hasattr(self.lib, 'free_string'):
-            self.lib.free_string.argtypes = [c_char_p]
+            self.lib.free_string.argtypes = [ctypes.c_void_p]
             self.lib.free_string.restype = None
     
     def _call_and_parse_json(self, func, *args) -> Dict[str, Any]:
-        """Call a function and parse its JSON response using user's patch."""
-        raw_ptr = None
+        """Battle-hardened FFI call with segfault immunity and resilient cleanup."""
+        ptr = None
+        function_name = getattr(func, '__name__', 'unknown_function')
+        
         try:
-            raw_ptr = func(*args)
-            if not raw_ptr:
-                raise PQCLibraryError("Function returned null pointer")
+            logger.info(f"🚀 Calling FFI function: {function_name}")
+            ptr = func(*args)
             
-            c_str_value = ctypes.cast(raw_ptr, ctypes.c_char_p).value
-            if c_str_value is None:
-                raise PQCLibraryError("Received null string from Rust function")
-            
-            json_str = c_str_value.decode('utf-8')
-            result_data = json.loads(json_str)
-            
-            if not result_data.get('success', False):
-                error_msg = result_data.get('error', 'Unknown error')
+            if not ptr:
+                raise RuntimeError(f"❌ Null pointer returned from {function_name}")
+
+            raw_bytes = ctypes.cast(ptr, ctypes.c_char_p).value
+            if raw_bytes is None:
+                raise RuntimeError("❌ Received null bytes from pointer")
+
+            json_str = raw_bytes.decode('utf-8')
+            logger.debug(f"🔍 Decoded JSON string: {json_str}")
+
+            result = json.loads(json_str)
+        
+            # Validate JSON response structure
+            if not isinstance(result, dict):
+                raise RuntimeError(f"Invalid JSON response format: expected dict, got {type(result)}")
+        
+            if not result.get('success', False):
+                error_msg = result.get('error', 'Unknown PQC operation error')
                 raise PQCLibraryError(f"PQC operation failed: {error_msg}")
-            
-            return result_data
-        except json.JSONDecodeError as e:
-            raise PQCLibraryError(f"Failed to parse JSON response: {e}")
+        
+            logger.info(f"✅ JSON parsed successfully for {function_name}")
+            return result
+
         except Exception as e:
-            raise PQCLibraryError(f"FFI call failed: {e}")
+            logger.error(f"💥 Exception during FFI call to {function_name}: {e}", exc_info=True)
+            raise
+
         finally:
-            if raw_ptr and hasattr(self.lib, 'free_string'):
-                self.lib.free_string(raw_ptr)
+            if ptr:
+                try:
+                    self.lib.free_string(ptr)
+                    logger.debug(f"🧹 Freed pointer successfully: {ptr}")
+                except Exception as cleanup_error:
+                    logger.warning(f"⚠️ Error freeing pointer: {cleanup_error}", exc_info=True)
     
     def _bytes_to_c_array(self, data: bytes) -> Tuple[Any, int]:
         """Convert Python bytes to C array."""
@@ -148,32 +164,14 @@ class PQCLibrary:
         """
         logger.info("Generating ML-KEM-768 keypair")
         
-        raw_ptr = self.lib.pqc_ml_kem_768_keygen()
-        if not raw_ptr:
-            raise PQCLibraryError("Keypair generation returned NULL pointer")
+        result = self._call_and_parse_json(self.lib.pqc_ml_kem_768_keygen)
         
-        try:
-            c_str_value = ctypes.cast(raw_ptr, ctypes.c_char_p).value
-            if c_str_value is None:
-                raise PQCLibraryError("Received null string from Rust function")
-            
-            json_str = c_str_value.decode("utf-8")
-            result = json.loads(json_str)
-            
-            if not result.get('success', False):
-                error_msg = result.get('error', 'Unknown error')
-                raise PQCLibraryError(f"ML-KEM keypair generation failed: {error_msg}")
-            
-            logger.info(f"Generated ML-KEM-768 keypair: pub_key={len(result['public_key'])} bytes, priv_key={len(result['private_key'])} bytes")
-            return {
-                'public_key': result['public_key'],
-                'private_key': result['private_key'],
-                'algorithm': result.get('algorithm', 'ML-KEM-768')
-            }
-        finally:
-            if hasattr(self.lib, 'free_string'):
-                self.lib.free_string.argtypes = [ctypes.c_char_p]
-                self.lib.free_string(raw_ptr)
+        logger.info(f"Generated ML-KEM-768 keypair: pub_key={len(result['public_key'])} bytes, priv_key={len(result['private_key'])} bytes")
+        return {
+            'public_key': result['public_key'],
+            'private_key': result['private_key'],
+            'algorithm': result.get('algorithm', 'ML-KEM-768')
+        }
     
     def ml_kem_encapsulate(self, public_key: Any = None) -> Dict[str, Any]:
         """

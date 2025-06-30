@@ -146,6 +146,7 @@ describe('DataMigrationService', () => {
         algorithm: 'ML-KEM-768' as const,
         ciphertext: 'new-encrypted-data',
         fallbackUsed: false,
+        isPQCDegraded: false,
       };
 
       userModel.findById.mockResolvedValue(mockUser as any);

@@ -200,7 +200,7 @@ export class AuthService {
       console.log(`DEBUG TS: verify_token - token length: ${sanitizedParams.token?.length || 'undefined'}`);
       console.log(`DEBUG TS: verify_token - user_id: ${sanitizedParams.user_id}`);
       if (sanitizedParams.token) {
-        console.log(`DEBUG TS: verify_token - token preview: ${sanitizedParams.token.substring(0, 100)}...`);
+        console.log(`DEBUG TS: verify_token - token preview: ${sanitizedParams.token.slice(0, 100)}...`);
       }
     }
 
@@ -312,7 +312,7 @@ export class AuthService {
         if (isJsonLike) {
           sanitized[key] = sanitizedValue;
         } else {
-          sanitized[key] = sanitizedValue.substring(0, 1000);
+          sanitized[key] = sanitizedValue.slice(0, 1000);
         }
       } else if (typeof value === 'object' && value !== null) {
         sanitized[key] = this.sanitizePQCParams(value);

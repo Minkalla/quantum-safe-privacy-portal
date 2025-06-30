@@ -125,22 +125,26 @@ async def register(payload: RegisterPayload):
             logger.info(f"Generating quantum-safe keys for user {username}")
             
             # Generate ML-KEM keypair for key encapsulation
-            kem_public, kem_private = pqc_library.generate_ml_kem_keypair()
+            kem_keypair = pqc_library.generate_ml_kem_keypair()
+            kem_public = kem_keypair['public_key']
+            kem_private = kem_keypair['private_key']
             logger.info(f"Generated ML-KEM-768 keypair for user {username}: pub_key={len(kem_public)} bytes")
             
             # Generate ML-DSA keypair for digital signatures
-            dsa_public, dsa_private = pqc_library.generate_ml_dsa_keypair()
+            dsa_keypair = pqc_library.generate_ml_dsa_keypair()
+            dsa_public = dsa_keypair['public_key']
+            dsa_private = dsa_keypair['private_key']
             logger.info(f"Generated ML-DSA-65 keypair for user {username}: pub_key={len(dsa_public)} bytes")
             
             pqc_keys = {
                 "ml_kem": {
-                    "public_key": kem_public.hex(),
-                    "private_key": kem_private.hex(),
+                    "public_key": kem_public,
+                    "private_key": kem_private,
                     "algorithm": "ML-KEM-768"
                 },
                 "ml_dsa": {
-                    "public_key": dsa_public.hex(),
-                    "private_key": dsa_private.hex(),
+                    "public_key": dsa_public,
+                    "private_key": dsa_private,
                     "algorithm": "ML-DSA-65"
                 }
             }
