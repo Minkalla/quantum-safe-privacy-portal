@@ -116,6 +116,31 @@ rustflags = [
 - **E2E Tests** - Cypress end-to-end user flows
 - **Security Tests** - OWASP ZAP DAST, Trivy SAST
 - **PQC Validation** - Quantum-safe algorithm compliance testing
+- **FFI Verification** - Real TypeScript → Python → Rust integration testing
+
+### PQC FFI Integration Tests
+
+The `ffi-verification.test.ts` suite validates real end-to-end FFI behavior without mocks or placeholders. This is the **source of truth for verifying PQC functionality**.
+
+#### Requirements
+
+- **Python ≥ 3.8** - Required for PQC service bridge
+- **pqc_service_bridge.py module** - Must be accessible via PYTHONPATH
+- **Rust FFI shared library** - Must be built with `cargo build --release`
+
+#### Running FFI Verification Tests
+
+```bash
+# Run the complete FFI verification suite
+cd src/portal/portal-backend
+PYTHON_PATH=$(which python3) pnpm test ffi-verification
+
+# Or with explicit Jest command
+npx jest src/portal/portal-backend/test/integration/pqc/ffi-verification.test.ts --runInBand
+
+# Debug specific test case
+npx jest ffi-verification.test.ts --testNamePattern="should handle user ID mismatch with real FFI"
+```
 
 ### Running Tests
 
