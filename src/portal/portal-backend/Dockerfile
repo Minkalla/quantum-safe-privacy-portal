@@ -75,8 +75,6 @@ EXPOSE 8080
 # HEALTHCHECK updated to check Swagger docs at /api-docs for readiness, matching actual app config
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s CMD curl -f http://localhost:$PORT/api-docs || exit 1
 
-# Command to run the NestJS application when the container starts
-# CRITICAL DEBUGGING CMD: Adds verbose Node.js flags and keeps container alive on crash
-# NODE_OPTIONS ensures more verbose V8/Node.js startup logs
+# Clean runtime: production start without debug delays
 ENV NODE_OPTIONS="--enable-source-maps"
-CMD ["sh", "-c", "node --trace-warnings --unhandled-rejections=strict dist/main.js || sleep infinity"]
+CMD ["node", "dist/main.js"]
