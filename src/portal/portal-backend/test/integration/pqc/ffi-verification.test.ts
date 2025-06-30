@@ -148,10 +148,11 @@ except Exception as e:
 `;
 
       return new Promise<void>((resolve, reject) => {
-        const pythonExecutable = process.env.PYTHON_PATH || 'python3';
-        const pythonProcess = spawn(pythonExecutable, ['-c', verificationScript], {
-          cwd: path.dirname(pythonScriptPath),
-          stdio: ['pipe', 'pipe', 'pipe']
+        const pythonPath = process.env.PYTHON_PATH || 'python3';
+        const pythonProcess = spawn(pythonPath, ['-c', verificationScript], {
+          stdio: 'pipe',
+          shell: false,
+          cwd: path.dirname(pythonScriptPath)
         });
 
         let stdout = '';
