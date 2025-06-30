@@ -1,0 +1,188 @@
+
+> portal-backend@0.2.0 test:unit:pqc:algorithms
+> jest test/unit/pqc/algorithms --testTimeout=30000
+
+(node:13483) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:13482) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[31m[Nest] 13483  - [39m06/30/2025, 12:30:18 AM [31m  ERROR[39m [38;5;3m[PQCDataEncryptionService] [39m[31mML-KEM-768 encryption failed for keyId test-key:[39m
+[31m[Nest] 13483  - [39m06/30/2025, 12:30:18 AM [31m  ERROR[39m [38;5;3m[PQCDataEncryptionService] [39m[31mError: Key generation failed[39m
+[31m[Nest] 13483  - [39m06/30/2025, 12:30:18 AM [31m  ERROR[39m [38;5;3m[PQCDataEncryptionService] [39m[31mEncryption failed: Key generation failed[39m
+[31m[Nest] 13482  - [39m06/30/2025, 12:30:18 AM [31m  ERROR[39m [38;5;3m[PQCDataValidationService] [39m[31mML-DSA-65 signing failed for dataHash 44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a:[39m
+[31m[Nest] 13482  - [39m06/30/2025, 12:30:18 AM [31m  ERROR[39m [38;5;3m[PQCDataValidationService] [39m[31mError: Signature generation failed[39m
+[31m[Nest] 13482  - [39m06/30/2025, 12:30:18 AM [31m  ERROR[39m [38;5;3m[PQCDataValidationService] [39m[31mSignature generation failed: Signature generation failed[39m
+[31m[Nest] 13483  - [39m06/30/2025, 12:30:18 AM [31m  ERROR[39m [38;5;3m[PQCDataEncryptionService] [39m[31mML-KEM-768 decryption failed for keyId test-key:[39m
+[31m[Nest] 13483  - [39m06/30/2025, 12:30:18 AM [31m  ERROR[39m [38;5;3m[PQCDataEncryptionService] [39m[31mError: Decapsulation failed[39m
+[31m[Nest] 13483  - [39m06/30/2025, 12:30:18 AM [31m  ERROR[39m [38;5;3m[PQCDataEncryptionService] [39m[31mDecryption failed: Decapsulation failed[39m
+FAIL test/unit/pqc/algorithms/kyber.test.ts
+  ● Kyber-768 Algorithm Unit Tests › Decapsulation › should perform Kyber-768 decapsulation correctly
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "original plaintext"
+    Received: {"decrypted": true, "keyId": "test-key"}
+
+      175 |       expect(result.success).toBe(true);
+      176 |       if (result.success) {
+    > 177 |         expect(result.decryptedData).toBe('original plaintext');
+          |                                      ^
+      178 |       }
+      179 |     });
+      180 |
+
+      at Object.<anonymous> (test/unit/pqc/algorithms/kyber.test.ts:177:38)
+
+FAIL test/unit/pqc/algorithms/dilithium.test.ts
+  ● Dilithium-3 Algorithm Unit Tests › Key Generation › should generate Dilithium-3 key pairs with correct algorithm
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "sign_token", ObjectContaining {"payload": "test data"}
+    Received: "sign_token", {"payload": {"dataHash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a", "timestamp": 1751243418076}, "user_id": "dilithium_1751243418076"}
+
+    Number of calls: 1
+
+      47 |       expect(result.algorithm).toBe('Dilithium-3');
+      48 |       expect(result.signature).toContain('dilithium3:');
+    > 49 |       expect(authService.callPythonPQCService).toHaveBeenCalledWith(
+         |                                                ^
+      50 |         'sign_token',
+      51 |         expect.objectContaining({
+      52 |           payload: 'test data',
+
+      at Object.<anonymous> (test/unit/pqc/algorithms/dilithium.test.ts:49:48)
+
+  ● Dilithium-3 Algorithm Unit Tests › Signature Verification › should verify valid Dilithium-3 signatures
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      159 |       const result = await validationService.verifySignature(testData, mockSignature);
+      160 |
+    > 161 |       expect(result.isValid).toBe(true);
+          |                              ^
+      162 |       expect(result.algorithm).toBe('Dilithium-3');
+      163 |       expect(result.errors).toHaveLength(0);
+      164 |       expect(authService.callPythonPQCService).toHaveBeenCalledWith(
+
+      at Object.<anonymous> (test/unit/pqc/algorithms/dilithium.test.ts:161:30)
+
+  ● Dilithium-3 Algorithm Unit Tests › Performance Metrics › should track signature verification performance
+
+    expect(received).toBeDefined()
+
+    Received: undefined
+
+      267 |       const result = await validationService.verifySignature(testData, signature);
+      268 |
+    > 269 |       expect(result.performanceMetrics).toBeDefined();
+          |                                         ^
+      270 |       expect(result.performanceMetrics?.validationTime).toBeGreaterThan(0);
+      271 |       expect(result.performanceMetrics?.memoryUsage).toBeGreaterThan(0);
+      272 |     });
+
+      at Object.<anonymous> (test/unit/pqc/algorithms/dilithium.test.ts:269:41)
+
+-------------------------------------|---------|----------|---------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------------
+File                                 | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                                                                                                                                        
+-------------------------------------|---------|----------|---------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------------
+All files                            |    7.69 |    25.21 |    7.81 |    7.69 |                                                                                                                                                          
+ src                                 |       0 |        0 |       0 |       0 |                                                                                                                                                          
+  app.module.ts                      |       0 |        0 |       0 |       0 | 1-86                                                                                                                                                     
+  main.ts                            |       0 |        0 |       0 |       0 | 1-230                                                                                                                                                    
+ src/auth                            |    5.58 |        0 |       0 |    5.58 |                                                                                                                                                          
+  auth.controller.ts                 |       0 |        0 |       0 |       0 | 1-342                                                                                                                                                    
+  auth.module.ts                     |       0 |        0 |       0 |       0 | 1-37                                                                                                                                                     
+  auth.service.ts                    |   20.87 |        0 |       0 |   20.87 | 39-43,52-75,78-106,114-157,164-261,267-299,309-363                                                                                                       
+  enhanced-auth.service.ts           |       0 |        0 |       0 |       0 | 1-567                                                                                                                                                    
+  jwt-auth.guard.ts                  |       0 |        0 |       0 |       0 | 1-51                                                                                                                                                     
+ src/auth/dto                        |       0 |        0 |       0 |       0 |                                                                                                                                                          
+  login.dto.ts                       |       0 |        0 |       0 |       0 | 1-52                                                                                                                                                     
+  pqc-auth.dto.ts                    |       0 |        0 |       0 |       0 | 1-97                                                                                                                                                     
+  register.dto.ts                    |       0 |        0 |       0 |       0 | 1-43                                                                                                                                                     
+ src/auth/interfaces                 |       0 |        0 |       0 |       0 |                                                                                                                                                          
+  pqc-auth.interface.ts              |       0 |        0 |       0 |       0 | 1-89                                                                                                                                                     
+ src/consent                         |       0 |        0 |       0 |       0 |                                                                                                                                                          
+  consent.controller.ts              |       0 |        0 |       0 |       0 | 1-177                                                                                                                                                    
+  consent.module.ts                  |       0 |        0 |       0 |       0 | 1-33                                                                                                                                                     
+  consent.service.ts                 |       0 |        0 |       0 |       0 | 1-91                                                                                                                                                     
+ src/consent/dto                     |       0 |        0 |       0 |       0 |                                                                                                                                                          
+  create-consent.dto.ts              |       0 |        0 |       0 |       0 | 1-75                                                                                                                                                     
+  get-consent.dto.ts                 |       0 |        0 |       0 |       0 | 1-22                                                                                                                                                     
+ src/controllers                     |       0 |        0 |       0 |       0 |                                                                                                                                                          
+  pqc-consent.controller.ts          |       0 |        0 |       0 |       0 | 1-181                                                                                                                                                    
+  pqc-data.controller.ts             |       0 |        0 |       0 |       0 | 1-44                                                                                                                                                     
+  pqc-performance.controller.ts      |       0 |        0 |       0 |       0 | 1-96                                                                                                                                                     
+  pqc-user.controller.ts             |       0 |        0 |       0 |       0 | 1-124                                                                                                                                                    
+ src/dto                             |       0 |        0 |       0 |       0 |                                                                                                                                                          
+  pqc-api.dto.ts                     |       0 |        0 |       0 |       0 | 1-85                                                                                                                                                     
+  pqc-data.dto.ts                    |       0 |        0 |       0 |       0 | 1-52                                                                                                                                                     
+ src/guards                          |       0 |        0 |       0 |       0 |                                                                                                                                                          
+  pqc-api.guard.ts                   |       0 |        0 |       0 |       0 | 1-84                                                                                                                                                     
+ src/interceptors                    |       0 |        0 |       0 |       0 |                                                                                                                                                          
+  performance-monitor.interceptor.ts |       0 |        0 |       0 |       0 | 1-39                                                                                                                                                     
+ src/jwt                             |   30.28 |        0 |       0 |   30.28 |                                                                                                                                                          
+  jwt.module.ts                      |       0 |        0 |       0 |       0 | 1-33                                                                                                                                                     
+  jwt.service.ts                     |      36 |        0 |       0 |      36 | 36-44,48-64,75-92,95-105,108-137,148-174                                                                                                                 
+ src/middleware                      |       0 |        0 |       0 |       0 |                                                                                                                                                          
+  data-integrity.middleware.ts       |       0 |        0 |       0 |       0 | 1-44                                                                                                                                                     
+  pqc-api.middleware.ts              |       0 |        0 |       0 |       0 | 1-109                                                                                                                                                    
+ src/models                          |       0 |        0 |       0 |       0 |                                                                                                                                                          
+  Consent.ts                         |       0 |        0 |       0 |       0 | 1-200                                                                                                                                                    
+  User.ts                            |       0 |        0 |       0 |       0 | 1-213                                                                                                                                                    
+ src/models/interfaces               |     100 |      100 |     100 |     100 |                                                                                                                                                          
+  pqc-data.interface.ts              |     100 |      100 |     100 |     100 |                                                                                                                                                          
+ src/modules                         |       0 |        0 |       0 |       0 |                                                                                                                                                          
+  pqc-api.module.ts                  |       0 |        0 |       0 |       0 | 1-18                                                                                                                                                     
+ src/monitoring                      |       0 |        0 |       0 |       0 |                                                                                                                                                          
+  alerting.service.ts                |       0 |        0 |       0 |       0 | 1-53                                                                                                                                                     
+  anomaly-detector.service.ts        |       0 |        0 |       0 |       0 | 1-101                                                                                                                                                    
+  audit-trail.service.ts             |       0 |        0 |       0 |       0 | 1-102                                                                                                                                                    
+  baseline-manager.service.ts        |       0 |        0 |       0 |       0 | 1-303                                                                                                                                                    
+  monitoring.module.ts               |       0 |        0 |       0 |       0 | 1-24                                                                                                                                                     
+  performance-gates.service.ts       |       0 |        0 |       0 |       0 | 1-83                                                                                                                                                     
+ src/pqc                             |    9.83 |       10 |       0 |    9.83 |                                                                                                                                                          
+  ab-testing-integration.service.ts  |       0 |        0 |       0 |       0 | 1-137                                                                                                                                                    
+  ab-testing.module.ts               |       0 |        0 |       0 |       0 | 1-23                                                                                                                                                     
+  ab-testing.service.ts              |       0 |        0 |       0 |       0 | 1-117                                                                                                                                                    
+  metrics-collector.service.ts       |       0 |        0 |       0 |       0 | 1-152                                                                                                                                                    
+  pqc-feature-flags.module.ts        |       0 |        0 |       0 |       0 | 1-12                                                                                                                                                     
+  pqc-feature-flags.service.ts       |   34.48 |       50 |       0 |   34.48 | 52-53,56-70,73-85,88-109,112-127,130-138,141-157,160-173,176-188,191-202                                                                                 
+  pqc-monitoring.service.ts          |   20.48 |        0 |       0 |   20.48 | 29-42,45-55,58-78,81-101,104-117,120-138,141-154,157-172,175-176,179-180,183-184,187-188,191-192,195-212,215-228,231-239,242-248,251-268,271-302,305-326 
+  pqc-rollback-test.service.ts       |       0 |        0 |       0 |       0 | 1-237                                                                                                                                                    
+  rollback-system.service.ts         |       0 |        0 |       0 |       0 | 1-185                                                                                                                                                    
+ src/pqc-data                        |       0 |        0 |       0 |       0 |                                                                                                                                                          
+  pqc-data.module.ts                 |       0 |        0 |       0 |       0 | 1-77                                                                                                                                                     
+ src/quality                         |       0 |        0 |       0 |       0 |                                                                                                                                                          
+  documentation-validator.service.ts |       0 |        0 |       0 |       0 | 1-132                                                                                                                                                    
+  quality.module.ts                  |       0 |        0 |       0 |       0 | 1-8                                                                                                                                                      
+ src/repositories                    |       0 |        0 |       0 |       0 |                                                                                                                                                          
+  base-pqc.repository.ts             |       0 |        0 |       0 |       0 | 1-52                                                                                                                                                     
+  consent-pqc.repository.ts          |       0 |        0 |       0 |       0 | 1-69                                                                                                                                                     
+ src/secrets                         |      36 |        0 |       0 |      36 |                                                                                                                                                          
+  secrets.module.ts                  |       0 |        0 |       0 |       0 | 1-26                                                                                                                                                     
+  secrets.service.ts                 |   45.45 |        0 |       0 |   45.45 | 35-50,61-98                                                                                                                                              
+ src/services                        |   12.44 |    49.12 |   29.41 |   12.44 |                                                                                                                                                          
+  api-performance.service.ts         |       0 |        0 |       0 |       0 | 1-128                                                                                                                                                    
+  bulk-encryption.service.ts         |       0 |        0 |       0 |       0 | 1-126                                                                                                                                                    
+  circuit-breaker.service.ts         |       0 |        0 |       0 |       0 | 1-211                                                                                                                                                    
+  classical-crypto.service.ts        |       0 |        0 |       0 |       0 | 1-301                                                                                                                                                    
+  crypto-services.module.ts          |       0 |        0 |       0 |       0 | 1-40                                                                                                                                                     
+  data-access-performance.service.ts |       0 |        0 |       0 |       0 | 1-30                                                                                                                                                     
+  data-migration.service.ts          |       0 |        0 |       0 |       0 | 1-517                                                                                                                                                    
+  field-encryption.service.ts        |       0 |        0 |       0 |       0 | 1-186                                                                                                                                                    
+  hybrid-crypto.service.ts           |       0 |        0 |       0 |       0 | 1-241                                                                                                                                                    
+  integrity-checker.service.ts       |       0 |        0 |       0 |       0 | 1-24                                                                                                                                                     
+  pqc-data-encryption.service.ts     |    73.5 |    61.53 |      50 |    73.5 | 57-60,99-100,147-164,177,191-209,212-213,216-223,226-233                                                                                                 
+  pqc-data-validation.service.ts     |   35.81 |    57.14 |   35.71 |   35.81 | 44-45,81,83-114,118-136,139-180,183-219,226-233,256-261,264-289,292-306,309-319,322-323,326-348                                                          
+ src/user                            |       0 |        0 |       0 |       0 |                                                                                                                                                          
+  user.module.ts                     |       0 |        0 |       0 |       0 | 1-32                                                                                                                                                     
+-------------------------------------|---------|----------|---------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------------
+Test Suites: 2 failed, 2 total
+Tests:       4 failed, 15 passed, 19 total
+Snapshots:   0 total
+Time:        2.321 s, estimated 3 s
+Ran all test suites matching /test\/unit\/pqc\/algorithms/i.

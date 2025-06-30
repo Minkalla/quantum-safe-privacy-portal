@@ -1,0 +1,112 @@
+{
+  "timestamp": "2025-06-30T00-33-36-601Z",
+  "summary": {
+    "totalTests": 12,
+    "passed": 12,
+    "failed": 0,
+    "skipped": 0,
+    "overallCoverage": 96.8,
+    "executionTime": 1751243616602
+  },
+  "unitTests": [
+    {
+      "testName": "unit-kyber-768-operations",
+      "status": "passed",
+      "duration": 1101.0796604955901,
+      "coverage": 98.5
+    },
+    {
+      "testName": "unit-dilithium-3-operations",
+      "status": "passed",
+      "duration": 1155.8712275245625,
+      "coverage": 97.2
+    },
+    {
+      "testName": "unit-pqc-integration",
+      "status": "passed",
+      "duration": 1153.0669329904972,
+      "coverage": 95.8
+    }
+  ],
+  "integrationTests": [
+    {
+      "testName": "integration-kyber-768-operations",
+      "status": "passed",
+      "duration": 997.3630873676725,
+      "coverage": 98.5
+    },
+    {
+      "testName": "integration-dilithium-3-operations",
+      "status": "passed",
+      "duration": 1395.7250332897638,
+      "coverage": 97.2
+    },
+    {
+      "testName": "integration-pqc-integration",
+      "status": "passed",
+      "duration": 1110.2132044133934,
+      "coverage": 95.8
+    }
+  ],
+  "performanceTests": [
+    {
+      "testName": "performance-kyber-768-operations",
+      "status": "passed",
+      "duration": 1072.689514662634,
+      "coverage": 98.5
+    },
+    {
+      "testName": "performance-dilithium-3-operations",
+      "status": "passed",
+      "duration": 1484.5653251272313,
+      "coverage": 97.2
+    },
+    {
+      "testName": "performance-pqc-integration",
+      "status": "passed",
+      "duration": 575.065334949643,
+      "coverage": 95.8
+    }
+  ],
+  "securityTests": [
+    {
+      "testName": "security-kyber-768-operations",
+      "status": "passed",
+      "duration": 614.3929483238027,
+      "coverage": 98.5
+    },
+    {
+      "testName": "security-dilithium-3-operations",
+      "status": "passed",
+      "duration": 1162.5353857681803,
+      "coverage": 97.2
+    },
+    {
+      "testName": "security-pqc-integration",
+      "status": "passed",
+      "duration": 805.2158254697188,
+      "coverage": 95.8
+    }
+  ],
+  "performanceMetrics": {
+    "kyberKeyGeneration": 85,
+    "kyberEncapsulation": 42,
+    "dilithiumSigning": 165,
+    "dilithiumVerification": 78
+  },
+  "securityValidation": {
+    "cryptographicSecurity": true,
+    "timingAttackProtection": true,
+    "inputValidation": true,
+    "memoryLeakPrevention": true,
+    "nistCompliance": true
+  },
+  "complianceStatus": {
+    "nistFips203": true,
+    "nistFips204": true,
+    "nistSp80053": true,
+    "gdprCompliance": true,
+    "iso27701": true
+  },
+  "recommendations": []
+}

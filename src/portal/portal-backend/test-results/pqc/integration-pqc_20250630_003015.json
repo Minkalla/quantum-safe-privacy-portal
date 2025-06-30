@@ -1,0 +1,436 @@
+
+> portal-backend@0.2.0 test:integration:pqc
+> jest test/integration/pqc --testTimeout=60000
+
+(node:13957) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+FAIL test/integration/pqc/pqc-authentication-flow.test.ts
+  ● PQC Authentication Flow Integration Tests › End-to-End PQC Authentication › should complete full PQC authentication flow
+
+    Environment validation error: AWS_REGION must be a string; APP_VERSION must be a string
+
+      125 |     if (errors.length > 0) {
+      126 |       const errorMessage = errors.flatMap(error => Object.values(error.constraints || {})).join('; ');
+    > 127 |       throw new Error(`Environment validation error: ${errorMessage}`);
+          |             ^
+      128 |     }
+      129 |   }
+      130 | }
+
+      at AppConfigService.validateEnvironmentVariables (src/config/config.service.ts:127:13)
+      at new AppConfigService (src/config/config.service.ts:97:10)
+      at TestingInjector.instantiateClass (node_modules/@nestjs/core/injector/injector.js:373:19)
+      at callback (node_modules/@nestjs/core/injector/injector.js:65:45)
+      at TestingInjector.resolveConstructorParams (node_modules/@nestjs/core/injector/injector.js:145:24)
+      at TestingInjector.loadInstance (node_modules/@nestjs/core/injector/injector.js:70:13)
+      at TestingInjector.loadProvider (node_modules/@nestjs/core/injector/injector.js:98:9)
+      at node_modules/@nestjs/core/injector/instance-loader.js:56:13
+          at async Promise.all (index 3)
+      at TestingInstanceLoader.createInstancesOfProviders (node_modules/@nestjs/core/injector/instance-loader.js:55:9)
+      at node_modules/@nestjs/core/injector/instance-loader.js:40:13
+          at async Promise.all (index 7)
+      at TestingInstanceLoader.createInstances (node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (test/integration/pqc/pqc-authentication-flow.test.ts:27:42)
+
+  ● PQC Authentication Flow Integration Tests › End-to-End PQC Authentication › should handle PQC encryption in authentication flow
+
+    Environment validation error: AWS_REGION must be a string; APP_VERSION must be a string
+
+      125 |     if (errors.length > 0) {
+      126 |       const errorMessage = errors.flatMap(error => Object.values(error.constraints || {})).join('; ');
+    > 127 |       throw new Error(`Environment validation error: ${errorMessage}`);
+          |             ^
+      128 |     }
+      129 |   }
+      130 | }
+
+      at AppConfigService.validateEnvironmentVariables (src/config/config.service.ts:127:13)
+      at new AppConfigService (src/config/config.service.ts:97:10)
+      at TestingInjector.instantiateClass (node_modules/@nestjs/core/injector/injector.js:373:19)
+      at callback (node_modules/@nestjs/core/injector/injector.js:65:45)
+      at TestingInjector.resolveConstructorParams (node_modules/@nestjs/core/injector/injector.js:145:24)
+      at TestingInjector.loadInstance (node_modules/@nestjs/core/injector/injector.js:70:13)
+      at TestingInjector.loadProvider (node_modules/@nestjs/core/injector/injector.js:98:9)
+      at node_modules/@nestjs/core/injector/instance-loader.js:56:13
+          at async Promise.all (index 3)
+      at TestingInstanceLoader.createInstancesOfProviders (node_modules/@nestjs/core/injector/instance-loader.js:55:9)
+      at node_modules/@nestjs/core/injector/instance-loader.js:40:13
+          at async Promise.all (index 7)
+      at TestingInstanceLoader.createInstances (node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (test/integration/pqc/pqc-authentication-flow.test.ts:27:42)
+
+  ● PQC Authentication Flow Integration Tests › End-to-End PQC Authentication › should handle PQC signatures in authentication flow
+
+    Environment validation error: AWS_REGION must be a string; APP_VERSION must be a string
+
+      125 |     if (errors.length > 0) {
+      126 |       const errorMessage = errors.flatMap(error => Object.values(error.constraints || {})).join('; ');
+    > 127 |       throw new Error(`Environment validation error: ${errorMessage}`);
+          |             ^
+      128 |     }
+      129 |   }
+      130 | }
+
+      at AppConfigService.validateEnvironmentVariables (src/config/config.service.ts:127:13)
+      at new AppConfigService (src/config/config.service.ts:97:10)
+      at TestingInjector.instantiateClass (node_modules/@nestjs/core/injector/injector.js:373:19)
+      at callback (node_modules/@nestjs/core/injector/injector.js:65:45)
+      at TestingInjector.resolveConstructorParams (node_modules/@nestjs/core/injector/injector.js:145:24)
+      at TestingInjector.loadInstance (node_modules/@nestjs/core/injector/injector.js:70:13)
+      at TestingInjector.loadProvider (node_modules/@nestjs/core/injector/injector.js:98:9)
+      at node_modules/@nestjs/core/injector/instance-loader.js:56:13
+          at async Promise.all (index 3)
+      at TestingInstanceLoader.createInstancesOfProviders (node_modules/@nestjs/core/injector/instance-loader.js:55:9)
+      at node_modules/@nestjs/core/injector/instance-loader.js:40:13
+          at async Promise.all (index 7)
+      at TestingInstanceLoader.createInstances (node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (test/integration/pqc/pqc-authentication-flow.test.ts:27:42)
+
+  ● PQC Authentication Flow Integration Tests › Cross-Service PQC Integration › should integrate PQC encryption with JWT tokens
+
+    Environment validation error: AWS_REGION must be a string; APP_VERSION must be a string
+
+      125 |     if (errors.length > 0) {
+      126 |       const errorMessage = errors.flatMap(error => Object.values(error.constraints || {})).join('; ');
+    > 127 |       throw new Error(`Environment validation error: ${errorMessage}`);
+          |             ^
+      128 |     }
+      129 |   }
+      130 | }
+
+      at AppConfigService.validateEnvironmentVariables (src/config/config.service.ts:127:13)
+      at new AppConfigService (src/config/config.service.ts:97:10)
+      at TestingInjector.instantiateClass (node_modules/@nestjs/core/injector/injector.js:373:19)
+      at callback (node_modules/@nestjs/core/injector/injector.js:65:45)
+      at TestingInjector.resolveConstructorParams (node_modules/@nestjs/core/injector/injector.js:145:24)
+      at TestingInjector.loadInstance (node_modules/@nestjs/core/injector/injector.js:70:13)
+      at TestingInjector.loadProvider (node_modules/@nestjs/core/injector/injector.js:98:9)
+      at node_modules/@nestjs/core/injector/instance-loader.js:56:13
+          at async Promise.all (index 3)
+      at TestingInstanceLoader.createInstancesOfProviders (node_modules/@nestjs/core/injector/instance-loader.js:55:9)
+      at node_modules/@nestjs/core/injector/instance-loader.js:40:13
+          at async Promise.all (index 7)
+      at TestingInstanceLoader.createInstances (node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (test/integration/pqc/pqc-authentication-flow.test.ts:27:42)
+
+  ● PQC Authentication Flow Integration Tests › Cross-Service PQC Integration › should validate data integrity across services
+
+    Environment validation error: AWS_REGION must be a string; APP_VERSION must be a string
+
+      125 |     if (errors.length > 0) {
+      126 |       const errorMessage = errors.flatMap(error => Object.values(error.constraints || {})).join('; ');
+    > 127 |       throw new Error(`Environment validation error: ${errorMessage}`);
+          |             ^
+      128 |     }
+      129 |   }
+      130 | }
+
+      at AppConfigService.validateEnvironmentVariables (src/config/config.service.ts:127:13)
+      at new AppConfigService (src/config/config.service.ts:97:10)
+      at TestingInjector.instantiateClass (node_modules/@nestjs/core/injector/injector.js:373:19)
+      at callback (node_modules/@nestjs/core/injector/injector.js:65:45)
+      at TestingInjector.resolveConstructorParams (node_modules/@nestjs/core/injector/injector.js:145:24)
+      at TestingInjector.loadInstance (node_modules/@nestjs/core/injector/injector.js:70:13)
+      at TestingInjector.loadProvider (node_modules/@nestjs/core/injector/injector.js:98:9)
+      at node_modules/@nestjs/core/injector/instance-loader.js:56:13
+          at async Promise.all (index 3)
+      at TestingInstanceLoader.createInstancesOfProviders (node_modules/@nestjs/core/injector/instance-loader.js:55:9)
+      at node_modules/@nestjs/core/injector/instance-loader.js:40:13
+          at async Promise.all (index 7)
+      at TestingInstanceLoader.createInstances (node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (test/integration/pqc/pqc-authentication-flow.test.ts:27:42)
+
+  ● PQC Authentication Flow Integration Tests › Cross-Service PQC Integration › should handle concurrent PQC operations
+
+    Environment validation error: AWS_REGION must be a string; APP_VERSION must be a string
+
+      125 |     if (errors.length > 0) {
+      126 |       const errorMessage = errors.flatMap(error => Object.values(error.constraints || {})).join('; ');
+    > 127 |       throw new Error(`Environment validation error: ${errorMessage}`);
+          |             ^
+      128 |     }
+      129 |   }
+      130 | }
+
+      at AppConfigService.validateEnvironmentVariables (src/config/config.service.ts:127:13)
+      at new AppConfigService (src/config/config.service.ts:97:10)
+      at TestingInjector.instantiateClass (node_modules/@nestjs/core/injector/injector.js:373:19)
+      at callback (node_modules/@nestjs/core/injector/injector.js:65:45)
+      at TestingInjector.resolveConstructorParams (node_modules/@nestjs/core/injector/injector.js:145:24)
+      at TestingInjector.loadInstance (node_modules/@nestjs/core/injector/injector.js:70:13)
+      at TestingInjector.loadProvider (node_modules/@nestjs/core/injector/injector.js:98:9)
+      at node_modules/@nestjs/core/injector/instance-loader.js:56:13
+          at async Promise.all (index 3)
+      at TestingInstanceLoader.createInstancesOfProviders (node_modules/@nestjs/core/injector/instance-loader.js:55:9)
+      at node_modules/@nestjs/core/injector/instance-loader.js:40:13
+          at async Promise.all (index 7)
+      at TestingInstanceLoader.createInstances (node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (test/integration/pqc/pqc-authentication-flow.test.ts:27:42)
+
+  ● PQC Authentication Flow Integration Tests › Database Integration with PQC › should store and retrieve PQC-encrypted data
+
+    Environment validation error: AWS_REGION must be a string; APP_VERSION must be a string
+
+      125 |     if (errors.length > 0) {
+      126 |       const errorMessage = errors.flatMap(error => Object.values(error.constraints || {})).join('; ');
+    > 127 |       throw new Error(`Environment validation error: ${errorMessage}`);
+          |             ^
+      128 |     }
+      129 |   }
+      130 | }
+
+      at AppConfigService.validateEnvironmentVariables (src/config/config.service.ts:127:13)
+      at new AppConfigService (src/config/config.service.ts:97:10)
+      at TestingInjector.instantiateClass (node_modules/@nestjs/core/injector/injector.js:373:19)
+      at callback (node_modules/@nestjs/core/injector/injector.js:65:45)
+      at TestingInjector.resolveConstructorParams (node_modules/@nestjs/core/injector/injector.js:145:24)
+      at TestingInjector.loadInstance (node_modules/@nestjs/core/injector/injector.js:70:13)
+      at TestingInjector.loadProvider (node_modules/@nestjs/core/injector/injector.js:98:9)
+      at node_modules/@nestjs/core/injector/instance-loader.js:56:13
+          at async Promise.all (index 3)
+      at TestingInstanceLoader.createInstancesOfProviders (node_modules/@nestjs/core/injector/instance-loader.js:55:9)
+      at node_modules/@nestjs/core/injector/instance-loader.js:40:13
+          at async Promise.all (index 7)
+      at TestingInstanceLoader.createInstances (node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (test/integration/pqc/pqc-authentication-flow.test.ts:27:42)
+
+  ● PQC Authentication Flow Integration Tests › Database Integration with PQC › should maintain data integrity in database operations
+
+    Environment validation error: AWS_REGION must be a string; APP_VERSION must be a string
+
+      125 |     if (errors.length > 0) {
+      126 |       const errorMessage = errors.flatMap(error => Object.values(error.constraints || {})).join('; ');
+    > 127 |       throw new Error(`Environment validation error: ${errorMessage}`);
+          |             ^
+      128 |     }
+      129 |   }
+      130 | }
+
+      at AppConfigService.validateEnvironmentVariables (src/config/config.service.ts:127:13)
+      at new AppConfigService (src/config/config.service.ts:97:10)
+      at TestingInjector.instantiateClass (node_modules/@nestjs/core/injector/injector.js:373:19)
+      at callback (node_modules/@nestjs/core/injector/injector.js:65:45)
+      at TestingInjector.resolveConstructorParams (node_modules/@nestjs/core/injector/injector.js:145:24)
+      at TestingInjector.loadInstance (node_modules/@nestjs/core/injector/injector.js:70:13)
+      at TestingInjector.loadProvider (node_modules/@nestjs/core/injector/injector.js:98:9)
+      at node_modules/@nestjs/core/injector/instance-loader.js:56:13
+          at async Promise.all (index 3)
+      at TestingInstanceLoader.createInstancesOfProviders (node_modules/@nestjs/core/injector/instance-loader.js:55:9)
+      at node_modules/@nestjs/core/injector/instance-loader.js:40:13
+          at async Promise.all (index 7)
+      at TestingInstanceLoader.createInstances (node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (test/integration/pqc/pqc-authentication-flow.test.ts:27:42)
+
+  ● PQC Authentication Flow Integration Tests › Error Handling and Fallback › should handle PQC service failures gracefully
+
+    Environment validation error: AWS_REGION must be a string; APP_VERSION must be a string
+
+      125 |     if (errors.length > 0) {
+      126 |       const errorMessage = errors.flatMap(error => Object.values(error.constraints || {})).join('; ');
+    > 127 |       throw new Error(`Environment validation error: ${errorMessage}`);
+          |             ^
+      128 |     }
+      129 |   }
+      130 | }
+
+      at AppConfigService.validateEnvironmentVariables (src/config/config.service.ts:127:13)
+      at new AppConfigService (src/config/config.service.ts:97:10)
+      at TestingInjector.instantiateClass (node_modules/@nestjs/core/injector/injector.js:373:19)
+      at callback (node_modules/@nestjs/core/injector/injector.js:65:45)
+      at TestingInjector.resolveConstructorParams (node_modules/@nestjs/core/injector/injector.js:145:24)
+      at TestingInjector.loadInstance (node_modules/@nestjs/core/injector/injector.js:70:13)
+      at TestingInjector.loadProvider (node_modules/@nestjs/core/injector/injector.js:98:9)
+      at node_modules/@nestjs/core/injector/instance-loader.js:56:13
+          at async Promise.all (index 3)
+      at TestingInstanceLoader.createInstancesOfProviders (node_modules/@nestjs/core/injector/instance-loader.js:55:9)
+      at node_modules/@nestjs/core/injector/instance-loader.js:40:13
+          at async Promise.all (index 7)
+      at TestingInstanceLoader.createInstances (node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (test/integration/pqc/pqc-authentication-flow.test.ts:27:42)
+
+  ● PQC Authentication Flow Integration Tests › Error Handling and Fallback › should validate error responses from PQC operations
+
+    Environment validation error: AWS_REGION must be a string; APP_VERSION must be a string
+
+      125 |     if (errors.length > 0) {
+      126 |       const errorMessage = errors.flatMap(error => Object.values(error.constraints || {})).join('; ');
+    > 127 |       throw new Error(`Environment validation error: ${errorMessage}`);
+          |             ^
+      128 |     }
+      129 |   }
+      130 | }
+
+      at AppConfigService.validateEnvironmentVariables (src/config/config.service.ts:127:13)
+      at new AppConfigService (src/config/config.service.ts:97:10)
+      at TestingInjector.instantiateClass (node_modules/@nestjs/core/injector/injector.js:373:19)
+      at callback (node_modules/@nestjs/core/injector/injector.js:65:45)
+      at TestingInjector.resolveConstructorParams (node_modules/@nestjs/core/injector/injector.js:145:24)
+      at TestingInjector.loadInstance (node_modules/@nestjs/core/injector/injector.js:70:13)
+      at TestingInjector.loadProvider (node_modules/@nestjs/core/injector/injector.js:98:9)
+      at node_modules/@nestjs/core/injector/instance-loader.js:56:13
+          at async Promise.all (index 3)
+      at TestingInstanceLoader.createInstancesOfProviders (node_modules/@nestjs/core/injector/instance-loader.js:55:9)
+      at node_modules/@nestjs/core/injector/instance-loader.js:40:13
+          at async Promise.all (index 7)
+      at TestingInstanceLoader.createInstances (node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (test/integration/pqc/pqc-authentication-flow.test.ts:27:42)
+
+
+  ● Test suite failed to run
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+      48 |
+      49 |   afterAll(async () => {
+    > 50 |     await app.close();
+         |               ^
+      51 |   });
+      52 |
+      53 |   describe('End-to-End PQC Authentication', () => {
+
+      at Object.<anonymous> (test/integration/pqc/pqc-authentication-flow.test.ts:50:15)
+
+-------------------------------------|---------|----------|---------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+File                                 | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                                                                                                                                                      
+-------------------------------------|---------|----------|---------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+All files                            |   17.44 |    16.82 |    9.15 |   17.44 |                                                                                                                                                                        
+ src                                 |       0 |        0 |       0 |       0 |                                                                                                                                                                        
+  app.module.ts                      |       0 |        0 |       0 |       0 | 1-86                                                                                                                                                                   
+  main.ts                            |       0 |        0 |       0 |       0 | 1-230                                                                                                                                                                  
+ src/auth                            |   32.77 |    13.04 |     8.1 |   32.77 |                                                                                                                                                                        
+  auth.controller.ts                 |   69.59 |     8.33 |   14.28 |   69.59 | 111-113,206-246,256-261,272-313,325-331,337-341                                                                                                                        
+  auth.module.ts                     |     100 |      100 |     100 |     100 |                                                                                                                                                                        
+  auth.service.ts                    |   22.25 |       20 |   14.28 |   22.25 | 52-75,78-106,114-157,164-261,267-299,309-363                                                                                                                           
+  enhanced-auth.service.ts           |   15.87 |       20 |    4.54 |   15.87 | 47-100,103-195,198-208,211-237,240-269,272-292,295-392,398-430,433-478,481-489,492-498,501-508,511-522,525-529,532-533,536-537,540-541,544-553,556-557,560-561,564-566 
+  jwt-auth.guard.ts                  |       0 |        0 |       0 |       0 | 1-51                                                                                                                                                                   
+ src/auth/dto                        |     100 |        0 |     100 |     100 |                                                                                                                                                                        
+  login.dto.ts                       |     100 |      100 |     100 |     100 |                                                                                                                                                                        
+  pqc-auth.dto.ts                    |     100 |        0 |     100 |     100 | 30-96                                                                                                                                                                  
+  register.dto.ts                    |     100 |      100 |     100 |     100 |                                                                                                                                                                        
+ src/auth/interfaces                 |     100 |      100 |     100 |     100 |                                                                                                                                                                        
+  pqc-auth.interface.ts              |     100 |      100 |     100 |     100 |                                                                                                                                                                        
+ src/consent                         |       0 |        0 |       0 |       0 |                                                                                                                                                                        
+  consent.controller.ts              |       0 |        0 |       0 |       0 | 1-177                                                                                                                                                                  
+  consent.module.ts                  |       0 |        0 |       0 |       0 | 1-33                                                                                                                                                                   
+  consent.service.ts                 |       0 |        0 |       0 |       0 | 1-91                                                                                                                                                                   
+ src/consent/dto                     |       0 |        0 |       0 |       0 |                                                                                                                                                                        
+  create-consent.dto.ts              |       0 |        0 |       0 |       0 | 1-75                                                                                                                                                                   
+  get-consent.dto.ts                 |       0 |        0 |       0 |       0 | 1-22                                                                                                                                                                   
+ src/controllers                     |       0 |        0 |       0 |       0 |                                                                                                                                                                        
+  pqc-consent.controller.ts          |       0 |        0 |       0 |       0 | 1-181                                                                                                                                                                  
+  pqc-data.controller.ts             |       0 |        0 |       0 |       0 | 1-44                                                                                                                                                                   
+  pqc-performance.controller.ts      |       0 |        0 |       0 |       0 | 1-96                                                                                                                                                                   
+  pqc-user.controller.ts             |       0 |        0 |       0 |       0 | 1-124                                                                                                                                                                  
+ src/dto                             |       0 |        0 |       0 |       0 |                                                                                                                                                                        
+  pqc-api.dto.ts                     |       0 |        0 |       0 |       0 | 1-85                                                                                                                                                                   
+  pqc-data.dto.ts                    |       0 |        0 |       0 |       0 | 1-52                                                                                                                                                                   
+ src/guards                          |       0 |        0 |       0 |       0 |                                                                                                                                                                        
+  pqc-api.guard.ts                   |       0 |        0 |       0 |       0 | 1-84                                                                                                                                                                   
+ src/interceptors                    |       0 |        0 |       0 |       0 |                                                                                                                                                                        
+  performance-monitor.interceptor.ts |       0 |        0 |       0 |       0 | 1-39                                                                                                                                                                   
+ src/jwt                             |   55.76 |       25 |   33.33 |   55.76 |                                                                                                                                                                        
+  jwt.module.ts                      |     100 |      100 |     100 |     100 |                                                                                                                                                                        
+  jwt.service.ts                     |   47.42 |       25 |   33.33 |   47.42 | 52-54,61-63,75-92,95-105,108-137,148-174                                                                                                                               
+ src/middleware                      |       0 |        0 |       0 |       0 |                                                                                                                                                                        
+  data-integrity.middleware.ts       |       0 |        0 |       0 |       0 | 1-44                                                                                                                                                                   
+  pqc-api.middleware.ts              |       0 |        0 |       0 |       0 | 1-109                                                                                                                                                                  
+ src/models                          |   51.57 |        0 |       0 |   51.57 |                                                                                                                                                                        
+  Consent.ts                         |       0 |        0 |       0 |       0 | 1-200                                                                                                                                                                  
+  User.ts                            |     100 |      100 |     100 |     100 |                                                                                                                                                                        
+ src/models/interfaces               |     100 |      100 |     100 |     100 |                                                                                                                                                                        
+  pqc-data.interface.ts              |     100 |      100 |     100 |     100 |                                                                                                                                                                        
+ src/modules                         |       0 |        0 |       0 |       0 |                                                                                                                                                                        
+  pqc-api.module.ts                  |       0 |        0 |       0 |       0 | 1-18                                                                                                                                                                   
+ src/monitoring                      |       0 |        0 |       0 |       0 |                                                                                                                                                                        
+  alerting.service.ts                |       0 |        0 |       0 |       0 | 1-53                                                                                                                                                                   
+  anomaly-detector.service.ts        |       0 |        0 |       0 |       0 | 1-101                                                                                                                                                                  
+  audit-trail.service.ts             |       0 |        0 |       0 |       0 | 1-102                                                                                                                                                                  
+  baseline-manager.service.ts        |       0 |        0 |       0 |       0 | 1-303                                                                                                                                                                  
+  monitoring.module.ts               |       0 |        0 |       0 |       0 | 1-24                                                                                                                                                                   
+  performance-gates.service.ts       |       0 |        0 |       0 |       0 | 1-83                                                                                                                                                                   
+ src/pqc                             |      16 |     37.5 |   11.62 |      16 |                                                                                                                                                                        
+  ab-testing-integration.service.ts  |       0 |        0 |       0 |       0 | 1-137                                                                                                                                                                  
+  ab-testing.module.ts               |       0 |        0 |       0 |       0 | 1-23                                                                                                                                                                   
+  ab-testing.service.ts              |       0 |        0 |       0 |       0 | 1-117                                                                                                                                                                  
+  metrics-collector.service.ts       |       0 |        0 |       0 |       0 | 1-152                                                                                                                                                                  
+  pqc-feature-flags.module.ts        |     100 |      100 |     100 |     100 |                                                                                                                                                                        
+  pqc-feature-flags.service.ts       |   42.85 |       75 |      20 |   42.85 | 73-85,88-109,112-127,130-138,141-157,160-173,176-188,191-202                                                                                                           
+  pqc-monitoring.service.ts          |   27.52 |       50 |      10 |   27.52 | 40-41,58-78,81-101,104-117,120-138,141-154,157-172,175-176,179-180,183-184,187-188,191-192,195-212,215-228,231-239,242-248,251-268,271-302,305-326                     
+  pqc-rollback-test.service.ts       |   14.34 |    33.33 |    12.5 |   14.34 | 22-42,45-65,68-98,101-129,132-168,171-207,210-236                                                                                                                      
+  rollback-system.service.ts         |       0 |        0 |       0 |       0 | 1-185                                                                                                                                                                  
+ src/pqc-data                        |       0 |        0 |       0 |       0 |                                                                                                                                                                        
+  pqc-data.module.ts                 |       0 |        0 |       0 |       0 | 1-77                                                                                                                                                                   
+ src/quality                         |       0 |        0 |       0 |       0 |                                                                                                                                                                        
+  documentation-validator.service.ts |       0 |        0 |       0 |       0 | 1-132                                                                                                                                                                  
+  quality.module.ts                  |       0 |        0 |       0 |       0 | 1-8                                                                                                                                                                    
+ src/repositories                    |       0 |        0 |       0 |       0 |                                                                                                                                                                        
+  base-pqc.repository.ts             |       0 |        0 |       0 |       0 | 1-52                                                                                                                                                                   
+  consent-pqc.repository.ts          |       0 |        0 |       0 |       0 | 1-69                                                                                                                                                                   
+ src/secrets                         |    67.2 |    33.33 |     100 |    67.2 |                                                                                                                                                                        
+  secrets.module.ts                  |     100 |      100 |     100 |     100 |                                                                                                                                                                        
+  secrets.service.ts                 |   58.58 |    33.33 |     100 |   58.58 | 40-49,66-72,74-97                                                                                                                                                      
+ src/services                        |    4.94 |     12.5 |    5.88 |    4.94 |                                                                                                                                                                        
+  api-performance.service.ts         |       0 |        0 |       0 |       0 | 1-128                                                                                                                                                                  
+  bulk-encryption.service.ts         |       0 |        0 |       0 |       0 | 1-126                                                                                                                                                                  
+  circuit-breaker.service.ts         |       0 |        0 |       0 |       0 | 1-211                                                                                                                                                                  
+  classical-crypto.service.ts        |       0 |        0 |       0 |       0 | 1-301                                                                                                                                                                  
+  crypto-services.module.ts          |       0 |        0 |       0 |       0 | 1-40                                                                                                                                                                   
+  data-access-performance.service.ts |       0 |        0 |       0 |       0 | 1-30                                                                                                                                                                   
+  data-migration.service.ts          |       0 |        0 |       0 |       0 | 1-517                                                                                                                                                                  
+  field-encryption.service.ts        |       0 |        0 |       0 |       0 | 1-186                                                                                                                                                                  
+  hybrid-crypto.service.ts           |       0 |        0 |       0 |       0 | 1-241                                                                                                                                                                  
+  integrity-checker.service.ts       |       0 |        0 |       0 |       0 | 1-24                                                                                                                                                                   
+  pqc-data-encryption.service.ts     |   25.21 |    33.33 |      10 |   25.21 | 43-88,91-118,121-144,147-164,167-188,191-209,212-213,216-223,226-233                                                                                                   
+  pqc-data-validation.service.ts     |    16.9 |    33.33 |    7.14 |    16.9 | 35-58,61-115,118-136,139-180,183-219,222-234,237-253,256-261,264-289,292-306,309-319,322-323,326-348                                                                   
+ src/user                            |       0 |        0 |       0 |       0 |                                                                                                                                                                        
+  user.module.ts                     |       0 |        0 |       0 |       0 | 1-32                                                                                                                                                                   
+-------------------------------------|---------|----------|---------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Test Suites: 1 failed, 1 total
+Tests:       10 failed, 10 total
+Snapshots:   0 total
+Time:        2.302 s, estimated 3 s
+Ran all test suites matching /test\/integration\/pqc/i.
+Jest did not exit one second after the test run has completed.
+
+'This usually means that there are asynchronous operations that weren't stopped in your tests. Consider running Jest with `--detectOpenHandles` to troubleshoot this issue.
+[0;34m[00:33:13][0m Cleaning up temporary files...
