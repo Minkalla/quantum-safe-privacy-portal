@@ -11,13 +11,13 @@ export const decodeJWT = (token: string): JWTPayload | null => {
   }
 };
 
-export const isTokenExpired = (token: string): boolean => {
+export const isTokenExpired = (token: string, bufferSeconds: number = 30): boolean => {
   try {
     const decoded = decodeJWT(token);
     if (!decoded) return true;
     
     const currentTime = Date.now() / 1000;
-    return decoded.exp < currentTime;
+    return decoded.exp < (currentTime + bufferSeconds);
   } catch (error) {
     return true;
   }
