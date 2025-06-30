@@ -88,20 +88,18 @@ export class HybridCryptoService {
       };
     };
 
-    try {
-      return await this.errorBoundary.executeWithErrorBoundary<HybridEncryptionResult>(
-        pqcOperation,
-        {
-          category: PQCErrorCategory.CRYPTO_OPERATION,
-          retryCount: 2,
-          fallbackEnabled: true,
-          logLevel: 'error'
-        }
-      );
-    } catch (error) {
+    return await this.errorBoundary.executeWithErrorBoundary<HybridEncryptionResult>(
+      pqcOperation,
+      {
+        category: PQCErrorCategory.CRYPTO_OPERATION,
+        retryCount: 2,
+        fallbackEnabled: false,
+        logLevel: 'error'
+      }
+    ).catch(async (error) => {
       this.logger.warn(`PQC encryption failed, attempting fallback: ${error.message}`);
       return await fallbackOperation();
-    }
+    });
   }
 
   async decryptWithFallback(encryptedData: HybridDecryptionInput, privateKey: string): Promise<string> {
