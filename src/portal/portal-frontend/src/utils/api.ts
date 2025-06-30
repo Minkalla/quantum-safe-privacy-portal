@@ -40,7 +40,8 @@ apiClient.interceptors.response.use(
   (error: AxiosError) => {
     if (error.response?.status === 401) {
       setAuthToken(null);
-      window.location.href = '/login';
+      // Emit custom event for components to handle navigation
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
     }
     return Promise.reject(error);
   }
