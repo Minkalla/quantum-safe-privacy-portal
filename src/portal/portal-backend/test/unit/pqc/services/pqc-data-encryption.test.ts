@@ -63,9 +63,9 @@ describe('PQCDataEncryptionService Unit Tests - Real PQC Operations', () => {
       }
     });
 
-    it('should generate unique nonces for each real encryption', async () => {
+    it('should generate unique identifiers for each real encryption', async () => {
       const testData = 'identical data';
-      const nonces = [];
+      const identifiers: string[] = [];
 
       for (let i = 0; i < 3; i++) {
         const result = await service.encryptData(testData, {
@@ -74,12 +74,12 @@ describe('PQCDataEncryptionService Unit Tests - Real PQC Operations', () => {
         });
 
         if (result.success && result.encryptedField) {
-          nonces.push(result.encryptedField.keyId + result.encryptedField.timestamp.getTime());
+          identifiers.push(result.encryptedField.keyId + result.encryptedField.timestamp.getTime());
         }
       }
 
-      const uniqueNonces = new Set(nonces);
-      expect(uniqueNonces.size).toBe(3);
+      const uniqueIdentifiers = new Set(identifiers);
+      expect(uniqueIdentifiers.size).toBe(3);
     });
 
     it('should include real performance metrics', async () => {
@@ -170,7 +170,7 @@ describe('PQCDataEncryptionService Unit Tests - Real PQC Operations', () => {
   describe('Real Multiple Encryption Operations', () => {
     it('should encrypt multiple data items with real operations', async () => {
       const dataItems = ['data1', 'data2'];
-      const results = [];
+      const results: any[] = [];
 
       for (let i = 0; i < dataItems.length; i++) {
         const result = await service.encryptData(dataItems[i], {
