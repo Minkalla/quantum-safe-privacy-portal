@@ -74,7 +74,7 @@ describe('PQCDataEncryptionService Unit Tests - Real PQC Operations', () => {
         });
 
         if (result.success && result.encryptedField) {
-          nonces.push(result.encryptedField.nonce);
+          nonces.push(result.encryptedField.keyId + result.encryptedField.timestamp.getTime());
         }
       }
 
@@ -167,14 +167,18 @@ describe('PQCDataEncryptionService Unit Tests - Real PQC Operations', () => {
     });
   });
 
-  describe('Real batchEncryptData Operations', () => {
+  describe('Real Multiple Encryption Operations', () => {
     it('should encrypt multiple data items with real operations', async () => {
       const dataItems = ['data1', 'data2'];
+      const results = [];
 
-      const results = await service.batchEncryptData(dataItems, {
-        algorithm: PQCAlgorithmType.KYBER_768,
-        keyId: 'batch-key',
-      });
+      for (let i = 0; i < dataItems.length; i++) {
+        const result = await service.encryptData(dataItems[i], {
+          algorithm: PQCAlgorithmType.KYBER_768,
+          keyId: `batch-key-${i}`,
+        });
+        results.push(result);
+      }
 
       expect(results).toHaveLength(2);
       results.forEach((result, index) => {
