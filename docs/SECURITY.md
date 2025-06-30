@@ -213,4 +213,20 @@ subtle = "2.5"                  # Constant-time operations
 - **ISO/IEC 27701 (7.5.2):** Privacy-preserving cryptographic implementations
 - **Technical Debt:** Zero tolerance approach with comprehensive testing and documentation
 
-_Last updated: 2025-06-26 (WBS 1.2.2 completion - Rust toolchain with NIST PQC dependencies configured)_
+## 8. Dockerfile Hardening (WBS 1.7)
+
+### Summary
+Legacy debugging artifacts were removed from `src/portal/portal-backend/Dockerfile` to align with production-grade security and CI/CD expectations.
+
+### Changes Implemented
+- Removed `|| sleep infinity` fallback that masked container crashes
+- Removed `--trace-warnings` and `--unhandled-rejections=strict` flags from `CMD`
+- Replaced `CMD ["sh", "-c", "..."]` with clean `CMD ["node", "dist/main.js"]`
+- Preserved `NODE_OPTIONS="--enable-source-maps"` for dev observability
+
+### Compliance Impact
+- **NIST SP 800-53 CM-2/CM-3**: Eliminates non-deterministic debug behavior in production images
+- **OWASP Docker Security**: Aligns with best practices for container entrypoints
+- **CI/CD Stability**: Prevents silent hangs and improves test pipeline reliability
+
+_Last updated: 2025-07-01 (WBS 1.7 completion)_

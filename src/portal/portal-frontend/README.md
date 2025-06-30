@@ -1,6 +1,7 @@
-
-
 # 🌐 Minkalla Quantum-Safe Privacy Portal Frontend
+
+[![Frontend CI](https://github.com/minkalla/quantum-safe-privacy-portal/actions/workflows/frontend.yml/badge.svg)](https://github.com/minkalla/quantum-safe-privacy-portal/actions/workflows/frontend.yml)
+
 
 ## Overview
 This repository contains the user-facing frontend application for the Minkalla Quantum-Safe Privacy Portal. Built with modern web technologies, it provides a secure, intuitive, and accessible interface for individuals to manage their data consent and rights. It is designed to integrate seamlessly with the `portal-backend` service and prioritize user control and transparency.

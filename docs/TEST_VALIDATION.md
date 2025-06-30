@@ -110,6 +110,7 @@ src/models/             |   100   |    80    |   100   |   100
 - ✅ Retrieve consent records successfully (200 OK)
 - ✅ Return 404 when no consent records found
 
+
 ## 3. Enhanced Security Validation
 
 ### E2E Security Testing (100% Success Rate)
@@ -335,4 +336,29 @@ NODE_ENV=test
 - Security scan: `npm audit` (0 vulnerabilities)
 - CI/CD: GitHub Actions backend.yml workflow with E2E integration
 
-_Last updated: 2025-06-24_
+_## 10. WBS 1.7: Docker Compose Runtime & Endpoint Validation
+
+### Objective
+Validate `/portal/auth/login`, `/portal/auth/register`, and `/api-docs` endpoints under Docker Compose to confirm local–cloud parity.
+
+### Validation Scope
+- **Infra Environment**: `docker-compose.yml` with backend, frontend, and MongoDB
+- **Manual Runtime Tests**: curl and browser-based endpoint validation
+- **Security Middleware**: Confirmed persistence and error handling across containers
+
+### Tests Executed
+- ✅ `POST /portal/auth/login` returns 200 and JWT payload  
+- ✅ `GET /api-docs` serves Swagger UI from Compose  
+- ✅ Frontend successfully calls backend via Vite hot-reload container  
+- ✅ MongoDB persists records across Compose restarts (via named volume)
+
+### Compliance Mappings
+- **GDPR Article 15**: Transparent API discovery via `/api-docs`  
+- **NIST SP 800-53 CM-3**: Local configuration parity with production settings  
+- **OWASP API10**: Docker Compose enforces consistent authentication contract testing
+
+### Future Automation
+Manual Compose testing from 1.7.3 should evolve into automated regression coverage via Cypress or Supertest in 1.8.x or 1.9.x.
+
+_Last updated: 2025-07-01 (WBS 1.7 completion)_
+

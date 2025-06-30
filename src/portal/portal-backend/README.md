@@ -1,5 +1,8 @@
 # 🛡️ Minkalla Quantum-Safe Privacy Portal Backend
 
+[![Backend CI](https://github.com/minkalla/quantum-safe-privacy-portal/actions/workflows/backend.yml/badge.svg)](https://github.com/minkalla/quantum-safe-privacy-portal/actions/workflows/backend.yml)
+
+
 ## Overview
 This repository contains the backend services for the Minkalla Quantum-Safe Privacy Portal. Built with a "no regrets" approach, it provides a robust, secure, and compliant foundation for managing user consent and data rights in the digital economy. It is designed to be future-proof with quantum-safe cryptography readiness and adheres to the highest industry standards for security and ethical data practices.
 

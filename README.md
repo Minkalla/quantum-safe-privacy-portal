@@ -1,5 +1,8 @@
 # Quantum-Safe Privacy Portal
 
+[![Monorepo CI](https://github.com/minkalla/quantum-safe-privacy-portal/actions/workflows/monorepo.yml/badge.svg)](https://github.com/minkalla/quantum-safe-privacy-portal/actions/workflows/monorepo.yml)
+
+
 A comprehensive privacy-focused platform implementing NIST Post-Quantum Cryptography (PQC) standards for quantum-resistant security.
 
 ## 🔐 Project Overview
