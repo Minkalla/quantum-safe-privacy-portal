@@ -25,14 +25,14 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../mock-qynauth/src/python_app'))
 
 try:
-    from pqc_bindings.kyber import KyberKeyPair
-    from pqc_bindings.dilithium import DilithiumKeyPair
-    from pqc_bindings.performance import PerformanceMonitor
-    from pqc_bindings.exceptions import PQCError, KyberError, DilithiumError
-    from pqc_bindings.legacy import LegacyPQCLibraryV2 as PQCLibraryV2
+    from pqc_ffi import PQCLibrary, get_pqc_library, PQCLibraryError
+    PQCLibraryV2 = PQCLibrary
+    PQCError = PQCLibraryError
+    KyberError = PQCLibraryError
+    DilithiumError = PQCLibraryError
     PQC_AVAILABLE = True
 except ImportError as e:
-    logging.warning(f"PQC bindings not available: {e}")
+    logging.warning(f"PQC FFI not available: {e}")
     PQC_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
@@ -142,15 +142,15 @@ class PQCAuthenticationService:
         self.session_cache = PQCKeyCache(config.max_concurrent_sessions)
         
         self.pqc_lib: Optional[PQCLibraryV2] = None
-        self.performance_monitor: Optional[PerformanceMonitor] = None
+        self.performance_monitor: Optional[Dict[str, Any]] = None
         
         self.logger = logging.getLogger(__name__)
         
         if PQC_AVAILABLE:
             try:
-                self.pqc_lib = PQCLibraryV2()
+                self.pqc_lib = get_pqc_library()
                 if config.enable_performance_monitoring:
-                    self.performance_monitor = PerformanceMonitor(self.pqc_lib)
+                    self.performance_monitor = {'enabled': True, 'metrics': {}}
                 self.logger.info("PQC authentication service initialized successfully")
             except Exception as e:
                 self.logger.error(f"Failed to initialize PQC library: {e}")
@@ -187,24 +187,19 @@ class PQCAuthenticationService:
             kyber_keypair = await self._get_or_create_kyber_keypair(user_id)
             
             with self._performance_context("kyber_encapsulation"):
-                encap_result = kyber_keypair.encapsulate()
-                if isinstance(encap_result, dict):
-                    shared_secret = encap_result['shared_secret']
-                    ciphertext = encap_result['ciphertext']
-                else:
-                    ciphertext, shared_secret = encap_result
+                shared_secret, ciphertext = self.pqc_lib.ml_kem_encapsulate(kyber_keypair['public_key'])
             
             session_id = self._generate_session_id(user_id, shared_secret)
             
             session_data = PQCSessionData(
                 user_id=user_id,
                 session_id=session_id,
-                shared_secret=shared_secret.hex(),
-                ciphertext=ciphertext.hex(),
+                shared_secret=shared_secret.hex() if isinstance(shared_secret, bytes) else shared_secret,
+                ciphertext=ciphertext.hex() if isinstance(ciphertext, bytes) else ciphertext,
                 algorithm='ML-KEM-768',
                 created_at=datetime.utcnow(),
                 expires_at=datetime.utcnow() + timedelta(seconds=self.config.session_token_ttl),
-                public_key_hash=hashlib.sha256(kyber_keypair.get_public_key()).hexdigest()[:16],
+                public_key_hash=hashlib.sha256(kyber_keypair['public_key']).hexdigest()[:16],
                 metadata=metadata or {}
             )
             
@@ -287,13 +282,13 @@ class PQCAuthenticationService:
             payload_bytes = json.dumps(token_payload, sort_keys=True).encode('utf-8')
             
             with self._performance_context("dilithium_signing"):
-                signature = dilithium_keypair.sign(payload_bytes)
+                signature = self.pqc_lib.ml_dsa_sign(payload_bytes, dilithium_keypair['private_key'])
             
             signed_token = {
                 'payload': token_payload,
                 'signature': signature.hex(),
                 'algorithm': 'ML-DSA-65',
-                'public_key_hash': hashlib.sha256(dilithium_keypair.get_public_key()).hexdigest()[:16]
+                'public_key_hash': hashlib.sha256(dilithium_keypair['public_key']).hexdigest()[:16]
             }
             
             duration_ms = (time.time() - start_time) * 1000
@@ -345,9 +340,11 @@ class PQCAuthenticationService:
         start_time = time.time()
         
         try:
-            self.logger.info(f"Verifying PQC token for user: {user_id}")
+            self.logger.info(f"DEBUG: Starting PQC token verification for user: {user_id}")
+            self.logger.info(f"DEBUG: Token length: {len(token)}")
             
             if not self.pqc_lib:
+                self.logger.error("DEBUG: PQC library not available")
                 if self.config.fallback_to_classical:
                     return await self._fallback_classical_verification(token, user_id)
                 else:
@@ -361,44 +358,57 @@ class PQCAuthenticationService:
                 payload = signed_token['payload']
                 signature_hex = signed_token['signature']
                 algorithm = signed_token['algorithm']
+                self.logger.info(f"DEBUG: Parsed token - algorithm: {algorithm}, payload keys: {list(payload.keys())}")
+                self.logger.info(f"DEBUG: Signature hex length: {len(signature_hex)}")
             except (json.JSONDecodeError, KeyError) as e:
+                self.logger.error(f"DEBUG: Token parsing failed: {e}")
                 return PQCAuthResult(
                     success=False,
                     error_message=f"Invalid token format: {e}"
                 )
             
             if algorithm != 'ML-DSA-65':
+                self.logger.error(f"DEBUG: Unsupported algorithm: {algorithm}")
                 return PQCAuthResult(
                     success=False,
                     error_message=f"Unsupported algorithm: {algorithm}"
                 )
             
             if payload.get('user_id') != user_id:
+                self.logger.error(f"DEBUG: User ID mismatch - expected: {user_id}, got: {payload.get('user_id')}")
                 return PQCAuthResult(
                     success=False,
                     error_message="User ID mismatch"
                 )
             
             exp = payload.get('exp', 0)
-            if int(time.time()) > exp:
+            current_time = int(time.time())
+            if current_time > exp:
+                self.logger.error(f"DEBUG: Token expired - current: {current_time}, exp: {exp}")
                 return PQCAuthResult(
                     success=False,
                     error_message="Token expired"
                 )
             
+            self.logger.info(f"DEBUG: Getting Dilithium keypair for user: {user_id}")
             dilithium_keypair = await self._get_or_create_dilithium_keypair(user_id)
+            self.logger.info(f"DEBUG: Got keypair, public key length: {len(dilithium_keypair['public_key']) if dilithium_keypair['public_key'] else 'None'}")
             
             payload_bytes = json.dumps(payload, sort_keys=True).encode('utf-8')
             signature = bytes.fromhex(signature_hex)
+            self.logger.info(f"DEBUG: Payload bytes length: {len(payload_bytes)}, signature bytes length: {len(signature)}")
+            self.logger.info(f"DEBUG: Payload for verification: {payload_bytes[:100]}...")
             
             with self._performance_context("dilithium_verification"):
-                is_valid = dilithium_keypair.verify(payload_bytes, signature)
+                self.logger.info("DEBUG: Starting Dilithium verification")
+                is_valid = self.pqc_lib.ml_dsa_verify(payload_bytes, signature, dilithium_keypair['public_key'])
+                self.logger.info(f"DEBUG: Dilithium verification result: {is_valid}")
             
             duration_ms = (time.time() - start_time) * 1000
             
             if is_valid:
                 self.logger.info(
-                    f"PQC token verification successful for user: {user_id} in {duration_ms:.2f}ms",
+                    f"DEBUG: PQC token verification successful for user: {user_id} in {duration_ms:.2f}ms",
                     extra={
                         'user_id': user_id,
                         'algorithm': 'ML-DSA-65',
@@ -413,26 +423,28 @@ class PQCAuthenticationService:
                     performance_metrics={'duration_ms': duration_ms}
                 )
             else:
-                self.logger.warning(f"PQC token verification failed for user: {user_id}")
+                self.logger.warning(f"DEBUG: PQC token verification failed for user: {user_id} - signature invalid")
                 return PQCAuthResult(
                     success=False,
                     error_message="Signature verification failed"
                 )
             
         except (PQCError, DilithiumError) as e:
-            self.logger.error(f"PQC token verification failed: {e}")
+            self.logger.error(f"DEBUG: PQC token verification failed with PQC/Dilithium error: {e}")
             return PQCAuthResult(
                 success=False,
                 error_message=f"PQC token verification failed: {str(e)}"
             )
         except Exception as e:
-            self.logger.error(f"Unexpected error during PQC token verification: {e}")
+            self.logger.error(f"DEBUG: Unexpected error during PQC token verification: {e}")
+            import traceback
+            self.logger.error(f"DEBUG: Traceback: {traceback.format_exc()}")
             return PQCAuthResult(
                 success=False,
                 error_message=f"Token verification error: {str(e)}"
             )
     
-    async def _get_or_create_kyber_keypair(self, user_id: str) -> KyberKeyPair:
+    async def _get_or_create_kyber_keypair(self, user_id: str) -> Dict[str, bytes]:
         """Get or create cached Kyber keypair for user."""
         cache_key = f"kyber_{user_id}"
         
@@ -440,13 +452,21 @@ class PQCAuthenticationService:
         if cached_keypair:
             return cached_keypair
         
-        keypair = KyberKeyPair(self.pqc_lib)
+        if not self.pqc_lib:
+            raise PQCError("PQC library not available")
+        
+        public_key, private_key = self.pqc_lib.generate_ml_kem_keypair()
+        keypair = {
+            'public_key': public_key,
+            'private_key': private_key,
+            'user_id': user_id
+        }
         
         self.kyber_cache.put(cache_key, keypair, self.config.kyber_key_cache_ttl)
         
         return keypair
     
-    async def _get_or_create_dilithium_keypair(self, user_id: str) -> DilithiumKeyPair:
+    async def _get_or_create_dilithium_keypair(self, user_id: str) -> Dict[str, bytes]:
         """Get or create cached Dilithium keypair for user."""
         cache_key = f"dilithium_{user_id}"
         
@@ -454,7 +474,15 @@ class PQCAuthenticationService:
         if cached_keypair:
             return cached_keypair
         
-        keypair = DilithiumKeyPair(self.pqc_lib)
+        if not self.pqc_lib:
+            raise PQCError("PQC library not available")
+        
+        public_key, private_key = self.pqc_lib.generate_ml_dsa_keypair()
+        keypair = {
+            'public_key': public_key,
+            'private_key': private_key,
+            'user_id': user_id
+        }
         
         self.dilithium_cache.put(cache_key, keypair, self.config.dilithium_key_cache_ttl)
         
@@ -480,18 +508,27 @@ class PQCAuthenticationService:
         payload_json = json.dumps(payload)
         return base64.b64encode(payload_json.encode()).decode()
     
-    @asynccontextmanager
-    async def _performance_context(self, operation_name: str):
+    def _performance_context(self, operation_name: str):
         """Context manager for performance monitoring."""
-        if self.performance_monitor and self.config.enable_performance_monitoring:
-            start_time = time.time()
-            try:
-                yield
-            finally:
-                duration_ms = (time.time() - start_time) * 1000
-                self.logger.debug(f"Operation {operation_name} took {duration_ms:.2f}ms")
-        else:
-            yield
+        class PerformanceContext:
+            def __init__(self, monitor, config, logger, op_name):
+                self.monitor = monitor
+                self.config = config
+                self.logger = logger
+                self.operation_name = op_name
+                self.start_time = None
+                
+            def __enter__(self):
+                if self.monitor and self.config.enable_performance_monitoring:
+                    self.start_time = time.time()
+                return self
+                
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                if self.start_time and self.monitor and self.config.enable_performance_monitoring:
+                    duration_ms = (time.time() - self.start_time) * 1000
+                    self.logger.debug(f"Operation {self.operation_name} took {duration_ms:.2f}ms")
+        
+        return PerformanceContext(self.performance_monitor, self.config, self.logger, operation_name)
     
     async def _fallback_classical_session(self, user_id: str, metadata: Optional[Dict[str, Any]] = None) -> PQCAuthResult:
         """Fallback to classical session generation."""
@@ -536,7 +573,7 @@ class PQCAuthenticationService:
     def get_performance_metrics(self) -> Optional[Dict[str, Any]]:
         """Get current performance metrics."""
         if self.performance_monitor:
-            return self.performance_monitor.get_performance_report()
+            return self.performance_monitor.get('metrics', {})
         return None
     
     def clear_caches(self) -> None:

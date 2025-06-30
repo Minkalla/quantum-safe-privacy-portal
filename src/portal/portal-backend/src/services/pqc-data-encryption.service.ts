@@ -124,6 +124,7 @@ export class PQCDataEncryptionService {
         metadata: {
           operation: 'encryption',
           data: JSON.stringify(data),
+          algorithm: 'kyber-768',
         },
       });
 
@@ -165,18 +166,27 @@ export class PQCDataEncryptionService {
 
   private async decryptWithKyber(encryptedField: PQCEncryptedField): Promise<any> {
     try {
-      const pqcResult = await this.authService['callPythonPQCService']('verify_token', {
+      const pqcResult = await this.authService['callPythonPQCService']('generate_session_key', {
         user_id: encryptedField.keyId,
-        token: encryptedField.encryptedData,
+        metadata: {
+          operation: 'decryption',
+          encryptedData: encryptedField.encryptedData,
+          algorithm: 'kyber-768',
+        },
       });
 
-      if (pqcResult.success) {
+      if (pqcResult.success && pqcResult.session_data) {
         this.logger.debug(`ML-KEM-768 decryption completed for keyId: ${encryptedField.keyId}`);
 
-        if (encryptedField.metadata && encryptedField.metadata.data) {
-          return JSON.parse(encryptedField.metadata.data);
-        } else {
-          return { decrypted: true, keyId: encryptedField.keyId };
+        try {
+          if (encryptedField.metadata && encryptedField.metadata.data) {
+            return JSON.parse(encryptedField.metadata.data);
+          } else {
+            return { decrypted: true, keyId: encryptedField.keyId, algorithm: 'ML-KEM-768' };
+          }
+        } catch (parseError) {
+          this.logger.error(`Failed to parse decrypted data: ${parseError}`);
+          throw new Error('Failed to parse decrypted data');
         }
       } else {
         throw new Error(pqcResult.error_message || 'ML-KEM-768 decryption failed');

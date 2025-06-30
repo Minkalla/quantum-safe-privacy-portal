@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 import { HybridCryptoService } from './hybrid-crypto.service';
 import { PQCDataEncryptionService } from './pqc-data-encryption.service';
 import { BulkEncryptionService } from './bulk-encryption.service';
-import { IUser } from '../models/User';
+import User, { IUser } from '../models/User';
 import Consent, { IConsent } from '../models/Consent';
 
 export interface MigrationResult {
@@ -35,7 +35,7 @@ export class DataMigrationService {
   private readonly migrationEnabled = process.env.MIGRATION_ENABLED === 'true';
 
   constructor(
-    @InjectModel('User') private readonly userModel: Model<IUser>,
+    @InjectModel(User.name) private readonly userModel: Model<IUser>,
     @InjectModel(Consent.name) private readonly consentModel: Model<IConsent>,
     private readonly hybridCryptoService: HybridCryptoService,
     private readonly pqcService: PQCDataEncryptionService,

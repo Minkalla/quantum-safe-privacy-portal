@@ -5,7 +5,7 @@ import { DataMigrationService } from '../data-migration.service';
 import { HybridCryptoService } from '../hybrid-crypto.service';
 import { PQCDataEncryptionService } from '../pqc-data-encryption.service';
 import { BulkEncryptionService } from '../bulk-encryption.service';
-import { IUser } from '../../models/User';
+import User, { IUser } from '../../models/User';
 import Consent, { IConsent } from '../../models/Consent';
 
 describe('DataMigrationService', () => {
@@ -18,14 +18,14 @@ describe('DataMigrationService', () => {
 
   beforeEach(async () => {
     const mockUserModel = {
-      find: jest.fn(),
+      find: jest.fn().mockResolvedValue([]),
       findById: jest.fn(),
       updateOne: jest.fn(),
       countDocuments: jest.fn(),
     };
 
     const mockConsentModel = {
-      find: jest.fn(),
+      find: jest.fn().mockResolvedValue([]),
       findById: jest.fn(),
       updateOne: jest.fn(),
       countDocuments: jest.fn(),
@@ -50,7 +50,7 @@ describe('DataMigrationService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DataMigrationService,
-        { provide: getModelToken('User'), useValue: mockUserModel },
+        { provide: getModelToken(User.name), useValue: mockUserModel },
         { provide: getModelToken(Consent.name), useValue: mockConsentModel },
         { provide: HybridCryptoService, useValue: mockHybridCryptoService },
         { provide: PQCDataEncryptionService, useValue: mockPqcService },
@@ -59,7 +59,7 @@ describe('DataMigrationService', () => {
     }).compile();
 
     service = module.get<DataMigrationService>(DataMigrationService);
-    userModel = module.get(getModelToken('User'));
+    userModel = module.get(getModelToken(User.name));
     consentModel = module.get(getModelToken(Consent.name));
     hybridCryptoService = module.get(HybridCryptoService);
     pqcService = module.get(PQCDataEncryptionService);
@@ -81,8 +81,6 @@ describe('DataMigrationService', () => {
     });
 
     it('should migrate users and consents when enabled', async () => {
-      process.env.MIGRATION_ENABLED = 'true';
-
       (service as any).migrationEnabled = true;
 
       const mockUsers = [
@@ -94,16 +92,16 @@ describe('DataMigrationService', () => {
         { _id: 'consent1', userId: 'user1', cryptoVersion: 'placeholder' },
       ];
 
-      userModel.find.mockResolvedValue(mockUsers as any);
-      consentModel.find.mockResolvedValue(mockConsents as any);
+      userModel.find.mockResolvedValueOnce(mockUsers as any);
+      consentModel.find.mockResolvedValueOnce(mockConsents as any);
 
-      jest.spyOn(service, 'migrateUserData').mockResolvedValue({
+      const migrateUserDataSpy = jest.spyOn(service, 'migrateUserData').mockResolvedValue({
         success: true,
         algorithm: 'ML-KEM-768',
         migratedFields: 2,
       });
 
-      jest.spyOn(service, 'migrateConsentData').mockResolvedValue({
+      const migrateConsentDataSpy = jest.spyOn(service, 'migrateConsentData').mockResolvedValue({
         success: true,
         algorithm: 'ML-KEM-768',
         migratedFields: 1,
@@ -113,13 +111,15 @@ describe('DataMigrationService', () => {
 
       expect(result.migrated).toBe(3);
       expect(result.failed).toBe(0);
-      expect(service.migrateUserData).toHaveBeenCalledTimes(2);
-      expect(service.migrateConsentData).toHaveBeenCalledTimes(1);
+      expect(migrateUserDataSpy).toHaveBeenCalledTimes(2);
+      expect(migrateConsentDataSpy).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('migrateUserData', () => {
     it('should migrate user from placeholder to PQC', async () => {
+      (service as any).migrationEnabled = true;
+      
       const userId = 'test-user-id';
       const mockUser = {
         _id: userId,
@@ -170,6 +170,8 @@ describe('DataMigrationService', () => {
     });
 
     it('should skip migration for already migrated users', async () => {
+      (service as any).migrationEnabled = true;
+      
       const userId = 'test-user-id';
       const mockUser = {
         _id: userId,
@@ -188,6 +190,8 @@ describe('DataMigrationService', () => {
     });
 
     it('should throw error for non-existent user', async () => {
+      (service as any).migrationEnabled = true;
+      
       const userId = 'non-existent-user';
       userModel.findById.mockResolvedValue(null);
 
@@ -201,6 +205,8 @@ describe('DataMigrationService', () => {
 
   describe('rollbackPQC', () => {
     it('should rollback users and consents', async () => {
+      (service as any).migrationEnabled = true;
+      
       const mockUsers = [
         { _id: 'user1', cryptoVersion: 'pqc-real', backupCryptoVersion: 'placeholder' },
       ];

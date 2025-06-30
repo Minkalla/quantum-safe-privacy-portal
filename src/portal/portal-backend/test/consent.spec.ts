@@ -15,7 +15,7 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConsentModule } from '../src/consent/consent.module';
 import { ConsentService } from '../src/consent/consent.service';

@@ -13,6 +13,7 @@ import { DataAccessPerformanceService } from '../services/data-access-performanc
 import { HybridCryptoService } from '../services/hybrid-crypto.service';
 import { ClassicalCryptoService } from '../services/classical-crypto.service';
 import { CircuitBreakerService } from '../services/circuit-breaker.service';
+import { EnhancedErrorBoundaryService } from '../services/enhanced-error-boundary.service';
 import { PQCDataController } from '../controllers/pqc-data.controller';
 import { PQCConsentController } from '../controllers/pqc-consent.controller';
 import { PQCUserController } from '../controllers/pqc-user.controller';
@@ -51,6 +52,7 @@ import { JwtModule } from '../jwt/jwt.module';
     HybridCryptoService,
     ClassicalCryptoService,
     CircuitBreakerService,
+    EnhancedErrorBoundaryService,
     PQCApiMiddleware,
     PQCApiGuard,
     ApiPerformanceService,
@@ -68,6 +70,7 @@ import { JwtModule } from '../jwt/jwt.module';
     HybridCryptoService,
     ClassicalCryptoService,
     CircuitBreakerService,
+    EnhancedErrorBoundaryService,
     PQCApiMiddleware,
     PQCApiGuard,
     ApiPerformanceService,

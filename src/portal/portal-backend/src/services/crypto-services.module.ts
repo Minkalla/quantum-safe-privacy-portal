@@ -7,6 +7,7 @@ import { DataMigrationService } from './data-migration.service';
 import { PQCDataEncryptionService } from './pqc-data-encryption.service';
 import { CircuitBreakerService } from './circuit-breaker.service';
 import { BulkEncryptionService } from './bulk-encryption.service';
+import { FieldEncryptionService } from './field-encryption.service';
 import { AuthModule } from '../auth/auth.module';
 import User, { IUser, UserSchema } from '../models/User';
 import Consent, { IConsent, ConsentSchema } from '../models/Consent';
@@ -27,6 +28,7 @@ import Consent, { IConsent, ConsentSchema } from '../models/Consent';
     PQCDataEncryptionService,
     CircuitBreakerService,
     BulkEncryptionService,
+    FieldEncryptionService,
   ],
   exports: [
     HybridCryptoService,
@@ -35,6 +37,7 @@ import Consent, { IConsent, ConsentSchema } from '../models/Consent';
     PQCDataEncryptionService,
     CircuitBreakerService,
     BulkEncryptionService,
+    FieldEncryptionService,
   ],
 })
 export class CryptoServicesModule {}

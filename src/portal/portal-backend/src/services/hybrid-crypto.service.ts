@@ -2,12 +2,24 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PQCDataEncryptionService, EncryptionResult, DecryptionResult } from './pqc-data-encryption.service';
 import { ClassicalCryptoService } from './classical-crypto.service';
 import { CircuitBreakerService } from './circuit-breaker.service';
+import { EnhancedErrorBoundaryService, PQCErrorCategory } from './enhanced-error-boundary.service';
 import { PQCEncryptedField, PQCAlgorithmType } from '../models/interfaces/pqc-data.interface';
 
 export interface HybridEncryptionResult {
   algorithm: 'ML-KEM-768' | 'RSA-2048';
   ciphertext: string;
   fallbackUsed: boolean;
+  isPQCDegraded: boolean;
+  errorCategory?: PQCErrorCategory;
+  metadata?: any;
+}
+
+export interface HybridOperationResult {
+  algorithm: 'ML-KEM-768' | 'ML-DSA-65' | 'RSA-2048';
+  data: string;
+  fallbackUsed: boolean;
+  isPQCDegraded: boolean;
+  errorCategory?: PQCErrorCategory;
   metadata?: any;
 }
 
@@ -15,6 +27,8 @@ export interface HybridSignatureResult {
   algorithm: 'ML-DSA-65' | 'RSA-2048';
   signature: string;
   fallbackUsed: boolean;
+  isPQCDegraded: boolean;
+  errorCategory?: PQCErrorCategory;
   metadata?: any;
 }
 
@@ -32,55 +46,63 @@ export class HybridCryptoService {
     private readonly pqcService: PQCDataEncryptionService,
     private readonly classicalService: ClassicalCryptoService,
     private readonly circuitBreaker: CircuitBreakerService,
+    private readonly errorBoundary: EnhancedErrorBoundaryService,
   ) {}
 
   async encryptWithFallback(data: string, publicKey: string): Promise<HybridEncryptionResult> {
-    try {
-      this.logger.debug('Attempting PQC encryption with ML-KEM-768 via circuit breaker');
+    const pqcOperation = async () => {
+      const pqcResult = await this.pqcService.encryptData(data, {
+        algorithm: PQCAlgorithmType.ML_KEM_768,
+        keyId: publicKey,
+      });
 
-      const pqcOperation = async () => {
-        const pqcResult = await this.pqcService.encryptData(data, {
-          algorithm: PQCAlgorithmType.ML_KEM_768,
-          keyId: publicKey,
-        });
+      if (pqcResult.success && pqcResult.encryptedField) {
+        this.logger.log('PQC encryption successful with ML-KEM-768');
+        return {
+          algorithm: 'ML-KEM-768' as const,
+          ciphertext: pqcResult.encryptedField.encryptedData,
+          fallbackUsed: false,
+          isPQCDegraded: false,
+          metadata: {
+            keyId: pqcResult.encryptedField.keyId,
+            timestamp: new Date().toISOString(),
+            performance: pqcResult.performanceMetrics,
+          },
+        };
+      } else {
+        throw new Error(pqcResult.error || 'PQC encryption failed');
+      }
+    };
 
-        if (pqcResult.success && pqcResult.encryptedField) {
-          this.logger.log('PQC encryption successful with ML-KEM-768');
-          return {
-            algorithm: 'ML-KEM-768' as const,
-            ciphertext: pqcResult.encryptedField.encryptedData,
-            fallbackUsed: false,
-            metadata: {
-              keyId: pqcResult.encryptedField.keyId,
-              timestamp: new Date().toISOString(),
-              performance: pqcResult.performanceMetrics,
-            },
-          };
-        } else {
-          throw new Error(pqcResult.error || 'PQC encryption failed');
-        }
-      };
-
-      return await this.circuitBreaker.executeWithCircuitBreaker<HybridEncryptionResult>(
-        'pqc-encryption',
-        pqcOperation,
-      );
-
-    } catch (error) {
-      this.logger.warn(`PQC encryption failed, falling back to RSA: ${error.message}`);
-
+    const fallbackOperation = async () => {
       const classicalResult = await this.classicalService.encryptRSA(data, publicKey);
-
       return {
-        algorithm: 'RSA-2048',
+        algorithm: 'RSA-2048' as const,
         ciphertext: classicalResult.encryptedData,
         fallbackUsed: true,
+        isPQCDegraded: true,
         metadata: {
-          fallbackReason: error.message,
           timestamp: new Date().toISOString(),
-          originalError: 'PQC_ENCRYPTION_FAILED',
+          fallbackReason: 'PQC_SERVICE_UNAVAILABLE',
         },
       };
+    };
+
+    const result = await this.errorBoundary.executeWithErrorBoundary<HybridEncryptionResult>(
+      pqcOperation,
+      fallbackOperation,
+      {
+        operation: 'encrypt_with_fallback',
+        algorithm: 'ML-KEM-768',
+        retryable: true,
+        fallbackAvailable: true
+      }
+    );
+
+    if (result.success) {
+      return result.data!;
+    } else {
+      throw new Error(`Encryption failed: ${result.error?.category} - ${result.error?.metadata?.originalError}`);
     }
   }
 
@@ -145,6 +167,7 @@ export class HybridCryptoService {
           algorithm: 'RSA-2048',
           signature: classicalResult.signature,
           fallbackUsed: true,
+          isPQCDegraded: true,
           metadata: {
             fallbackReason: error.message,
             timestamp: new Date().toISOString(),
