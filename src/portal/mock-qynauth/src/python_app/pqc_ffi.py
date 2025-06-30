@@ -1,12 +1,10 @@
 import ctypes
-from ctypes import POINTER, c_char_p, c_uint8, c_size_t, c_bool, c_ulong
-from typing import Tuple, Optional, Dict, Any, Union
+from ctypes import c_char_p, c_uint8, c_size_t, c_bool, POINTER
+from typing import Optional, Dict, Any, Tuple
 import json
 import logging
 import os
 from pathlib import Path
-
-CUint8Ptr = ctypes.POINTER(c_uint8)
 
 logger = logging.getLogger(__name__)
 
@@ -64,44 +62,60 @@ class PQCLibrary:
         self.lib.pqc_ml_kem_768_keygen.argtypes = []
         self.lib.pqc_ml_kem_768_keygen.restype = c_char_p
         
-        self.lib.pqc_ml_kem_768_encaps.argtypes = [POINTER(c_uint8), c_size_t]
+        self.lib.pqc_ml_kem_768_encaps.argtypes = [
+            ctypes.POINTER(c_uint8), c_size_t  # public_key, public_key_len
+        ]
         self.lib.pqc_ml_kem_768_encaps.restype = c_char_p
         
-        self.lib.pqc_ml_kem_768_decaps.argtypes = [POINTER(c_uint8), c_size_t, POINTER(c_uint8), c_size_t]
+        self.lib.pqc_ml_kem_768_decaps.argtypes = [
+            ctypes.POINTER(c_uint8), c_size_t,  # secret_key, secret_key_len
+            ctypes.POINTER(c_uint8), c_size_t   # ciphertext, ciphertext_len
+        ]
         self.lib.pqc_ml_kem_768_decaps.restype = c_char_p
         
         self.lib.pqc_ml_dsa_65_keygen.argtypes = []
         self.lib.pqc_ml_dsa_65_keygen.restype = c_char_p
         
-        self.lib.pqc_ml_dsa_65_sign.argtypes = [POINTER(c_uint8), c_size_t, POINTER(c_uint8), c_size_t]
+        self.lib.pqc_ml_dsa_65_sign.argtypes = [
+            ctypes.POINTER(c_uint8), c_size_t,  # message, message_len
+            ctypes.POINTER(c_uint8), c_size_t   # private_key, private_key_len
+        ]
         self.lib.pqc_ml_dsa_65_sign.restype = c_char_p
         
-        self.lib.pqc_ml_dsa_65_verify.argtypes = [POINTER(c_uint8), c_size_t, POINTER(c_uint8), c_size_t, POINTER(c_uint8), c_size_t]
+        self.lib.pqc_ml_dsa_65_verify.argtypes = [
+            ctypes.POINTER(c_uint8), c_size_t,  # signature, signature_len
+            ctypes.POINTER(c_uint8), c_size_t,  # message, message_len
+            ctypes.POINTER(c_uint8), c_size_t   # public_key, public_key_len
+        ]
         self.lib.pqc_ml_dsa_65_verify.restype = c_bool
         
         self.lib.pqc_key_manager_create.argtypes = []
         self.lib.pqc_key_manager_create.restype = c_char_p
         
-        self.lib.pqc_key_manager_generate_key.argtypes = [c_ulong, c_char_p, c_char_p]
+        self.lib.pqc_key_manager_generate_key.argtypes = [c_size_t, c_char_p, c_char_p]
         self.lib.pqc_key_manager_generate_key.restype = c_char_p
         
-        self.lib.pqc_key_manager_rotate_key.argtypes = [c_ulong, c_char_p]
+        self.lib.pqc_key_manager_rotate_key.argtypes = [c_size_t, c_char_p]
         self.lib.pqc_key_manager_rotate_key.restype = c_char_p
         
-        self.lib.free_string.argtypes = [c_char_p]
-        self.lib.free_string.restype = None
+        if hasattr(self.lib, 'free_string'):
+            self.lib.free_string.argtypes = [c_char_p]
+            self.lib.free_string.restype = None
     
     def _call_and_parse_json(self, func, *args) -> Dict[str, Any]:
-        """Call a function and parse its JSON response."""
+        """Call a function and parse its JSON response using user's patch."""
+        raw_ptr = None
         try:
-            result_ptr = func(*args)
-            if not result_ptr:
+            raw_ptr = func(*args)
+            if not raw_ptr:
                 raise PQCLibraryError("Function returned null pointer")
             
-            result_str = ctypes.string_at(result_ptr).decode('utf-8')
-            self.lib.free_string(result_ptr)
+            c_str_value = ctypes.cast(raw_ptr, ctypes.c_char_p).value
+            if c_str_value is None:
+                raise PQCLibraryError("Received null string from Rust function")
             
-            result_data = json.loads(result_str)
+            json_str = c_str_value.decode('utf-8')
+            result_data = json.loads(json_str)
             
             if not result_data.get('success', False):
                 error_msg = result_data.get('error', 'Unknown error')
@@ -112,6 +126,9 @@ class PQCLibrary:
             raise PQCLibraryError(f"Failed to parse JSON response: {e}")
         except Exception as e:
             raise PQCLibraryError(f"FFI call failed: {e}")
+        finally:
+            if raw_ptr and hasattr(self.lib, 'free_string'):
+                self.lib.free_string(raw_ptr)
     
     def _bytes_to_c_array(self, data: bytes) -> Tuple[Any, int]:
         """Convert Python bytes to C array."""
@@ -120,65 +137,101 @@ class PQCLibrary:
         
         array_type = c_uint8 * len(data)
         c_array = array_type(*data)
-        return ctypes.cast(c_array, POINTER(c_uint8)), len(data)
+        return ctypes.cast(c_array, ctypes.POINTER(c_uint8)), len(data)
     
-    def generate_ml_kem_keypair(self) -> Tuple[bytes, bytes]:
+    def generate_ml_kem_keypair(self) -> Dict[str, Any]:
         """
-        Generate an ML-KEM-768 keypair.
+        Generate an ML-KEM-768 keypair using JSON-based interface.
         
         Returns:
-            Tuple of (public_key, private_key) as bytes
+            Dictionary with public_key, private_key, and algorithm
         """
         logger.info("Generating ML-KEM-768 keypair")
         
-        result = self._call_and_parse_json(self.lib.pqc_ml_kem_768_keygen)
+        raw_ptr = self.lib.pqc_ml_kem_768_keygen()
+        if not raw_ptr:
+            raise PQCLibraryError("Keypair generation returned NULL pointer")
         
-        public_key = bytes(result['public_key'])
-        private_key = bytes(result['private_key'])
-        
-        logger.info(f"Generated ML-KEM-768 keypair: pub_key={len(public_key)} bytes, priv_key={len(private_key)} bytes")
-        return public_key, private_key
+        try:
+            c_str_value = ctypes.cast(raw_ptr, ctypes.c_char_p).value
+            if c_str_value is None:
+                raise PQCLibraryError("Received null string from Rust function")
+            
+            json_str = c_str_value.decode("utf-8")
+            result = json.loads(json_str)
+            
+            if not result.get('success', False):
+                error_msg = result.get('error', 'Unknown error')
+                raise PQCLibraryError(f"ML-KEM keypair generation failed: {error_msg}")
+            
+            logger.info(f"Generated ML-KEM-768 keypair: pub_key={len(result['public_key'])} bytes, priv_key={len(result['private_key'])} bytes")
+            return {
+                'public_key': result['public_key'],
+                'private_key': result['private_key'],
+                'algorithm': result.get('algorithm', 'ML-KEM-768')
+            }
+        finally:
+            if hasattr(self.lib, 'free_string'):
+                self.lib.free_string.argtypes = [ctypes.c_char_p]
+                self.lib.free_string(raw_ptr)
     
-    def ml_kem_encapsulate(self, public_key: bytes) -> Tuple[bytes, bytes]:
+    def ml_kem_encapsulate(self, public_key: Any = None) -> Dict[str, Any]:
         """
         Perform ML-KEM-768 encapsulation.
         
         Args:
-            public_key: The public key as bytes
+            public_key: The public key (can be None, will generate keypair if needed)
             
         Returns:
-            Tuple of (ciphertext, shared_secret) as bytes
+            Dictionary with ciphertext, shared_secret, and algorithm
         """
-        logger.info(f"Performing ML-KEM-768 encapsulation with public key of {len(public_key)} bytes")
+        logger.info("Starting ML-KEM-768 encapsulation")
         
-        pub_key_ptr, pub_key_len = self._bytes_to_c_array(public_key)
+        if public_key is None:
+            keypair = self.generate_ml_kem_keypair()
+            public_key_data = keypair['public_key']
+        else:
+            public_key_data = public_key if isinstance(public_key, list) else list(public_key)
+        
+        logger.debug(f"Using public key of length: {len(public_key_data)}")
+        
+        public_key_bytes = bytes(public_key_data)
+        pub_key_ptr, pub_key_len = self._bytes_to_c_array(public_key_bytes)
         
         result = self._call_and_parse_json(
             self.lib.pqc_ml_kem_768_encaps,
             pub_key_ptr, pub_key_len
         )
         
-        ciphertext = bytes(result['ciphertext'])
-        shared_secret = bytes(result['shared_secret'])
+        logger.info("ML-KEM-768 encapsulation successful")
         
-        logger.info(f"ML-KEM-768 encapsulation successful: ciphertext={len(ciphertext)} bytes, shared_secret={len(shared_secret)} bytes")
-        return ciphertext, shared_secret
+        return {
+            'shared_secret': result['shared_secret'],
+            'ciphertext': result['ciphertext'],
+            'algorithm': result.get('algorithm', 'ML-KEM-768')
+        }
     
-    def ml_kem_decapsulate(self, private_key: bytes, ciphertext: bytes) -> bytes:
+    def ml_kem_decapsulate(self, private_key: Any, ciphertext: Any) -> Dict[str, Any]:
         """
         Perform ML-KEM-768 decapsulation.
         
         Args:
-            private_key: The private key as bytes
-            ciphertext: The ciphertext as bytes
+            private_key: The private key as bytes or list
+            ciphertext: The ciphertext as bytes or list
             
         Returns:
-            The shared secret as bytes
+            Dictionary with shared_secret
         """
-        logger.info(f"Performing ML-KEM-768 decapsulation with private key of {len(private_key)} bytes and ciphertext of {len(ciphertext)} bytes")
+        private_key_data = private_key if isinstance(private_key, list) else list(private_key)
+        ciphertext_data = ciphertext if isinstance(ciphertext, list) else list(ciphertext)
         
-        priv_key_ptr, priv_key_len = self._bytes_to_c_array(private_key)
-        ciphertext_ptr, ciphertext_len = self._bytes_to_c_array(ciphertext)
+        logger.info(f"Performing ML-KEM-768 decapsulation with private key of {len(private_key_data)} bytes and ciphertext of {len(ciphertext_data)} bytes")
+        
+        private_key_bytes = bytes(private_key_data)
+        ciphertext_bytes = bytes(ciphertext_data)
+        
+        priv_key_ptr, priv_key_len = self._bytes_to_c_array(private_key_bytes)
+        ciphertext_ptr, ciphertext_len = self._bytes_to_c_array(ciphertext_bytes)
         
         result = self._call_and_parse_json(
             self.lib.pqc_ml_kem_768_decaps,
@@ -186,43 +239,55 @@ class PQCLibrary:
             ciphertext_ptr, ciphertext_len
         )
         
-        shared_secret = bytes(result['shared_secret'])
+        logger.info("ML-KEM-768 decapsulation successful")
         
-        logger.info(f"ML-KEM-768 decapsulation successful: shared_secret={len(shared_secret)} bytes")
-        return shared_secret
+        return {
+            'shared_secret': result['shared_secret']
+        }
     
-    def generate_ml_dsa_keypair(self) -> Tuple[bytes, bytes]:
+    def generate_ml_dsa_keypair(self) -> Dict[str, Any]:
         """
         Generate an ML-DSA-65 keypair.
         
         Returns:
-            Tuple of (public_key, private_key) as bytes
+            Dictionary with public_key, private_key, and algorithm
         """
         logger.info("Generating ML-DSA-65 keypair")
         
         result = self._call_and_parse_json(self.lib.pqc_ml_dsa_65_keygen)
         
-        public_key = bytes(result['public_key'])
-        private_key = bytes(result['private_key'])
-        
-        logger.info(f"Generated ML-DSA-65 keypair: pub_key={len(public_key)} bytes, priv_key={len(private_key)} bytes")
-        return public_key, private_key
+        logger.info(f"Generated ML-DSA-65 keypair: pub_key={len(result['public_key'])} bytes, priv_key={len(result['private_key'])} bytes")
+        return {
+            'public_key': result['public_key'],
+            'private_key': result['private_key'],
+            'algorithm': result.get('algorithm', 'ML-DSA-65')
+        }
     
-    def ml_dsa_sign(self, private_key: bytes, message: bytes) -> bytes:
+    def ml_dsa_sign(self, private_key: Any, message: Any) -> Dict[str, Any]:
         """
         Sign a message using ML-DSA-65.
         
         Args:
-            private_key: The private key as bytes
-            message: The message to sign as bytes
+            private_key: The private key as bytes or list
+            message: The message to sign as bytes or list
             
         Returns:
-            The signature as bytes
+            Dictionary with signature and algorithm
         """
-        logger.info(f"Signing message of {len(message)} bytes with ML-DSA-65")
+        private_key_data = private_key if isinstance(private_key, list) else list(private_key)
+        message_data = message if isinstance(message, (bytes, list)) else message.encode('utf-8')
+        if isinstance(message_data, str):
+            message_data = message_data.encode('utf-8')
+        if isinstance(message_data, bytes):
+            message_data = list(message_data)
         
-        message_ptr, message_len = self._bytes_to_c_array(message)
-        priv_key_ptr, priv_key_len = self._bytes_to_c_array(private_key)
+        logger.info(f"Signing message of {len(message_data)} bytes with ML-DSA-65")
+        
+        private_key_bytes = bytes(private_key_data)
+        message_bytes = bytes(message_data)
+        
+        message_ptr, message_len = self._bytes_to_c_array(message_bytes)
+        priv_key_ptr, priv_key_len = self._bytes_to_c_array(private_key_bytes)
         
         result = self._call_and_parse_json(
             self.lib.pqc_ml_dsa_65_sign,
@@ -230,41 +295,51 @@ class PQCLibrary:
             priv_key_ptr, priv_key_len
         )
         
-        signature = bytes(result['signature'])
+        logger.info("ML-DSA-65 signing successful")
         
-        logger.info(f"ML-DSA-65 signing successful: signature={len(signature)} bytes")
-        return signature
+        return {
+            'signature': result['signature'],
+            'algorithm': result.get('algorithm', 'ML-DSA-65')
+        }
     
-    def ml_dsa_verify(self, public_key: bytes, message: bytes, signature: bytes) -> bool:
+    def ml_dsa_verify(self, public_key: Any, message: Any, signature: Any) -> bool:
         """
         Verify a signature using ML-DSA-65.
         
         Args:
-            public_key: The public key as bytes
-            message: The original message as bytes
-            signature: The signature to verify as bytes
+            public_key: The public key as bytes or list
+            message: The original message as bytes or list
+            signature: The signature to verify as bytes or list
             
         Returns:
             True if signature is valid, False otherwise
         """
-        logger.info(f"Verifying ML-DSA-65 signature of {len(signature)} bytes for message of {len(message)} bytes")
+        public_key_data = public_key if isinstance(public_key, list) else list(public_key)
+        signature_data = signature if isinstance(signature, list) else list(signature)
+        message_data = message if isinstance(message, (bytes, list)) else message.encode('utf-8')
+        if isinstance(message_data, str):
+            message_data = message_data.encode('utf-8')
+        if isinstance(message_data, bytes):
+            message_data = list(message_data)
         
-        signature_ptr, signature_len = self._bytes_to_c_array(signature)
-        message_ptr, message_len = self._bytes_to_c_array(message)
-        pub_key_ptr, pub_key_len = self._bytes_to_c_array(public_key)
+        logger.info(f"Verifying ML-DSA-65 signature of {len(signature_data)} bytes for message of {len(message_data)} bytes")
         
-        try:
-            is_valid = self.lib.pqc_ml_dsa_65_verify(
-                signature_ptr, signature_len,
-                message_ptr, message_len,
-                pub_key_ptr, pub_key_len
-            )
-            
-            logger.info(f"ML-DSA-65 signature verification: {'VALID' if is_valid else 'INVALID'}")
-            return bool(is_valid)
-        except Exception as e:
-            logger.error(f"ML-DSA-65 verification failed: {e}")
-            return False
+        public_key_bytes = bytes(public_key_data)
+        message_bytes = bytes(message_data)
+        signature_bytes = bytes(signature_data)
+        
+        signature_ptr, signature_len = self._bytes_to_c_array(signature_bytes)
+        message_ptr, message_len = self._bytes_to_c_array(message_bytes)
+        pub_key_ptr, pub_key_len = self._bytes_to_c_array(public_key_bytes)
+        
+        result = self.lib.pqc_ml_dsa_65_verify(
+            signature_ptr, signature_len,
+            message_ptr, message_len,
+            pub_key_ptr, pub_key_len
+        )
+        
+        logger.info(f"ML-DSA-65 signature verification: {'VALID' if result else 'INVALID'}")
+        return bool(result)
     
     def create_key_manager(self) -> int:
         """
@@ -336,11 +411,16 @@ class PQCLibrary:
         try:
             logger.info("Testing ML-KEM roundtrip")
             
-            public_key, private_key = self.generate_ml_kem_keypair()
+            keypair = self.generate_ml_kem_keypair()
+            public_key = keypair['public_key']
+            private_key = keypair['private_key']
             
-            ciphertext, shared_secret1 = self.ml_kem_encapsulate(public_key)
+            encaps_result = self.ml_kem_encapsulate(public_key)
+            ciphertext = encaps_result['ciphertext']
+            shared_secret1 = encaps_result['shared_secret']
             
-            shared_secret2 = self.ml_kem_decapsulate(private_key, ciphertext)
+            decaps_result = self.ml_kem_decapsulate(private_key, ciphertext)
+            shared_secret2 = decaps_result['shared_secret']
             
             success = shared_secret1 == shared_secret2
             logger.info(f"ML-KEM roundtrip test: {'PASSED' if success else 'FAILED'}")
@@ -354,10 +434,13 @@ class PQCLibrary:
         try:
             logger.info("Testing ML-DSA roundtrip")
             
-            public_key, private_key = self.generate_ml_dsa_keypair()
+            keypair = self.generate_ml_dsa_keypair()
+            public_key = keypair['public_key']
+            private_key = keypair['private_key']
             
             message = b"Test message for ML-DSA signature verification"
-            signature = self.ml_dsa_sign(private_key, message)
+            sign_result = self.ml_dsa_sign(private_key, message)
+            signature = sign_result['signature']
             
             is_valid = self.ml_dsa_verify(public_key, message, signature)
             
@@ -400,7 +483,7 @@ def get_pqc_library() -> PQCLibrary:
         _pqc_lib_instance = PQCLibrary()
     return _pqc_lib_instance
 
-def generate_pqc_keypairs() -> Dict[str, Tuple[bytes, bytes]]:
+def generate_pqc_keypairs() -> Dict[str, Dict[str, Any]]:
     """Generate both ML-KEM and ML-DSA keypairs."""
     lib = get_pqc_library()
     return {
@@ -411,9 +494,9 @@ def generate_pqc_keypairs() -> Dict[str, Tuple[bytes, bytes]]:
 def sign_and_verify_message(message: bytes) -> bool:
     """Quick test: generate keys, sign message, and verify signature."""
     lib = get_pqc_library()
-    public_key, private_key = lib.generate_ml_dsa_keypair()
-    signature = lib.ml_dsa_sign(private_key, message)
-    return lib.ml_dsa_verify(public_key, message, signature)
+    keypair = lib.generate_ml_dsa_keypair()
+    sign_result = lib.ml_dsa_sign(keypair['private_key'], message)
+    return lib.ml_dsa_verify(keypair['public_key'], message, sign_result['signature'])
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

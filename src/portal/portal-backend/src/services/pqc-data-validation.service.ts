@@ -8,6 +8,8 @@ import {
   PQCAlgorithmType,
 } from '../models/interfaces/pqc-data.interface';
 import { AuthService } from '../auth/auth.service';
+import { generateCryptoUserId, validateCryptoUserId } from '../utils/crypto-user-id.util';
+import { EnhancedErrorBoundaryService, PQCErrorCategory } from './enhanced-error-boundary.service';
 
 export interface SignatureOptions {
   algorithm?: PQCAlgorithmType;
@@ -20,6 +22,7 @@ export interface ValidationOptions {
   strictMode?: boolean;
   checkTimestamp?: boolean;
   maxAge?: number;
+  userId?: string;
 }
 
 @Injectable()
@@ -29,6 +32,7 @@ export class PQCDataValidationService {
   constructor(
     private readonly configService: ConfigService,
     private readonly authService: AuthService,
+    private readonly errorBoundary: EnhancedErrorBoundaryService,
   ) {}
 
   async generateSignature(data: any, options: SignatureOptions = {}): Promise<PQCSignature> {
@@ -39,7 +43,7 @@ export class PQCDataValidationService {
       let signature: string;
 
       if (algorithm === PQCAlgorithmType.DILITHIUM_3) {
-        signature = await this.signWithDilithium(dataHash);
+        signature = await this.signWithDilithium(dataHash, options.userId);
       } else {
         signature = await this.signWithClassical(dataHash);
       }
@@ -62,7 +66,7 @@ export class PQCDataValidationService {
     signature: PQCSignature,
     options: ValidationOptions = {},
   ): Promise<PQCValidationResult> {
-    const startTime = Date.now();
+    const startTime = performance.now();
     const result: PQCValidationResult = {
       isValid: false,
       algorithm: signature.algorithm,
@@ -73,9 +77,16 @@ export class PQCDataValidationService {
 
     try {
       const dataHash = this.generateDataHash(data);
+      
+      this.logger.debug(`Verification: dataHash=${dataHash}, signedDataHash=${signature.signedDataHash}`);
 
       if (dataHash !== signature.signedDataHash) {
+        this.logger.debug('Data hash mismatch detected - signature invalid');
         result.errors.push('Data hash mismatch');
+        result.performanceMetrics = {
+          validationTime: Math.max(1, Math.round(performance.now() - startTime)),
+          memoryUsage: process.memoryUsage().heapUsed,
+        };
         return result;
       }
 
@@ -83,14 +94,18 @@ export class PQCDataValidationService {
         const age = Date.now() - signature.timestamp.getTime();
         if (age > options.maxAge) {
           result.errors.push(`Signature expired (age: ${age}ms, max: ${options.maxAge}ms)`);
+          result.performanceMetrics = {
+            validationTime: Math.max(1, Math.round(performance.now() - startTime)),
+            memoryUsage: process.memoryUsage().heapUsed,
+          };
           return result;
         }
       }
 
       let isValidSignature: boolean;
 
-      if (signature.algorithm === PQCAlgorithmType.DILITHIUM_3.toString()) {
-        isValidSignature = await this.verifyDilithiumSignature(dataHash, signature.signature);
+      if (signature.algorithm === PQCAlgorithmType.DILITHIUM_3.toString() || signature.algorithm === 'ML-DSA-65') {
+        isValidSignature = await this.verifyDilithiumSignature(dataHash, signature.signature, options.userId, signature.metadata);
       } else {
         isValidSignature = await this.verifyClassicalSignature(dataHash, signature.signature);
       }
@@ -102,7 +117,7 @@ export class PQCDataValidationService {
       }
 
       result.performanceMetrics = {
-        validationTime: Date.now() - startTime,
+        validationTime: Math.max(1, Math.round(performance.now() - startTime)),
         memoryUsage: process.memoryUsage().heapUsed,
       };
 
@@ -110,6 +125,10 @@ export class PQCDataValidationService {
     } catch (error) {
       this.logger.error(`Signature verification failed: ${error.message}`);
       result.errors.push(`Verification error: ${error.message}`);
+      result.performanceMetrics = {
+        validationTime: Math.max(1, Math.round(performance.now() - startTime)),
+        memoryUsage: process.memoryUsage().heapUsed,
+      };
       return result;
     }
   }
@@ -140,9 +159,16 @@ export class PQCDataValidationService {
       this.logger.log(`Creating data integrity for user: ${userId}`);
       const hash = this.generateDataHash(data);
 
-      const pqcResult = await this.authService['callPythonPQCService']('sign_token', {
-        user_id: userId,
-        payload: data,
+      const cryptoUserId = generateCryptoUserId(userId, {
+        algorithm: 'ML-DSA-65',
+        operation: 'signing'
+      });
+
+      this.logger.debug(`Using crypto user ID: ${cryptoUserId} for original user: ${userId}`);
+
+      const pqcResult = await this.authService.callPQCService('sign_token', {
+        user_id: cryptoUserId,
+        payload: { data, hash, operation: 'create_integrity', original_user_id: userId },
       });
 
       this.logger.log(`PQC service response: ${JSON.stringify(pqcResult)}`);
@@ -157,9 +183,10 @@ export class PQCDataValidationService {
           publicKeyHash: this.generatePublicKeyHash(),
           timestamp: new Date(),
           signedDataHash: hash,
+          metadata: { cryptoUserId, originalUserId: userId }, // Store both IDs for verification
         };
 
-        this.logger.log(`Data integrity created successfully with ${algorithmUsed}`);
+        this.logger.log(`Data integrity created successfully with ${algorithmUsed} for crypto user: ${cryptoUserId}`);
 
         return {
           hash,
@@ -193,23 +220,38 @@ export class PQCDataValidationService {
     };
 
     try {
+      this.logger.debug(`Starting data integrity validation for algorithm: ${integrity.algorithm}`);
+      this.logger.debug(`Input data type: ${typeof data}, data preview: ${JSON.stringify(data).substring(0, 200)}...`);
+      this.logger.debug(`Expected integrity hash: ${integrity.hash}`);
+      this.logger.debug(`Integrity signature present: ${!!integrity.signature}`);
+      
       const currentHash = this.generateDataHash(data);
+      this.logger.debug(`Generated current hash: ${currentHash}`);
 
       if (currentHash !== integrity.hash) {
+        this.logger.error(`Hash mismatch detected - expected: ${integrity.hash}, got: ${currentHash}`);
         result.errors.push('Data integrity hash mismatch');
         return result;
       }
 
+      this.logger.debug(`Hash validation passed, proceeding to signature verification`);
+
       if (integrity.signature) {
+        this.logger.debug(`Verifying signature with algorithm: ${integrity.signature.algorithm}`);
         const signatureResult = await this.verifySignature(data, integrity.signature, options);
+        this.logger.debug(`Signature verification result: ${signatureResult.isValid}`);
+        this.logger.debug(`Signature verification errors: ${JSON.stringify(signatureResult.errors)}`);
+        
         result.isValid = signatureResult.isValid;
         result.errors.push(...signatureResult.errors);
         result.warnings.push(...signatureResult.warnings);
         result.performanceMetrics = signatureResult.performanceMetrics;
       } else {
+        this.logger.debug(`No signature to verify, marking as valid`);
         result.isValid = true;
       }
 
+      this.logger.debug(`Final validation result: ${result.isValid}`);
       return result;
     } catch (error) {
       this.logger.error(`Data integrity validation failed: ${error.message}`);
@@ -219,13 +261,22 @@ export class PQCDataValidationService {
   }
 
   private generateDataHash(data: any): string {
-    if (!data || typeof data !== 'object') {
-      this.logger.warn(`generateDataHash received invalid data: ${typeof data}, value: ${JSON.stringify(data)}`);
+    if (!data) {
+      this.logger.warn(`generateDataHash received null/undefined data`);
       return crypto.createHash('sha256').update('{}').digest('hex');
     }
 
     try {
-      const serializedData = JSON.stringify(data, Object.keys(data).sort());
+      let serializedData: string;
+      
+      if (typeof data === 'string') {
+        serializedData = data;
+      } else if (typeof data === 'object') {
+        serializedData = JSON.stringify(data, Object.keys(data).sort());
+      } else {
+        serializedData = String(data);
+      }
+      
       return crypto.createHash('sha256').update(serializedData).digest('hex');
     } catch (error) {
       this.logger.error(`generateDataHash serialization failed: ${error.message}`);
@@ -233,11 +284,15 @@ export class PQCDataValidationService {
     }
   }
 
-  private async signWithDilithium(dataHash: string): Promise<string> {
+  private async signWithDilithium(dataHash: string, userId?: string): Promise<string> {
     try {
-      const pqcResult = await this.authService['callPythonPQCService']('sign_token', {
-        user_id: `dilithium_${Date.now()}`,
-        payload: { dataHash, timestamp: Date.now() },
+      const signUserId = userId || generateCryptoUserId('anonymous', {
+      algorithm: 'ML-DSA-65',
+      operation: 'signing'
+    });
+      const pqcResult = await this.authService.callPQCService('sign_token', {
+        user_id: signUserId,
+        payload: { dataHash, timestamp: Date.now(), operation: 'sign' },
       });
 
       if (pqcResult.success && pqcResult.token) {
@@ -260,26 +315,60 @@ export class PQCDataValidationService {
     return `classical:${signature}`;
   }
 
-  private async verifyDilithiumSignature(dataHash: string, signature: string): Promise<boolean> {
+  private async verifyDilithiumSignature(dataHash: string, signature: string, userId?: string, signatureMetadata?: any): Promise<boolean> {
     try {
-      this.logger.debug('ML-DSA-65 verification with enhanced security');
+      this.logger.debug(`ML-DSA-65 verification starting for signature: ${signature.substring(0, 50)}...`);
 
       if (!signature.startsWith('dilithium3:') || signature.length < 20) {
+        this.logger.debug('Signature format validation failed');
         return false;
       }
 
       const signaturePart = signature.substring(11);
+      this.logger.debug(`Extracted signature part: ${signaturePart.substring(0, 50)}...`);
 
-      const pqcResult = await this.authService['callPythonPQCService']('verify_token', {
-        user_id: `dilithium_verification_${Date.now()}`,
-        token: signaturePart,
-      });
+      const isValidFormat = signaturePart.length > 10 && !signaturePart.includes('undefined');
+      
+      if (!isValidFormat) {
+        this.logger.debug('ML-DSA-65 verification failed: invalid signature format');
+        return false;
+      }
 
-      if (pqcResult.success) {
-        this.logger.debug('ML-DSA-65 verification completed successfully');
-        return true;
-      } else {
-        this.logger.debug(`ML-DSA-65 verification failed: ${pqcResult.error_message}`);
+      try {
+        let verifyUserId: string;
+        
+        if (signatureMetadata?.cryptoUserId) {
+          verifyUserId = signatureMetadata.cryptoUserId;
+          this.logger.debug(`Using stored crypto user ID from signature metadata: ${verifyUserId}`);
+        } else if (userId) {
+          verifyUserId = generateCryptoUserId(userId, {
+            algorithm: 'ML-DSA-65',
+            operation: 'signing'
+          });
+          this.logger.debug(`Generated crypto user ID for verification: ${verifyUserId}`);
+        } else {
+          verifyUserId = generateCryptoUserId('anonymous', {
+            algorithm: 'ML-DSA-65',
+            operation: 'signing'
+          });
+          this.logger.debug(`Using anonymous crypto user ID: ${verifyUserId}`);
+        }
+
+        const pqcResult = await this.authService.callPQCService('verify_token', {
+          user_id: verifyUserId,
+          token: signaturePart,
+          payload: { dataHash, timestamp: Date.now(), operation: 'verify' },
+        });
+
+        if (pqcResult.success && pqcResult.verified) {
+          this.logger.debug('ML-DSA-65 verification completed successfully');
+          return true;
+        } else {
+          this.logger.debug(`ML-DSA-65 verification failed: ${pqcResult.error_message || 'PQC service rejected signature'}`);
+          return false;
+        }
+      } catch (pqcError) {
+        this.logger.error(`PQC service verification failed: ${pqcError.message}`);
         return false;
       }
     } catch (error) {
@@ -319,7 +408,7 @@ export class PQCDataValidationService {
   }
 
   private generatePublicKeyHash(): string {
-    return crypto.createHash('sha256').update(`pubkey-${Date.now()}`).digest('hex');
+    return crypto.createHash('sha256').update(`pubkey-deterministic-hash`).digest('hex');
   }
 
   async batchValidateIntegrity(

@@ -15,6 +15,8 @@ describe('NIST Test Vector Compliance', () => {
       get: jest.fn().mockReturnValue('test-value'),
     };
 
+    const signatureStore = new Map<string, string>();
+
     const mockAuthService = {
       callPythonPQCService: jest.fn().mockImplementation((operation: string, params: any) => {
         if (operation === 'generate_session_key') {
@@ -26,14 +28,34 @@ describe('NIST Test Vector Compliance', () => {
             },
           });
         } else if (operation === 'verify_token') {
+          const token = params.token;
+          const dataHash = params.payload?.dataHash;
+          
+          if (token && dataHash) {
+            const storedDataHash = signatureStore.get(token);
+            const isValid = storedDataHash === dataHash;
+            
+            return Promise.resolve({
+              success: true,
+              verified: isValid,
+            });
+          }
+          
           return Promise.resolve({
             success: true,
-            verified: true,
+            verified: false,
           });
         } else if (operation === 'sign_token') {
+          const token = `ml-dsa-65-signature-${Math.random().toString(36).substring(7)}-${Date.now()}`;
+          const dataHash = params.payload?.dataHash;
+          
+          if (dataHash) {
+            signatureStore.set(token, dataHash);
+          }
+          
           return Promise.resolve({
             success: true,
-            token: `ml-dsa-65-signature-${Math.random().toString(36).substring(7)}-${Date.now()}`,
+            token: token,
           });
         }
         return Promise.resolve({ success: false, error_message: 'Unknown operation' });

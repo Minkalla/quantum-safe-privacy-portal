@@ -3,6 +3,7 @@ import { HybridCryptoService } from '../hybrid-crypto.service';
 import { PQCDataEncryptionService } from '../pqc-data-encryption.service';
 import { ClassicalCryptoService } from '../classical-crypto.service';
 import { CircuitBreakerService } from '../circuit-breaker.service';
+import { EnhancedErrorBoundaryService } from '../enhanced-error-boundary.service';
 import { PQCAlgorithmType } from '../../models/interfaces/pqc-data.interface';
 
 describe('HybridCryptoService', () => {
@@ -34,12 +35,17 @@ describe('HybridCryptoService', () => {
       isOpen: jest.fn(),
     };
 
+    const mockErrorBoundaryService = {
+      executeWithErrorBoundary: jest.fn().mockImplementation(async (fn) => await fn()),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         HybridCryptoService,
         { provide: PQCDataEncryptionService, useValue: mockPqcService },
         { provide: ClassicalCryptoService, useValue: mockClassicalService },
         { provide: CircuitBreakerService, useValue: mockCircuitBreakerService },
+        { provide: EnhancedErrorBoundaryService, useValue: mockErrorBoundaryService },
       ],
     }).compile();
 

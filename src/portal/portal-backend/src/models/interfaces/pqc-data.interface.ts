@@ -13,6 +13,7 @@ export interface PQCSignature {
   publicKeyHash: string;
   timestamp: Date;
   signedDataHash: string;
+  metadata?: Record<string, any>;
 }
 
 export interface PQCDataIntegrity {
@@ -48,6 +49,7 @@ export enum PQCAlgorithmType {
   ML_KEM_768 = 'ML-KEM-768',
   ML_DSA_65 = 'ML-DSA-65',
   AES_256_GCM = 'AES-256-GCM',
+  RSA_2048 = 'RSA-2048',
   HYBRID = 'Hybrid'
 }
 
