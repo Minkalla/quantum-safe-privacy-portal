@@ -122,6 +122,15 @@ class PQCLibrary:
             logger.debug(f"🔍 Decoded JSON string: {json_str}")
 
             result = json.loads(json_str)
+        
+            # Validate JSON response structure
+            if not isinstance(result, dict):
+                raise RuntimeError(f"Invalid JSON response format: expected dict, got {type(result)}")
+        
+            if not result.get('success', False):
+                error_msg = result.get('error', 'Unknown PQC operation error')
+                raise PQCLibraryError(f"PQC operation failed: {error_msg}")
+        
             logger.info(f"✅ JSON parsed successfully for {function_name}")
             return result
 
