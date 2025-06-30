@@ -111,4 +111,25 @@ This document summarizes how the backend’s technical features and integrations
 
 ---
 
-_Last updated: 2025-06-26 (WBS 1.2.2 completion - Rust toolchain with PQC dependencies)_
+---
+
+## 7. Local Development Parity & Runtime Validation (WBS 1.7)
+
+### Endpoint Exposure & Compliance
+- **GDPR Article 15**: Transparent access to `/api-docs` enables users and auditors to inspect available API routes.
+- **OWASP API Security Top 10**: Local runtime validation of auth and consent endpoints (`/portal/auth/login`, `/portal/auth/register`) confirms proper authentication workflows in sandboxed development.
+
+### Documentation & Developer Hardening
+- `docs/ENDPOINT_TESTING.md`: Captures curl-based API validation and frontend-to-backend integration output.
+- `docs/FRONTEND_DOCKER.md`: Provides onboarding clarity for Docker Compose usage and hot-reloading behavior.
+
+### CI/CD Impact
+- Validates consistent service orchestration (frontend, backend, MongoDB) in `docker-compose.yml`.
+- Aligns developer machine behavior with cloud deployment expectations (NIST SP 800-53 CM-3).
+
+### Security Continuity
+- Leverages existing backend Dockerfile hardening from WBS 1.5, including cleanup of debug traces (`|| sleep infinity`).
+- Hot-reloading container avoids caching issues that can undermine consistent frontend test results.
+
+_Last updated: 2025-07-01 (WBS 1.7 completion - Local Dev Compose Validation)_
+

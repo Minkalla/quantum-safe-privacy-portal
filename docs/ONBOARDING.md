@@ -35,6 +35,7 @@ CI_SAFEGUARDS.md	What auto-fails if crypto logic isn’t verified
 WBS_METADATA_GUIDE.md	Format/template for writing new WBS or IP docs
 COMPLIANCE_REPORT.md	System-wide privacy/security coverage
 TEST_VALIDATION.md	Snapshot of test + scan status (Trivy/ZAP/Jest)
+
 🧪 Engineering Expectations
 Run pnpm test ffi-verification when working on /auth, /consent, or FFI
 
