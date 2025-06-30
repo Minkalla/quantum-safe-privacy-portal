@@ -22,7 +22,12 @@ export class ConsentService {
   }
 
   async updateConsent(consentData: CreateConsentRequest): Promise<ConsentRecord> {
-    return this.createConsent(consentData);
+    try {
+      const response = await apiClient.put<ConsentRecord>('/consent', consentData);
+      return response.data;
+    } catch (error) {
+      throw handleApiError(error as AxiosError) as ConsentError;
+    }
   }
 }
 
