@@ -30,7 +30,19 @@ const LoginForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+  
+    // Client-side validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      clearError();
+      return;
+    }
+  
+    if (formData.password.length < 8) {
+      clearError();
+      return;
+    }
+  
     try {
       await login(formData.email, formData.password, formData.rememberMe);
       navigate(from, { replace: true });
