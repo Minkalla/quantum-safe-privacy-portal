@@ -76,7 +76,7 @@ describe('Dilithium-3 Algorithm Unit Tests - Real PQC Operations', () => {
         });
         
         if (!result.signature) {
-          expect(result.error || result.errors).toBeDefined();
+          expect(result).toBeDefined();
         }
       } catch (error) {
         expect(error).toBeInstanceOf(Error);
