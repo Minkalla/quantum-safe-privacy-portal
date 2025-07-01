@@ -1,0 +1,6 @@
+git switch main
+git pull origin main
+# Apply changes to ci-cd-validation-adjusted-v3.yml
+git add .github/workflows/ci-cd-validation-adjusted-v3.yml
+git commit -m "ci: split validation jobs, add timeouts, block bot triggers"
+git push origin main
