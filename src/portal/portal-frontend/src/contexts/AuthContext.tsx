@@ -9,6 +9,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+  register: (email: string, password: string) => Promise<void>;
   logout: () => void;
   error: AuthError | null;
   clearError: () => void;
@@ -79,6 +80,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const register = async (email: string, password: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      await authService.register({ email, password });
+    } catch (err) {
+      setError(err as AuthError);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = () => {
     setUser(null);
     setError(null);
@@ -91,6 +106,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated: !!user,
     isLoading,
     login,
+    register,
     logout,
     error,
     clearError,
