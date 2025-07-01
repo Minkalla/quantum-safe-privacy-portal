@@ -20,7 +20,13 @@
  */
 
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
-import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
+import { 
+  SecretsManagerClient, 
+  GetSecretValueCommand, 
+  CreateSecretCommand, 
+  UpdateSecretCommand, 
+  DeleteSecretCommand 
+} from '@aws-sdk/client-secrets-manager';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -94,6 +100,96 @@ export class SecretsService {
     } catch (error: any) {
       this.logger.error(`Failed to retrieve secret "${secretId}" from Secrets Manager: ${error.message}`);
       throw new InternalServerErrorException(`Failed to retrieve secret: ${error.message}`);
+    }
+  }
+
+  /**
+   * Stores a secret value in AWS Secrets Manager. If SKIP_SECRETS_MANAGER is true, stores in memory cache.
+   *
+   * @param secretId The ID of the secret to store.
+   * @param secretValue The secret value to store.
+   * @throws InternalServerErrorException if secret storage fails.
+   */
+  async storeSecret(secretId: string, secretValue: string): Promise<void> {
+    if (this.skipSecretsManager) {
+      this.logger.warn(`SKIP_SECRETS_MANAGER is true. Storing secret "${secretId}" in memory cache only.`);
+      const expiryTime = Date.now() + this.CACHE_TTL_HOURS * 60 * 60 * 1000;
+      this.secretCache.set(secretId, { value: secretValue, expiry: expiryTime });
+      return;
+    }
+
+    if (!this.secretsManagerClient) {
+      this.logger.error('SecretsManagerClient is not initialized. Cannot store secret.');
+      throw new InternalServerErrorException('Secrets Manager client not initialized.');
+    }
+
+    this.logger.log(`Storing secret "${secretId}" in AWS Secrets Manager.`);
+    try {
+      try {
+        const updateCommand = new UpdateSecretCommand({
+          SecretId: secretId,
+          SecretString: secretValue,
+        });
+        await this.secretsManagerClient.send(updateCommand);
+        this.logger.log(`Successfully updated existing secret "${secretId}".`);
+      } catch (updateError: any) {
+        if (updateError.name === 'ResourceNotFoundException') {
+          const createCommand = new CreateSecretCommand({
+            Name: secretId,
+            SecretString: secretValue,
+            Description: `MFA secret for Quantum-Safe Privacy Portal`,
+          });
+          await this.secretsManagerClient.send(createCommand);
+          this.logger.log(`Successfully created new secret "${secretId}".`);
+        } else {
+          throw updateError;
+        }
+      }
+
+      const expiryTime = Date.now() + this.CACHE_TTL_HOURS * 60 * 60 * 1000;
+      this.secretCache.set(secretId, { value: secretValue, expiry: expiryTime });
+    } catch (error: any) {
+      this.logger.error(`Failed to store secret "${secretId}" in Secrets Manager: ${error.message}`);
+      throw new InternalServerErrorException(`Failed to store secret: ${error.message}`);
+    }
+  }
+
+  /**
+   * Deletes a secret from AWS Secrets Manager. If SKIP_SECRETS_MANAGER is true, removes from memory cache.
+   *
+   * @param secretId The ID of the secret to delete.
+   * @throws InternalServerErrorException if secret deletion fails.
+   */
+  async deleteSecret(secretId: string): Promise<void> {
+    if (this.skipSecretsManager) {
+      this.logger.warn(`SKIP_SECRETS_MANAGER is true. Removing secret "${secretId}" from memory cache only.`);
+      this.secretCache.delete(secretId);
+      return;
+    }
+
+    if (!this.secretsManagerClient) {
+      this.logger.error('SecretsManagerClient is not initialized. Cannot delete secret.');
+      throw new InternalServerErrorException('Secrets Manager client not initialized.');
+    }
+
+    this.logger.log(`Deleting secret "${secretId}" from AWS Secrets Manager.`);
+    try {
+      const deleteCommand = new DeleteSecretCommand({
+        SecretId: secretId,
+        ForceDeleteWithoutRecovery: true,
+      });
+      await this.secretsManagerClient.send(deleteCommand);
+      
+      this.secretCache.delete(secretId);
+      this.logger.log(`Successfully deleted secret "${secretId}".`);
+    } catch (error: any) {
+      if (error.name === 'ResourceNotFoundException') {
+        this.logger.warn(`Secret "${secretId}" not found for deletion.`);
+        this.secretCache.delete(secretId);
+        return;
+      }
+      this.logger.error(`Failed to delete secret "${secretId}" from Secrets Manager: ${error.message}`);
+      throw new InternalServerErrorException(`Failed to delete secret: ${error.message}`);
     }
   }
 }

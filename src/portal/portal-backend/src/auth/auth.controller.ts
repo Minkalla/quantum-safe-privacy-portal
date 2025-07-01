@@ -14,13 +14,15 @@
  * for API documentation.
  */
 
-import { Controller, Post, Body, Res, HttpCode, HttpStatus, UnauthorizedException, Get, Req } from '@nestjs/common';
+import { Controller, Post, Body, Res, HttpCode, HttpStatus, UnauthorizedException, Get, Req, Param, Delete } from '@nestjs/common';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { EnhancedAuthService } from './enhanced-auth.service';
+import { MFAService } from './mfa.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { PQCLoginDto, PQCRegisterDto, PQCTokenVerificationDto } from './dto/pqc-auth.dto';
+import { MFASetupDto, MFAVerifyDto, MFAStatusDto } from './dto/mfa.dto';
 import { ApiTags, ApiResponse, ApiBody, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Authentication') // Tag for Swagger UI
@@ -29,6 +31,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly enhancedAuthService: EnhancedAuthService,
+    private readonly mfaService: MFAService,
   ) {}
 
   /**
@@ -375,6 +378,74 @@ export class AuthController {
     return {
       message: 'Current hybrid authentication configuration',
       config: this.enhancedAuthService.getHybridConfig(),
+    };
+  }
+
+  @Post('mfa/setup')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Setup MFA for user account' })
+  @ApiBody({ type: MFASetupDto })
+  @ApiResponse({ status: 200, description: 'MFA setup successful, returns QR code URL and backup codes.' })
+  @ApiResponse({ status: 400, description: 'MFA already enabled or user not found.' })
+  @ApiResponse({ status: 500, description: 'Internal server error.' })
+  async setupMFA(@Body() setupDto: MFASetupDto, @Req() req: any) {
+    const result = await this.mfaService.setupMFA(setupDto.userId, req.user?.email || 'user@example.com');
+    
+    return {
+      status: 'success',
+      message: 'MFA setup initiated successfully',
+      qrCodeUrl: result.qrCodeUrl,
+      backupCodes: result.backupCodes,
+    };
+  }
+
+  @Post('mfa/verify')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify MFA token' })
+  @ApiBody({ type: MFAVerifyDto })
+  @ApiResponse({ status: 200, description: 'MFA verification result.' })
+  @ApiResponse({ status: 400, description: 'Invalid token or user not found.' })
+  @ApiResponse({ status: 401, description: 'MFA not set up for user.' })
+  async verifyMFA(@Body() verifyDto: MFAVerifyDto) {
+    const result = await this.mfaService.verifyMFA(
+      verifyDto.userId, 
+      verifyDto.token, 
+      verifyDto.enableMFA || false
+    );
+    
+    return {
+      status: result.verified ? 'success' : 'failure',
+      message: result.message,
+      verified: result.verified,
+    };
+  }
+
+  @Get('mfa/status/:userId')
+  @ApiOperation({ summary: 'Check MFA status for user' })
+  @ApiResponse({ status: 200, description: 'MFA status retrieved successfully.' })
+  @ApiResponse({ status: 404, description: 'User not found.' })
+  async getMFAStatus(@Param('userId') userId: string) {
+    const isEnabled = await this.mfaService.isMFAEnabled(userId);
+    
+    return {
+      status: 'success',
+      message: 'MFA status retrieved successfully',
+      mfaEnabled: isEnabled,
+    };
+  }
+
+  @Delete('mfa/disable')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Disable MFA for user account' })
+  @ApiBody({ type: MFAStatusDto })
+  @ApiResponse({ status: 200, description: 'MFA disabled successfully.' })
+  @ApiResponse({ status: 400, description: 'User not found.' })
+  async disableMFA(@Body() statusDto: MFAStatusDto) {
+    await this.mfaService.disableMFA(statusDto.userId);
+    
+    return {
+      status: 'success',
+      message: 'MFA disabled successfully',
     };
   }
 }
