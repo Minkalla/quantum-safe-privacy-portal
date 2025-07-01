@@ -1,6 +1,7 @@
 use rand::RngCore;
 use sha2::{Digest, Sha256};
 
+#[allow(dead_code)]
 pub struct PowerAnalysisProtection {
     dummy_operations: bool,
     operation_masking: bool,
