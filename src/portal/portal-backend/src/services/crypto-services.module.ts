@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule } from '@nestjs/config';
 import { HybridCryptoService } from './hybrid-crypto.service';
@@ -8,6 +8,7 @@ import { PQCDataEncryptionService } from './pqc-data-encryption.service';
 import { CircuitBreakerService } from './circuit-breaker.service';
 import { BulkEncryptionService } from './bulk-encryption.service';
 import { FieldEncryptionService } from './field-encryption.service';
+import { PQCService } from './pqc.service';
 import { AuthModule } from '../auth/auth.module';
 import User, { IUser, UserSchema } from '../models/User';
 import Consent, { IConsent, ConsentSchema } from '../models/Consent';
@@ -15,7 +16,7 @@ import Consent, { IConsent, ConsentSchema } from '../models/Consent';
 @Module({
   imports: [
     ConfigModule,
-    AuthModule,
+    forwardRef(() => AuthModule),
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: Consent.name, schema: ConsentSchema },
@@ -29,6 +30,7 @@ import Consent, { IConsent, ConsentSchema } from '../models/Consent';
     CircuitBreakerService,
     BulkEncryptionService,
     FieldEncryptionService,
+    PQCService,
   ],
   exports: [
     HybridCryptoService,
@@ -38,6 +40,7 @@ import Consent, { IConsent, ConsentSchema } from '../models/Consent';
     CircuitBreakerService,
     BulkEncryptionService,
     FieldEncryptionService,
+    PQCService,
   ],
 })
 export class CryptoServicesModule {}

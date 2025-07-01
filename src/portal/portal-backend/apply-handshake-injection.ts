@@ -4,10 +4,7 @@ import path from 'path';
 const targetFile = path.join(
   __dirname,
   'src',
-  'portal',
-  'portal-backend',
-  'src',
-  'services',
+  'auth',
   'auth.service.ts'
 );
 
@@ -20,17 +17,17 @@ if (source.includes('triggerPQCHandshake')) {
 }
 
 // Step 1: Add import
-if (!source.includes("import { triggerPQCHandshake }")) {
+if (!source.includes("import { PQCService }")) {
   source = source.replace(
     /^(import .*?;)(\s*\n)/m,
-    `$1\nimport { triggerPQCHandshake } from '../services/pqc.service';\n`
+    `$1\nimport { PQCService } from '../services/pqc.service';\n`
   );
 }
 
 // Step 2: Insert handshake after await user.save()
 source = source.replace(
   /(await user\.save\(\);)/,
-  `$1\n\n    // 👋 Post-login PQC handshake\n    await triggerPQCHandshake(user._id.toString());`
+  `$1\n\n    // 👋 Post-login PQC handshake\n    await this.triggerPQCHandshake(user._id.toString());`
 );
 
 fs.writeFileSync(targetFile, source);

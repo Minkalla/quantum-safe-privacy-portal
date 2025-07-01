@@ -11,6 +11,8 @@ import json
 import logging
 import faulthandler
 import base64
+import time
+import uuid
 from typing import Dict, Any
 
 faulthandler.enable()
@@ -385,6 +387,71 @@ def handle_get_status(params: Dict[str, Any]) -> Dict[str, Any]:
             'error_message': f'Status request failed: {str(e)}'
         }
 
+def handle_handshake(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle PQC handshake request with comprehensive metadata logging."""
+    try:
+        if not pqc_service:
+            return {
+                'success': False,
+                'error_message': 'PQC service not available - using mock fallback',
+                'handshake_metadata': {
+                    'handshake_id': f"mock_{int(time.time())}",
+                    'fallback_mode': True
+                }
+            }
+        
+        user_id = params.get('user_id')
+        kem_algorithm = params.get('kem_algorithm', 'ML-KEM-768')
+        dsa_algorithm = params.get('dsa_algorithm', 'ML-DSA-65')
+        
+        if not user_id:
+            return {
+                'success': False,
+                'error_message': 'user_id parameter required'
+            }
+        
+        logger.info(f"Performing PQC handshake for user: {user_id}")
+        
+        handshake_id = str(uuid.uuid4())
+        timestamp = time.time()
+        
+        kem_keypair = pqc_service.generate_ml_kem_keypair()
+        kem_encaps = pqc_service.ml_kem_encapsulate(kem_keypair['public_key'])
+        
+        dsa_keypair = pqc_service.generate_ml_dsa_keypair()
+        handshake_data = f"{user_id}:{handshake_id}:{int(timestamp)}"
+        signature_result = pqc_service.ml_dsa_sign(dsa_keypair['private_key'], handshake_data.encode('utf-8'))
+        
+        handshake_metadata = {
+            'handshake_id': handshake_id,
+            'user_id': user_id,
+            'timestamp': timestamp,
+            'kem_algorithm': kem_algorithm,
+            'dsa_algorithm': dsa_algorithm,
+            'shared_secret_hash': base64.b64encode(bytes(kem_encaps['shared_secret'][:32])).decode('utf-8'),
+            'signature': base64.b64encode(bytes(signature_result['signature'])).decode('utf-8'),
+            'public_key_hash': base64.b64encode(bytes(kem_keypair['public_key'][:32])).decode('utf-8'),
+            'fallback_mode': False
+        }
+        
+        return {
+            'success': True,
+            'handshake_metadata': handshake_metadata,
+            'error_message': None,
+            'performance_metrics': {'handshake_time_ms': 0}
+        }
+        
+    except Exception as e:
+        logger.error(f"PQC handshake failed: {e}")
+        return {
+            'success': False,
+            'error_message': f'PQC handshake failed: {str(e)}',
+            'handshake_metadata': {
+                'handshake_id': f"error_{int(time.time())}",
+                'fallback_mode': True
+            }
+        }
+
 def main():
     """Main entry point for the PQC service bridge."""
     global pqc_service
@@ -417,7 +484,8 @@ def main():
         'generate_session_key': handle_generate_session_key,
         'sign_token': handle_sign_token,
         'verify_token': handle_verify_token,
-        'get_status': handle_get_status
+        'get_status': handle_get_status,
+        'handshake': handle_handshake
     }
     
     handler = handlers.get(operation)
