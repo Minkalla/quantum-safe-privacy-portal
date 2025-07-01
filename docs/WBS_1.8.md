@@ -1,71 +1,71 @@
-🧱 WBS 1.8 – Monorepo Restructure & Codebase Stabilization
-Objective: Transition the codebase to a modular nx monorepo structure while preserving existing app behavior, frontend assets, development scripts, and CI compatibility.
+WBS 1.8 – Backend Monorepo Restructure and Dev Environment Recovery
+🎯 Objective Restructure the backend architecture into a maintainable NX monorepo, while preserving all dev workflows, CI compatibility, and public assets. This WBS implements a non-destructive migration by duplicating files, enabling full rollback if regressions occur.
 
-📦 Deliverables
-1. Monorepo Setup
-✅ Initialize nx in repo root using nx init
+✅ Scope Summary
+Included in Scope	Explicitly Out of Scope
+Restructure backend into apps/backend	❌ No frontend migration (e.g., to apps/frontend)
+Create libs/ structure and stubs	❌ No functional build-out of optional libs
+Restore public assets (favicon, logo)	❌ No shared DTO refactor outside backend
+Fix CI/test/dev scripts and env configs	❌ No Dockerfile/Secrets automation changes
+🧩 Structure Overview
+apps/
+  └── backend/
+      └── main.ts, etc.
 
-✅ Establish folder structure:
+libs/
+  ├── auth/
+  ├── user/
+  ├── pqc/
+  ├── common/      ← stub only
+  └── logger/      ← stub only
+🔧 Sub-tasks and Deliverables
+1. Duplicate Backend to apps/backend + Libs
+Copy backend files from src/portal/portal-backend/ → apps/backend/
 
-apps/backend → existing NestJS backend (renamed and relocated)
+Extract auth, user, and pqc logic into libs/ folders
 
-libs/auth → shared authentication logic (DTOs, strategies)
+Add project.json and tags for each library
 
-libs/user → user schema and user-related services
+Update tsconfig.base.json with path aliases
 
-Optional: libs/common, libs/pqc, libs/logger as needed
+🕒 Est. Effort: 5 hours 📘 Compliance: ISO/IEC 27001 A.14.2.2
 
-✅ Add project.json files and tags to nx.json for each app/lib
+2. Recover Public Assets
+Move static assets into apps/backend/public/
 
-2. Dev Script & CI Recovery
-✅ Replace or adjust root-level package.json scripts:
+Validate Swagger UI (/docs), favicon, and logos render correctly
 
-nx serve backend
+Update static serve logic in main.ts
 
-nx test backend
+🕒 Est. Effort: 2 hours 📘 Compliance: OWASP ASVS 1.6.2
 
-nx lint backend
+3. CI, Dev Scripts, and Env Consistency
+Update start:dev, nx test, nx lint scripts to point to new layout
 
-✅ Confirm start:dev works with SKIP_SECRETS_MANAGER=true
+Refactor GitHub Actions workflows that used src/portal/...
 
-✅ Fix broken GitHub Actions or .env references caused by path changes
+Confirm .env loading and Docker Compose support
 
-3. Asset and Public Folder Recovery
-✅ Restore public/ directory (or equivalent) for logo, static assets
+Run nx graph to confirm app/lib visibility
 
-✅ Ensure favicon, OpenAPI Swagger docs, and other visual assets resolve at runtime
+🕒 Est. Effort: 4 hours 📘 Compliance: NIST SP 800-53 CM-3, ISO A.12.1.2
 
-✅ Address relative import paths in frontend/backend that may have broken
+4. Validation and Rollback Readiness
+Confirm /portal/auth/* routes function identically in both layouts
 
-4. Housekeeping and Developer Onboarding
-✅ Provide MIGRATING.md or README section that explains:
+Validate PQC handshake is preserved
 
-Folder structure
+Create docs/MIGRATING.md summarizing:
 
-Where to put new apps/libs
+Old → new mappings
 
-Rules for inter-library imports (tags enforcement)
+Rollback instructions (rm -rf apps/ libs/, revert tsconfig, reset .github/workflows/)
 
-✅ Enforce linting and boundary checks for cross-lib consistency
+🕒 Est. Effort: 3 hours 📘 Compliance: NIST SP 800-53 SA-11
 
-5. Test & Validation
-✅ All previous /auth routes should still resolve and behave as before
-
-✅ Swagger should load correctly at /docs
-
-✅ Logo and favicon should render
-
-✅ Login and register flows should persist users and trigger PQC handshakes
-
-📄 Required PR Description Sections
-Architecture Notes
-
-Example: “apps/backend is now the main NestJS app. libs/user holds Mongoose schema. Static assets moved to apps/backend/public.”
-
-Migration Path
-
-Describe file moves and changed script behavior
-
-Known Gaps or Things Deferred
-
-(e.g., frontend app setup, CI secrets injection)
+🔄 Rollback Strategy
+Condition	Rollback Action
+Route breaks	Use legacy src/portal/portal-backend/
+Broken CI workflows	Restore pre-1.8 .github/workflows/ configs
+Imports or env failures	Revert tsconfig.base.json + script registry
+All duplication is additive—no risk of loss until WBS 1.8 is explicitly accepted and legacy files deleted.
