@@ -94,8 +94,8 @@ export class HybridCryptoService {
         category: PQCErrorCategory.CRYPTO_OPERATION,
         retryCount: 2,
         fallbackEnabled: false,
-        logLevel: 'error'
-      }
+        logLevel: 'error',
+      },
     ).catch(async (error) => {
       this.logger.warn(`PQC encryption failed, attempting fallback: ${error.message}`);
       return await fallbackOperation();

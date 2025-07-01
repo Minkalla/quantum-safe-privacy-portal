@@ -37,7 +37,7 @@ export class PQCApiGuard implements CanActivate {
         token: sessionToken,
         userId: 'token_verification',
       });
-      
+
       if (!tokenVerificationResult.success) {
         throw new UnauthorizedException(`Invalid PQC session: ${tokenVerificationResult.errorMessage}`);
       }
@@ -48,7 +48,7 @@ export class PQCApiGuard implements CanActivate {
         valid: true,
         expiresAt: new Date(tokenPayload.exp * 1000),
       };
-      
+
       if (!session || !session.valid) {
         throw new UnauthorizedException('Invalid PQC session');
       }

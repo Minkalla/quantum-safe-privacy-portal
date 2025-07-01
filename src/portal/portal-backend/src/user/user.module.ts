@@ -17,16 +17,19 @@
 
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { UserSchema } from '../models/User'; // Only import UserSchema
+import { UserSchema } from '../models/User';
+import { UserController } from './user.controller';
+import { JwtModule } from '../jwt/jwt.module';
 
 @Module({
   imports: [
-    // Register the User schema with MongooseModule for this module's context
-    MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]), // Use string 'User' for model name
+    MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]),
+    JwtModule,
   ],
+  controllers: [UserController],
   providers: [],
   exports: [
-    MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]), // Export MongooseModule.forFeature to make User model available to other modules
+    MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]),
   ],
 })
 export class UserModule {}

@@ -14,7 +14,7 @@
  * for API documentation.
  */
 
-import { Controller, Post, Body, Res, HttpCode, HttpStatus, UnauthorizedException, Get } from '@nestjs/common';
+import { Controller, Post, Body, Res, HttpCode, HttpStatus, UnauthorizedException, Get, Req } from '@nestjs/common';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { EnhancedAuthService } from './enhanced-auth.service';
@@ -328,6 +328,44 @@ export class AuthController {
       message: 'Token verification completed',
       ...result,
     };
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Refresh access token using refresh token' })
+  @ApiResponse({ status: 200, description: 'New access token issued successfully.' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired refresh token.' })
+  @ApiResponse({ status: 400, description: 'Refresh token missing.' })
+  async refreshToken(@Req() req: any, @Res({ passthrough: true }) res: Response) {
+    const refreshToken = req.cookies?.refreshToken;
+
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token not provided');
+    }
+
+    try {
+      const result = await this.authService.refreshToken(refreshToken);
+
+      const cookieOptions = {
+        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        httpOnly: true,
+        secure: process.env['NODE_ENV'] === 'production',
+        sameSite: 'strict' as const,
+      };
+
+      if (result.refreshToken) {
+        res.cookie('refreshToken', result.refreshToken, cookieOptions);
+      }
+
+      return {
+        status: 'success',
+        message: 'Token refreshed successfully',
+        accessToken: result.accessToken,
+        user: result.user,
+      };
+    } catch (error) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
   }
 
   @Get('pqc/config')
