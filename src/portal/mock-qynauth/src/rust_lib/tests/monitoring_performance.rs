@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod monitoring_performance_tests {
     use super::*;
-    use std::time::{Duration, Instant};
-    use std::thread;
     use std::sync::{Arc, Mutex};
+    use std::thread;
+    use std::time::{Duration, Instant};
 
     #[derive(Clone)]
     struct SecurityEvent {
@@ -30,8 +30,7 @@ mod monitoring_performance_tests {
             *count += 1;
         }
 
-        fn cleanup_old_events(&self) {
-        }
+        fn cleanup_old_events(&self) {}
     }
 
     #[test]

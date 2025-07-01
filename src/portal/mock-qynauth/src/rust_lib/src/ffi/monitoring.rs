@@ -1,9 +1,9 @@
-use std::time::{Duration, Instant};
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::os::raw::c_int;
 use once_cell::sync::Lazy;
 use std::fs::OpenOptions;
 use std::io::Write;
+use std::os::raw::c_int;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{Duration, Instant};
 
 pub struct FFIMetrics {
     pub kyber_keygen_count: AtomicU64,
@@ -51,10 +51,11 @@ impl FFIMetrics {
             baseline_violations: AtomicU64::new(0),
         }
     }
-    
+
     pub fn record_kyber_keygen(&self, duration: Duration) {
         self.kyber_keygen_count.fetch_add(1, Ordering::Relaxed);
-        self.kyber_keygen_total_time.fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
+        self.kyber_keygen_total_time
+            .fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
     }
 
     pub fn get_kyber_keygen_avg_time(&self) -> Duration {
@@ -68,7 +69,8 @@ impl FFIMetrics {
 
     pub fn record_kyber_encap(&self, duration: Duration) {
         self.kyber_encap_count.fetch_add(1, Ordering::Relaxed);
-        self.kyber_encap_total_time.fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
+        self.kyber_encap_total_time
+            .fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
     }
 
     pub fn get_kyber_encap_avg_time(&self) -> Duration {
@@ -82,7 +84,8 @@ impl FFIMetrics {
 
     pub fn record_kyber_decap(&self, duration: Duration) {
         self.kyber_decap_count.fetch_add(1, Ordering::Relaxed);
-        self.kyber_decap_total_time.fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
+        self.kyber_decap_total_time
+            .fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
     }
 
     pub fn get_kyber_decap_avg_time(&self) -> Duration {
@@ -93,10 +96,11 @@ impl FFIMetrics {
         let total_nanos = self.kyber_decap_total_time.load(Ordering::Relaxed);
         Duration::from_nanos(total_nanos / count)
     }
-    
+
     pub fn record_dilithium_sign(&self, duration: Duration) {
         self.dilithium_sign_count.fetch_add(1, Ordering::Relaxed);
-        self.dilithium_sign_total_time.fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
+        self.dilithium_sign_total_time
+            .fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
     }
 
     pub fn get_dilithium_sign_avg_time(&self) -> Duration {
@@ -107,10 +111,11 @@ impl FFIMetrics {
         let total_nanos = self.dilithium_sign_total_time.load(Ordering::Relaxed);
         Duration::from_nanos(total_nanos / count)
     }
-    
+
     pub fn record_dilithium_keygen(&self, duration: Duration) {
         self.dilithium_keygen_count.fetch_add(1, Ordering::Relaxed);
-        self.dilithium_keygen_total_time.fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
+        self.dilithium_keygen_total_time
+            .fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
     }
 
     pub fn get_dilithium_keygen_avg_time(&self) -> Duration {
@@ -121,10 +126,11 @@ impl FFIMetrics {
         let total_nanos = self.dilithium_keygen_total_time.load(Ordering::Relaxed);
         Duration::from_nanos(total_nanos / count)
     }
-    
+
     pub fn record_dilithium_verify(&self, duration: Duration) {
         self.dilithium_verify_count.fetch_add(1, Ordering::Relaxed);
-        self.dilithium_verify_total_time.fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
+        self.dilithium_verify_total_time
+            .fetch_add(duration.as_nanos() as u64, Ordering::Relaxed);
     }
 
     pub fn get_dilithium_verify_avg_time(&self) -> Duration {
@@ -154,39 +160,40 @@ impl FFIMetrics {
         self.throughput_ops_per_sec.store(0, Ordering::Relaxed);
         self.baseline_violations.store(0, Ordering::Relaxed);
     }
-    
+
     pub fn record_memory_usage(&self, bytes: u64) {
         self.memory_usage_bytes.store(bytes, Ordering::Relaxed);
     }
-    
+
     pub fn record_error(&self) {
         self.error_count.fetch_add(1, Ordering::Relaxed);
     }
-    
+
     pub fn record_throughput(&self, ops_per_sec: u64) {
-        self.throughput_ops_per_sec.store(ops_per_sec, Ordering::Relaxed);
+        self.throughput_ops_per_sec
+            .store(ops_per_sec, Ordering::Relaxed);
     }
-    
+
     pub fn record_baseline_violation(&self) {
         self.baseline_violations.fetch_add(1, Ordering::Relaxed);
     }
-    
+
     pub fn get_memory_usage(&self) -> u64 {
         self.memory_usage_bytes.load(Ordering::Relaxed)
     }
-    
+
     pub fn get_error_count(&self) -> u64 {
         self.error_count.load(Ordering::Relaxed)
     }
-    
+
     pub fn get_throughput(&self) -> u64 {
         self.throughput_ops_per_sec.load(Ordering::Relaxed)
     }
-    
+
     pub fn get_baseline_violations(&self) -> u64 {
         self.baseline_violations.load(Ordering::Relaxed)
     }
-    
+
     pub fn generate_monitoring_report(&self) -> String {
         format!(
             "=== PQC Performance Monitoring Report ===\n\
@@ -224,7 +231,7 @@ impl FFIMetrics {
             self.get_baseline_violations()
         )
     }
-    
+
     pub fn export_to_monitoring_file(&self) -> Result<(), std::io::Error> {
         let report = self.generate_monitoring_report();
         let mut file = OpenOptions::new()
@@ -265,7 +272,7 @@ where
     let start = Instant::now();
     let result = f();
     let duration = start.elapsed();
-    
+
     match operation {
         "mlkem_keygen" => FFI_METRICS.record_kyber_keygen(duration),
         "mlkem_encap" => FFI_METRICS.record_kyber_encap(duration),
@@ -275,7 +282,7 @@ where
         "mldsa_verify" => FFI_METRICS.record_dilithium_verify(duration),
         _ => {}
     }
-    
+
     result
 }
 

@@ -236,9 +236,9 @@ impl SecureKeyManager {
             }
         }
 
-        Err(PQCError::KeyNotFound(
-            format!("No active {algorithm} key found for user {user_id}")
-        ))
+        Err(PQCError::KeyNotFound(format!(
+            "No active {algorithm} key found for user {user_id}"
+        )))
     }
 
     pub fn get_key_by_id(&self, key_id: &str) -> PQCResult<(&PQCKeyPair, &KeyMetadata)> {
