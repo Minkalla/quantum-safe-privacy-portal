@@ -37,7 +37,7 @@ Backend (NestJS + TypeScript)
 ## 🚀 User Registration Flow (WBS 1.10)
 
 ### Frontend Implementation
-**Component**: `src/pages/Register.tsx`
+**Component**: `src/portal/portal-frontend/src/pages/Register.tsx`
 
 #### User Journey
 1. **Form Display**: User navigates to `/register`
@@ -111,7 +111,7 @@ const handleSubmit = async (values: RegisterFormValues) => {
 ## 🔑 User Login Flow (WBS 1.11)
 
 ### Frontend Implementation
-**Component**: `src/pages/Login.tsx`
+**Component**: `src/portal/portal-frontend/src/pages/Login.tsx`
 
 #### User Journey
 1. **Form Display**: User navigates to `/login`
@@ -160,14 +160,38 @@ const handleSubmit = async (values: LoginFormValues) => {
 #### Response Format
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2NzU5YjJlZjEyMzQ1Njc4OTBhYmNkZWYiLCJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJyb2xlIjoidXNlciIsImlhdCI6MTY0MDk5NTIwMCwiZXhwIjoxNjQxMDgxNjAwfQ.signature_hash_here",
   "user": {
-    "id": "uuid",
+    "id": "6759b2ef1234567890abcdef",
     "email": "user@example.com",
     "lastLogin": "2025-07-01T22:01:00Z"
   }
 }
 ```
+
+#### JWT Token Structure
+**Encoded Token**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2NzU5YjJlZjEyMzQ1Njc4OTBhYmNkZWYiLCJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJyb2xlIjoidXNlciIsImlhdCI6MTY0MDk5NTIwMCwiZXhwIjoxNjQxMDgxNjAwfQ.signature_hash_here`
+
+**Decoded Structure**:
+```json
+{
+  "header": {
+    "alg": "HS256",
+    "typ": "JWT"
+  },
+  "payload": {
+    "sub": "6759b2ef1234567890abcdef",
+    "email": "user@example.com",
+    "role": "user",
+    "iat": 1640995200,
+    "exp": 1641081600
+  },
+  "signature": "signature_hash_here"
+}
+```
+
+**Token Storage**: `localStorage.getItem('accessToken')`  
+**Extraction Utility**: `src/portal/portal-frontend/src/utils/jwt.ts` - `extractUserFromToken()` function
 
 #### Error Responses
 ```json
@@ -181,7 +205,7 @@ const handleSubmit = async (values: LoginFormValues) => {
 ## 🔄 AuthContext Implementation
 
 ### State Management
-**File**: `src/contexts/AuthContext.tsx`
+**File**: `src/portal/portal-frontend/src/contexts/AuthContext.tsx`
 
 #### Context Structure
 ```typescript
@@ -263,7 +287,7 @@ const login = async (email: string, password: string) => {
 ## 🧪 Testing Implementation
 
 ### Login Component Tests
-**File**: `src/__tests__/Login.test.tsx`
+**File**: `src/portal/portal-frontend/src/__tests__/Login.test.tsx`
 
 #### Test Coverage (17 tests)
 1. **Rendering Tests**: Form elements display correctly
@@ -298,7 +322,7 @@ const handlers = [
 ```
 
 ### Register Component Tests
-**File**: `src/__tests__/Register.test.tsx`
+**File**: `src/portal/portal-frontend/src/__tests__/Register.test.tsx`
 
 #### Test Coverage (18 tests)
 1. **Form Rendering**: All form fields display correctly
@@ -334,7 +358,7 @@ const handlers = [
 ## 🔗 Integration Points
 
 ### Routing Integration
-**File**: `src/App.tsx`
+**File**: `src/portal/portal-frontend/src/App.tsx`
 
 ```typescript
 <Routes>
@@ -404,18 +428,32 @@ REACT_APP_TOKEN_EXPIRY=24h
 ## 🚀 Future Enhancements
 
 ### Planned Features
-1. **Multi-Factor Authentication**: SMS/Email verification
+1. **Multi-Factor Authentication**: SMS/Email verification (WBS 1.13)
 2. **Social Login**: OAuth integration (Google, GitHub)
 3. **Password Reset**: Forgot password functionality
 4. **Session Management**: Advanced session handling
 5. **Account Verification**: Email verification flow
 
+### MFA Integration Hook Points (WBS 1.13)
+- **Login Flow Extension**: `src/portal/portal-frontend/src/pages/Login.tsx` - Add MFA verification step after password validation
+- **AuthContext Enhancement**: `src/portal/portal-frontend/src/contexts/AuthContext.tsx` - Add MFA state management and verification methods
+- **Backend MFA Service**: `src/portal/portal-backend/src/auth/mfa.service.ts` - TOTP generation and validation service
+- **MFA Setup Component**: `src/portal/portal-frontend/src/pages/MFASetup.tsx` - User MFA configuration interface
+- **Database Schema**: Add MFA fields to user model (mfaEnabled, mfaSecret, backupCodes)
+
 ### Technical Improvements
 1. **Token Refresh**: Automatic token renewal
-2. **Offline Support**: Service worker integration
-3. **Performance**: Code splitting and lazy loading
-4. **Security**: Enhanced security headers and CSP
-5. **Monitoring**: Error tracking and analytics
+2. **HttpOnly Cookies**: Migration from localStorage to secure cookie storage (WBS 1.14)
+3. **Offline Support**: Service worker integration
+4. **Performance**: Code splitting and lazy loading
+5. **Security**: Enhanced security headers and CSP
+6. **Monitoring**: Error tracking and analytics
+
+### Security Migration Roadmap (WBS 1.14)
+- **Current State**: JWT tokens stored in localStorage
+- **Target State**: HttpOnly cookies with secure, SameSite attributes
+- **Migration Path**: Gradual transition with backward compatibility
+- **Benefits**: XSS protection, automatic CSRF protection, secure transmission
 
 ## 📋 Troubleshooting Guide
 

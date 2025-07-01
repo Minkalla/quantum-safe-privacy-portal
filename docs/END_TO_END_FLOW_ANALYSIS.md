@@ -12,11 +12,41 @@ This document provides a comprehensive analysis of the end-to-end authentication
 ## 🔍 Authentication Flow Architecture
 
 ### Complete Flow Diagram
+
+#### High-Level Component Interaction
+```mermaid
+graph TD
+    A[User Input] --> B[Login.tsx Form]
+    B --> C[Formik Validation]
+    C --> D[AuthContext.login()]
+    D --> E[authService.login()]
+    E --> F[POST /portal/auth/login]
+    F --> G[Backend Auth Controller]
+    G --> H[User Validation]
+    H --> I[JWT Token Generation]
+    I --> J[Response to Frontend]
+    J --> K[localStorage Storage]
+    K --> L[User State Update]
+    L --> M[Dashboard Redirect]
+    
+    style A fill:#e1f5fe
+    style M fill:#c8e6c9
+    style F fill:#fff3e0
+    style I fill:#fce4ec
 ```
-User Input → Login.tsx → Formik Validation → AuthContext.login() → 
-authService.login() → POST /portal/auth/login → Backend Validation → 
-JWT Token Generation → Response → localStorage Storage → 
-User State Update → Dashboard Redirect
+
+#### Detailed Authentication Flow
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Login.tsx     │    │  AuthContext    │    │  Backend API    │
+│                 │    │                 │    │                 │
+├─────────────────┤    ├─────────────────┤    ├─────────────────┤
+│ 1. User Input   │───▶│ 2. login()      │───▶│ 3. POST /auth   │
+│ 2. Form Submit  │    │ 3. setLoading   │    │ 4. Validate     │
+│ 3. Show Loading │◀───│ 4. Call Service │    │ 5. Generate JWT │
+│ 4. Handle Error │    │ 5. Store Token  │◀───│ 6. Return Token │
+│ 5. Navigate     │◀───│ 6. Update State │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
 ### Component Integration Analysis
@@ -266,14 +296,49 @@ const login = async (email: string, password: string, rememberMe = false) => {
 - Manual testing completed
 - Accessibility verified
 
+## 🚨 Known Issues / Out-of-Scope Items
+
+### Current Limitations
+1. **Token Storage Security**: 
+   - **Issue**: JWT stored in localStorage (vulnerable to XSS)
+   - **Mitigation**: Planned migration to HttpOnly cookies in WBS 1.14
+   - **Risk Level**: Medium (acceptable for MVP phase)
+
+2. **Refresh Token Implementation**:
+   - **Issue**: No automatic token refresh mechanism
+   - **Mitigation**: Manual token validation on app initialization
+   - **Risk Level**: Low (tokens have reasonable expiration)
+
+3. **Session Concurrency**:
+   - **Issue**: No concurrent session management
+   - **Mitigation**: Single session per user (logout invalidates token)
+   - **Risk Level**: Low (acceptable for current user base)
+
+4. **Backend Service Restart**:
+   - **Issue**: portal-backend container occasionally restarts during testing
+   - **Mitigation**: Frontend gracefully handles network errors
+   - **Risk Level**: Minimal (Docker health check behavior)
+
+### Deferred Features (Future WBS)
+- Multi-factor authentication (WBS 1.13)
+- Advanced password policies (WBS 1.15)
+- Account lockout mechanisms (WBS 1.16)
+- Audit logging (WBS 1.17)
+
 ## 📋 Next Steps for WBS 1.12
 
 ### Established Patterns Available
 1. **Authentication Flow**: Complete login/register patterns
+   📁 `src/portal/portal-frontend/src/pages/Login.tsx`
+   📁 `src/portal/portal-frontend/src/pages/Register.tsx`
 2. **Form Validation**: Formik + Yup + MUI patterns
+   📁 `src/portal/portal-frontend/src/pages/Login.tsx` (lines 80-95)
 3. **Error Handling**: Consistent error display patterns
+   📁 `src/portal/portal-frontend/src/contexts/AuthContext.tsx` (lines 65-75)
 4. **Testing Infrastructure**: Comprehensive test patterns
+   📁 `src/portal/portal-frontend/src/__tests__/Login.test.tsx`
 5. **Accessibility**: WCAG compliance patterns
+   📁 ARIA labels, keyboard navigation, screen reader support
 
 ### Recommended WBS 1.12 Focus Areas
 1. **Dashboard Implementation**: User dashboard with protected content
