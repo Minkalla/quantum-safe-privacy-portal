@@ -63,7 +63,7 @@ describe('PQC Authentication Flow Integration', () => {
                 'validation.default_algorithm': 'Dilithium-3',
                 'performance.monitoring_enabled': true,
                 'jwt.secret': 'test-secret',
-                'jwt.expiresIn': '1h'
+                'jwt.expiresIn': '1h',
               };
               return config[key];
             }),
@@ -80,11 +80,11 @@ describe('PQC Authentication Flow Integration', () => {
         },
       ],
     }).compile();
-    
+
     authService = moduleFixture.get<AuthService>(AuthService);
     encryptionService = moduleFixture.get<PQCDataEncryptionService>(PQCDataEncryptionService);
     validationService = moduleFixture.get<PQCDataValidationService>(PQCDataValidationService);
-    
+
     testUserId = 'test-user-' + Date.now();
   });
 
@@ -104,12 +104,12 @@ describe('PQC Authentication Flow Integration', () => {
         personalInfo: 'Highly sensitive personal information',
         financialData: { accountNumber: '1234567890', balance: 50000 },
         medicalRecords: ['Record 1', 'Record 2'],
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       const encryptedData = await encryptionService.encryptData(sensitiveData, {
         algorithm: PQCAlgorithmType.KYBER_768,
-        userId: testUserId
+        userId: testUserId,
       });
 
       expect(encryptedData.success).toBe(true);
@@ -133,7 +133,7 @@ describe('PQC Authentication Flow Integration', () => {
 
       expect(decryptedData.success).toBe(true);
       expect(decryptedData.decryptedData).toBeDefined();
-      
+
       if (decryptedData.decryptedData.algorithm === 'ML-KEM-768') {
         expect(decryptedData.decryptedData.decrypted).toBe(true);
         expect(decryptedData.decryptedData.keyId).toBeDefined();
@@ -146,19 +146,19 @@ describe('PQC Authentication Flow Integration', () => {
       const testData = {
         userId: testUserId,
         operation: 'cross-service-integration',
-        payload: { sensitive: 'cross-service data', timestamp: Date.now() }
+        payload: { sensitive: 'cross-service data', timestamp: Date.now() },
       };
 
       const startTime = Date.now();
 
       const signature = await validationService.generateSignature(testData, {
         algorithm: 'Dilithium-3' as any,
-        userId: testUserId
+        userId: testUserId,
       });
 
       const encryptedSignature = await encryptionService.encryptData(signature, {
         algorithm: PQCAlgorithmType.AES_256_GCM,
-        userId: testUserId
+        userId: testUserId,
       });
 
       const decryptedSignature = await encryptionService.decryptData(encryptedSignature.encryptedField!, { userId: testUserId });
@@ -181,7 +181,7 @@ describe('PQC Authentication Flow Integration', () => {
       try {
         const encryptedData = await encryptionService.encryptData(testData, {
           algorithm: PQCAlgorithmType.KYBER_768,
-          userId: testUserId
+          userId: testUserId,
         });
 
         expect(encryptedData).toBeDefined();
@@ -191,7 +191,7 @@ describe('PQC Authentication Flow Integration', () => {
         const decryptedData = await encryptionService.decryptData(encryptedData.encryptedField!, { userId: testUserId });
         expect(decryptedData.success).toBe(true);
         expect(decryptedData.decryptedData).toBeDefined();
-        
+
         if (decryptedData.decryptedData.algorithm === 'ML-KEM-768') {
           expect(decryptedData.decryptedData.decrypted).toBe(true);
           expect(decryptedData.decryptedData.keyId).toBeDefined();
@@ -207,14 +207,14 @@ describe('PQC Authentication Flow Integration', () => {
       const originalData = {
         id: `integrity-test-${Date.now()}`,
         content: 'Data integrity validation across services',
-        metadata: { version: '1.0', classification: 'sensitive' }
+        metadata: { version: '1.0', classification: 'sensitive' },
       };
 
       const integrity1 = await validationService.createDataIntegrity(originalData, testUserId);
-      
+
       const encryptedIntegrity = await encryptionService.encryptData(integrity1, {
         algorithm: PQCAlgorithmType.AES_256_GCM,
-        userId: testUserId
+        userId: testUserId,
       });
 
       const decryptedIntegrity = await encryptionService.decryptData(encryptedIntegrity.encryptedField!, { userId: testUserId });
@@ -231,7 +231,7 @@ describe('PQC Authentication Flow Integration', () => {
       const performanceData = Array.from({ length: 10 }, (_, i) => ({
         id: i,
         data: `Performance test data ${i}`,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       }));
 
       const startTime = Date.now();
@@ -240,7 +240,7 @@ describe('PQC Authentication Flow Integration', () => {
         performanceData.map(async (data) => {
           const encrypted = await encryptionService.encryptData(data, {
             algorithm: PQCAlgorithmType.KYBER_768,
-            userId: testUserId
+            userId: testUserId,
           });
 
           const integrity = await validationService.createDataIntegrity(encrypted.encryptedField!, testUserId);
@@ -250,9 +250,9 @@ describe('PQC Authentication Flow Integration', () => {
           return {
             encrypted: encrypted.encryptedField!,
             integrity,
-            validation: validation.isValid
+            validation: validation.isValid,
           };
-        })
+        }),
       );
 
       const totalTime = Date.now() - startTime;

@@ -22,25 +22,25 @@ export class EnhancedErrorBoundaryService {
 
   async executeWithErrorBoundary<T>(
     operation: () => Promise<T>,
-    options: ErrorBoundaryOptions = {}
+    options: ErrorBoundaryOptions = {},
   ): Promise<T> {
     const {
       category = PQCErrorCategory.CRYPTO_OPERATION,
       retryCount = 0,
       fallbackEnabled = false,
-      logLevel = 'error'
+      logLevel = 'error',
     } = options;
 
     let lastError: Error | undefined;
-    
+
     for (let attempt = 0; attempt <= retryCount; attempt++) {
       try {
         return await operation();
       } catch (error) {
         lastError = error as Error;
-        
+
         this.logger[logLevel](`Error in ${category} operation (attempt ${attempt + 1}/${retryCount + 1}): ${error.message}`);
-        
+
         if (attempt < retryCount) {
           await this.delay(Math.pow(2, attempt) * 100);
         }
@@ -52,7 +52,7 @@ export class EnhancedErrorBoundaryService {
     }
 
     if (!lastError) {
-      throw new Error(`Operation failed without specific error details`);
+      throw new Error('Operation failed without specific error details');
     }
     throw lastError;
   }

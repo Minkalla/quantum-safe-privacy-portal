@@ -15,23 +15,32 @@
  * with the User and Jwt modules.
  */
 
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { EnhancedAuthService } from './enhanced-auth.service';
+import { AuthMiddleware } from './auth.middleware';
 import { UserSchema } from '../models/User';
 import { JwtModule } from '../jwt/jwt.module';
 import { PQCFeatureFlagsModule } from '../pqc/pqc-feature-flags.module';
+import { CryptoServicesModule } from '../services/crypto-services.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]),
     JwtModule,
     PQCFeatureFlagsModule,
+    forwardRef(() => CryptoServicesModule),
   ],
   controllers: [AuthController],
-  providers: [AuthService, EnhancedAuthService],
-  exports: [AuthService, EnhancedAuthService],
+  providers: [AuthService, EnhancedAuthService, AuthMiddleware],
+  exports: [AuthService, EnhancedAuthService, AuthMiddleware],
 })
-export class AuthModule {}
+export class AuthModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(AuthMiddleware)
+      .forRoutes('portal/user/*', 'portal/pqc/*');
+  }
+}

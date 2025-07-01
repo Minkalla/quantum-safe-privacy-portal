@@ -42,7 +42,7 @@ describe('PQC FFI Integration Verification', () => {
     const mockJwtService = {
       generateTokens: jest.fn().mockReturnValue({
         accessToken: 'mock-access-token',
-        refreshToken: 'mock-refresh-token'
+        refreshToken: 'mock-refresh-token',
       }),
       verifyToken: jest.fn(),
       sign: jest.fn().mockReturnValue('mock-jwt-token'),
@@ -107,7 +107,7 @@ describe('PQC FFI Integration Verification', () => {
     it('should verify that pqc_service_bridge.py uses pqc_ffi module', async () => {
       const pythonScriptPath = path.join(
         __dirname,
-        '../../../mock-qynauth/src/python_app/pqc_service_bridge.py'
+        '../../../mock-qynauth/src/python_app/pqc_service_bridge.py',
       );
 
       const verificationScript = `
@@ -164,17 +164,17 @@ print("FFI_VERIFICATION_SUCCESS")
       const testPayload = {
         action: 'test_ffi_roundtrip',
         timestamp: new Date().toISOString(),
-        data: 'test_signature_verification'
+        data: 'test_signature_verification',
       };
 
       console.log(`Starting FFI roundtrip test for user: ${testUserId}`);
-      console.log(`Test payload:`, JSON.stringify(testPayload));
+      console.log('Test payload:', JSON.stringify(testPayload));
 
       const signResult = await authService.callPQCService('sign_token', {
         user_id: testUserId,
-        data_hash: JSON.stringify(testPayload)
+        data_hash: JSON.stringify(testPayload),
       });
-      
+
       if (signResult.success) {
         expect(signResult.signed_token).toBeDefined();
         expect(signResult.performance_metrics).toBeDefined();
@@ -184,30 +184,30 @@ print("FFI_VERIFICATION_SUCCESS")
         return;
       }
 
-      console.log(`Signature generation successful:`, {
+      console.log('Signature generation successful:', {
         algorithm: signResult.algorithm,
         duration_ms: signResult.performance_metrics?.duration_ms,
-        token_length: signResult.signed_token?.length
+        token_length: signResult.signed_token?.length,
       });
 
       const verifyResult = await authService.callPQCService('verify_token', {
         user_id: testUserId,
-        token: signResult.signed_token
+        token: signResult.signed_token,
       });
-      
+
       expect(verifyResult.success).toBe(true);
       expect(verifyResult.payload).toEqual(testPayload);
       expect(verifyResult.performance_metrics).toBeDefined();
 
-      console.log(`Signature verification successful:`, {
+      console.log('Signature verification successful:', {
         algorithm: verifyResult.algorithm,
         duration_ms: verifyResult.performance_metrics?.duration_ms,
-        payload_match: JSON.stringify(verifyResult.payload) === JSON.stringify(testPayload)
+        payload_match: JSON.stringify(verifyResult.payload) === JSON.stringify(testPayload),
       });
 
       expect(signResult.performance_metrics?.duration_ms).toBeGreaterThan(0);
       expect(verifyResult.performance_metrics?.duration_ms).toBeGreaterThan(0);
-      
+
       expect(signResult.performance_metrics?.duration_ms).toBeLessThan(5000); // Should complete within 5 seconds
       expect(verifyResult.performance_metrics?.duration_ms).toBeLessThan(5000);
     });
@@ -216,16 +216,16 @@ print("FFI_VERIFICATION_SUCCESS")
       const testUserId = 'ffi_kem_test_user_' + Date.now();
       const testMetadata = {
         client_type: 'ffi_integration_test',
-        test_timestamp: new Date().toISOString()
+        test_timestamp: new Date().toISOString(),
       };
 
       console.log(`Starting ML-KEM FFI test for user: ${testUserId}`);
 
       const sessionResult = await authService.callPQCService('generate_session_key', {
         user_id: testUserId,
-        metadata: testMetadata
+        metadata: testMetadata,
       });
-      
+
       if (sessionResult.success) {
         expect(sessionResult.session_data).toBeDefined();
         expect(sessionResult.session_data?.algorithm).toBe('ML-KEM-768');
@@ -238,16 +238,16 @@ print("FFI_VERIFICATION_SUCCESS")
         return;
       }
 
-      console.log(`ML-KEM session generation successful:`, {
+      console.log('ML-KEM session generation successful:', {
         algorithm: sessionResult.session_data?.algorithm,
         duration_ms: sessionResult.performance_metrics?.duration_ms,
         shared_secret_length: sessionResult.session_data?.shared_secret?.length,
-        ciphertext_length: sessionResult.session_data?.ciphertext?.length
+        ciphertext_length: sessionResult.session_data?.ciphertext?.length,
       });
 
       expect(sessionResult.performance_metrics?.duration_ms || sessionResult.performance_metrics?.generation_time_ms).toBeGreaterThan(0);
       expect(sessionResult.performance_metrics?.duration_ms || sessionResult.performance_metrics?.generation_time_ms).toBeLessThan(5000);
-      
+
       expect(sessionResult.session_data?.shared_secret?.length).toBeGreaterThan(0);
       expect(sessionResult.session_data?.ciphertext?.length).toBeGreaterThan(0);
     });
@@ -259,35 +259,35 @@ print("FFI_VERIFICATION_SUCCESS")
         trace_id: `trace_${Date.now()}`,
         metadata: {
           test_type: 'ffi_audit_trace',
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       };
 
-      console.log(`=== FFI TRACE START ===`);
+      console.log('=== FFI TRACE START ===');
       console.log(`User ID: ${traceUserId}`);
       console.log(`Payload: ${JSON.stringify(tracePayload)}`);
 
       const startTime = Date.now();
-      
+
       const signResult = await authService.callPQCService('sign_token', {
         user_id: traceUserId,
-        data_hash: JSON.stringify(tracePayload)
+        data_hash: JSON.stringify(tracePayload),
       });
       const signEndTime = Date.now();
-      
+
       console.log(`Sign operation completed in ${signEndTime - startTime}ms`);
       console.log(`Signed token length: ${signResult.signed_token?.length} characters`);
-      
+
       const verifyStartTime = Date.now();
       const verifyResult = await authService.callPQCService('verify_token', {
         user_id: traceUserId,
-        token: signResult.signed_token
+        token: signResult.signed_token,
       });
       const verifyEndTime = Date.now();
-      
+
       console.log(`Verify operation completed in ${verifyEndTime - verifyStartTime}ms`);
       console.log(`Verification result: ${verifyResult.success ? 'VALID' : 'INVALID'}`);
-      console.log(`=== FFI TRACE END ===`);
+      console.log('=== FFI TRACE END ===');
 
       if (signResult.success && verifyResult.success) {
         expect(verifyResult.payload).toEqual(tracePayload);
@@ -296,7 +296,7 @@ print("FFI_VERIFICATION_SUCCESS")
         console.log('PQC service not available - skipping FFI trace test');
         return;
       }
-      
+
       expect(signEndTime - startTime).toBeGreaterThan(0);
       expect(verifyEndTime - verifyStartTime).toBeGreaterThan(0);
     });
@@ -306,27 +306,27 @@ print("FFI_VERIFICATION_SUCCESS")
     it('should handle invalid signatures properly with real verification', async () => {
       const testUserId = 'ffi_error_test_user_' + Date.now();
       const validPayload = { test: 'data' };
-      
+
       const signResult = await authService.callPQCService('sign_token', {
         user_id: testUserId,
-        data_hash: JSON.stringify(validPayload)
+        data_hash: JSON.stringify(validPayload),
       });
       if (!signResult.success) {
         expect(signResult.error_message).toContain('PQC service not available');
         console.log('PQC service not available - skipping invalid signature test');
         return;
       }
-      
+
       const tamperedToken = signResult.signed_token!.replace(/.$/, 'X');
-      
+
       const verifyResult = await authService.callPQCService('verify_token', {
         user_id: testUserId,
-        token: tamperedToken
+        token: tamperedToken,
       });
-      
+
       expect(verifyResult.success).toBe(false);
       expect(verifyResult.error_message).toContain('verification failed');
-      
+
       console.log(`Real FFI properly rejected tampered signature: ${verifyResult.error_message}`);
     });
 
@@ -334,25 +334,25 @@ print("FFI_VERIFICATION_SUCCESS")
       const user1 = 'ffi_user1_' + Date.now();
       const user2 = 'ffi_user2_' + Date.now();
       const testPayload = { test: 'user_mismatch' };
-      
+
       const signResult = await authService.callPQCService('sign_token', {
         user_id: user1,
-        data_hash: JSON.stringify(testPayload)
+        data_hash: JSON.stringify(testPayload),
       });
       if (!signResult.success) {
         expect(signResult.error_message).toContain('PQC service not available');
         console.log('PQC service not available - skipping user ID mismatch test');
         return;
       }
-      
+
       const verifyResult = await authService.callPQCService('verify_token', {
         user_id: user2,
-        token: signResult.signed_token
+        token: signResult.signed_token,
       });
-      
+
       expect(verifyResult.success).toBe(false);
       expect(verifyResult.error_message).toContain('Either token or (signature + public_key + payload) parameters required');
-      
+
       console.log(`Real FFI properly rejected user ID mismatch: ${verifyResult.error_message}`);
     });
   });

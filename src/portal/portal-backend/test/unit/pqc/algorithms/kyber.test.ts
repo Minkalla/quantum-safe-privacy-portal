@@ -63,15 +63,15 @@ describe('Kyber ML-KEM-768 Algorithm Tests', () => {
     it('should generate valid Kyber-768 key pairs with correct sizes', async () => {
       const result = await authService['callPythonPQCService']('generate_session_key', {
         user_id: 'test_user_kyber_768',
-        metadata: { operation: 'key_generation', algorithm: 'kyber-768' }
+        metadata: { operation: 'key_generation', algorithm: 'kyber-768' },
       });
-      
+
       expect(result).toBeDefined();
       expect(result.success).toBe(true);
       expect(result.user_id).toBeDefined();
       expect(result.token).toBeDefined();
       expect(result.algorithm).toBeDefined();
-      
+
       if (result.algorithm === 'Classical') {
         expect(result.token).toMatch(/^[a-f0-9]{64}$/);
       } else if (result.algorithm === 'ML-KEM-768') {
@@ -82,13 +82,13 @@ describe('Kyber ML-KEM-768 Algorithm Tests', () => {
     it('should generate unique key pairs on multiple calls', async () => {
       const result1 = await authService['callPythonPQCService']('generate_session_key', {
         user_id: 'test_user_1',
-        metadata: { operation: 'key_generation', algorithm: 'kyber-768' }
+        metadata: { operation: 'key_generation', algorithm: 'kyber-768' },
       });
       const result2 = await authService['callPythonPQCService']('generate_session_key', {
         user_id: 'test_user_2',
-        metadata: { operation: 'key_generation', algorithm: 'kyber-768' }
+        metadata: { operation: 'key_generation', algorithm: 'kyber-768' },
       });
-      
+
       expect(result1.token).not.toBe(result2.token);
       expect(result1.user_id).not.toBe(result2.user_id);
     });
@@ -98,13 +98,13 @@ describe('Kyber ML-KEM-768 Algorithm Tests', () => {
       for (let i = 0; i < 5; i++) {
         const result = await authService['callPythonPQCService']('generate_session_key', {
           user_id: `test_user_entropy_${i}`,
-          metadata: { operation: 'key_generation', algorithm: 'kyber-768' }
+          metadata: { operation: 'key_generation', algorithm: 'kyber-768' },
         });
         if (result.token) {
           results.push(result.token);
         }
       }
-      
+
       const uniqueKeys = new Set(results);
       expect(uniqueKeys.size).toBe(5);
     });
@@ -116,7 +116,7 @@ describe('Kyber ML-KEM-768 Algorithm Tests', () => {
     beforeEach(async () => {
       sessionResult = await authService['callPythonPQCService']('generate_session_key', {
         user_id: 'test_user_session',
-        metadata: { operation: 'key_generation', algorithm: 'kyber-768' }
+        metadata: { operation: 'key_generation', algorithm: 'kyber-768' },
       });
     });
 
@@ -125,7 +125,7 @@ describe('Kyber ML-KEM-768 Algorithm Tests', () => {
       expect(sessionResult.success).toBe(true);
       expect(sessionResult.user_id).toBeDefined();
       expect(sessionResult.token).toBeDefined();
-      
+
       if (sessionResult.token) {
         if (sessionResult.algorithm === 'Classical') {
           expect(sessionResult.token).toMatch(/^[a-f0-9]{64}$/);
@@ -143,12 +143,12 @@ describe('Kyber ML-KEM-768 Algorithm Tests', () => {
       if (!sessionResult.token) {
         throw new Error('Session key not generated');
       }
-      
+
       const verifyResult = await authService['callPythonPQCService']('verify_token', {
         token: sessionResult.token,
-        user_id: 'test_user_session'
+        user_id: 'test_user_session',
       });
-      
+
       expect(verifyResult).toBeDefined();
       if (sessionResult.algorithm === 'ML-KEM-768') {
         expect(verifyResult.success).toBe(false);
@@ -161,23 +161,23 @@ describe('Kyber ML-KEM-768 Algorithm Tests', () => {
       if (!sessionResult.token) {
         throw new Error('Session key not generated');
       }
-      
+
       const verifyResult = await authService['callPythonPQCService']('verify_token', {
         token: sessionResult.token,
-        user_id: 'wrong_user_id'
+        user_id: 'wrong_user_id',
       });
-      
+
       expect(verifyResult.success).toBe(false);
     });
 
     it('should fail verification with malformed token', async () => {
       const malformedToken = Buffer.alloc(64, 0).toString('base64');
-      
+
       const verifyResult = await authService['callPythonPQCService']('verify_token', {
         token: malformedToken,
-        user_id: 'test_user_session'
+        user_id: 'test_user_session',
       });
-      
+
       expect(verifyResult.success).toBe(false);
     });
   });
@@ -186,14 +186,14 @@ describe('Kyber ML-KEM-768 Algorithm Tests', () => {
     it('should comply with ML-KEM-768 parameter set', async () => {
       const result = await authService['callPythonPQCService']('generate_session_key', {
         user_id: 'test_nist_compliance',
-        metadata: { operation: 'key_generation', algorithm: 'kyber-768' }
+        metadata: { operation: 'key_generation', algorithm: 'kyber-768' },
       });
-      
+
       expect(result.success).toBe(true);
       expect(result.user_id).toBeDefined();
       expect(result.token).toBeDefined();
       expect(result.algorithm).toBeDefined();
-      
+
       if (result.token) {
         if (result.algorithm === 'Classical') {
           expect(result.token).toMatch(/^[a-f0-9]{64}$/);
@@ -209,17 +209,17 @@ describe('Kyber ML-KEM-768 Algorithm Tests', () => {
     it('should maintain security level 3 properties', async () => {
       const iterations = 3;
       const results: string[] = [];
-      
+
       for (let i = 0; i < iterations; i++) {
         const result = await authService['callPythonPQCService']('generate_session_key', {
           user_id: `test_security_level_${i}`,
-          metadata: { operation: 'key_generation', algorithm: 'kyber-768' }
+          metadata: { operation: 'key_generation', algorithm: 'kyber-768' },
         });
         if (result.token) {
           results.push(result.token);
         }
       }
-      
+
       const uniqueSecrets = new Set(results);
       expect(uniqueSecrets.size).toBe(iterations);
     });
@@ -230,10 +230,10 @@ describe('Kyber ML-KEM-768 Algorithm Tests', () => {
       const startTime = Date.now();
       await authService['callPythonPQCService']('generate_session_key', {
         user_id: 'test_performance',
-        metadata: { operation: 'key_generation', algorithm: 'kyber-768' }
+        metadata: { operation: 'key_generation', algorithm: 'kyber-768' },
       });
       const endTime = Date.now();
-      
+
       const duration = endTime - startTime;
       expect(duration).toBeLessThan(5000);
     });
@@ -241,20 +241,20 @@ describe('Kyber ML-KEM-768 Algorithm Tests', () => {
     it('should verify tokens within performance threshold', async () => {
       const sessionResult = await authService['callPythonPQCService']('generate_session_key', {
         user_id: 'test_verify_performance',
-        metadata: { operation: 'key_generation', algorithm: 'kyber-768' }
+        metadata: { operation: 'key_generation', algorithm: 'kyber-768' },
       });
-      
+
       if (!sessionResult.token) {
         throw new Error('Session key not generated');
       }
-      
+
       const startTime = Date.now();
       await authService['callPythonPQCService']('verify_token', {
         token: sessionResult.token,
-        user_id: 'test_verify_performance'
+        user_id: 'test_verify_performance',
       });
       const endTime = Date.now();
-      
+
       const duration = endTime - startTime;
       expect(duration).toBeLessThan(3000);
     });

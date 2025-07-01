@@ -81,7 +81,7 @@ describe('PQC Database Integration', () => {
                 'validation.default_algorithm': 'Dilithium-3',
                 'performance.monitoring_enabled': true,
                 'jwt.secret': 'test-secret',
-                'jwt.expiresIn': '1h'
+                'jwt.expiresIn': '1h',
               };
               return config[key];
             }),
@@ -116,18 +116,18 @@ describe('PQC Database Integration', () => {
           firstName: 'John',
           lastName: 'Doe',
           dateOfBirth: '1990-01-01',
-          ssn: '123-45-6789'
+          ssn: '123-45-6789',
         },
         preferences: {
           marketing: true,
           analytics: false,
-          notifications: true
-        }
+          notifications: true,
+        },
       };
 
       const encryptedPersonalInfo = await encryptionService.encryptData(userData.personalInfo, {
         algorithm: PQCAlgorithmType.KYBER_768,
-        userId: 'db-test-user-1'
+        userId: 'db-test-user-1',
       });
 
       expect(encryptedPersonalInfo.success).toBe(true);
@@ -142,7 +142,7 @@ describe('PQC Database Integration', () => {
         pqcPublicKey: encryptedPersonalInfo.encryptedField?.encryptedData || 'mock-pqc-data',
         pqcKeyGeneratedAt: new Date(),
         encryptedPersonalData: JSON.stringify(encryptedPersonalInfo.encryptedField),
-        createdAt: new Date()
+        createdAt: new Date(),
       });
 
       const savedUser = await user.save();
@@ -157,11 +157,11 @@ describe('PQC Database Integration', () => {
       expect(retrievedUser.encryptedPersonalData).toBeDefined();
 
       expect(retrievedUser.encryptedPersonalData).toBeDefined();
-      
+
       const parsedEncryptedData = JSON.parse(retrievedUser.encryptedPersonalData);
       const integrityValidation = await validationService.validateDataIntegrity(
         parsedEncryptedData,
-        integrity
+        integrity,
       );
 
       expect(integrityValidation.isValid).toBe(true);
@@ -171,7 +171,7 @@ describe('PQC Database Integration', () => {
 
       expect(decryptedData.success).toBe(true);
       expect(decryptedData.decryptedData).toBeDefined();
-      
+
       if (decryptedData.decryptedData.algorithm === 'ML-KEM-768') {
         expect(decryptedData.decryptedData.decrypted).toBe(true);
         expect(decryptedData.decryptedData.keyId).toBeDefined();
@@ -187,19 +187,19 @@ describe('PQC Database Integration', () => {
           dataProcessing: true,
           marketing: false,
           analytics: true,
-          thirdPartySharing: false
+          thirdPartySharing: false,
         },
         metadata: {
           ipAddress: '192.168.1.1',
           userAgent: 'Mozilla/5.0 Test Browser',
           timestamp: new Date().toISOString(),
-          version: '2.0'
-        }
+          version: '2.0',
+        },
       };
 
       const signature = await validationService.generateSignature(consentData, {
         algorithm: 'Dilithium-3' as any,
-        userId: consentData.userId
+        userId: consentData.userId,
       });
 
       expect(signature.algorithm).toBe('Dilithium-3');
@@ -207,7 +207,7 @@ describe('PQC Database Integration', () => {
 
       const encryptedConsent = await encryptionService.encryptData(consentData, {
         algorithm: PQCAlgorithmType.AES_256_GCM,
-        userId: consentData.userId
+        userId: consentData.userId,
       });
 
       expect(encryptedConsent.success).toBe(true);
@@ -223,11 +223,11 @@ describe('PQC Database Integration', () => {
           algorithm: signature.algorithm,
           publicKeyHash: signature.publicKeyHash || 'test-hash',
           timestamp: signature.timestamp,
-          signedDataHash: signature.signedDataHash || 'test-data-hash'
+          signedDataHash: signature.signedDataHash || 'test-data-hash',
         },
         consentVersion: '2.0',
         isActive: true,
-        createdAt: new Date()
+        createdAt: new Date(),
       });
 
       const savedConsent = await consent.save();
@@ -240,7 +240,7 @@ describe('PQC Database Integration', () => {
 
       const signatureVerification = await validationService.verifySignature(
         consentData,
-        retrievedConsent.consentSignature
+        retrievedConsent.consentSignature,
       );
 
       expect(signatureVerification.isValid).toBe(true);
@@ -250,7 +250,7 @@ describe('PQC Database Integration', () => {
 
       expect(decryptedConsent.success).toBe(true);
       expect(decryptedConsent.decryptedData).toBeDefined();
-      
+
       if (decryptedConsent.decryptedData.algorithm === 'AES-256-GCM') {
         expect(decryptedConsent.decryptedData.decrypted).toBe(true);
       } else {
@@ -266,8 +266,8 @@ describe('PQC Database Integration', () => {
         personalData: {
           userId: `scale-user-${i}`,
           sensitiveInfo: `Sensitive data for user ${i}`,
-          timestamp: Date.now()
-        }
+          timestamp: Date.now(),
+        },
       }));
 
       const startTime = Date.now();
@@ -276,7 +276,7 @@ describe('PQC Database Integration', () => {
         testUsers.map(async (userData) => {
           const encrypted = await encryptionService.encryptData(userData.personalData, {
             algorithm: PQCAlgorithmType.KYBER_768,
-            userId: userData.personalData.userId
+            userId: userData.personalData.userId,
           });
 
           const integrity = await validationService.createDataIntegrity(encrypted.encryptedField!, userData.personalData.userId);
@@ -288,11 +288,11 @@ describe('PQC Database Integration', () => {
             pqcPublicKey: encrypted.encryptedField?.encryptedData || `mock-pqc-data-${userData.personalData.userId}`,
             pqcKeyGeneratedAt: new Date(),
             encryptedPersonalData: JSON.stringify(encrypted.encryptedField),
-            createdAt: new Date()
+            createdAt: new Date(),
           });
 
           return await user.save();
-        })
+        }),
       );
 
       const insertTime = Date.now() - startTime;
@@ -318,12 +318,12 @@ describe('PQC Database Integration', () => {
             const userIntegrity = await validationService.createDataIntegrity(parsedData, user.email);
             return await validationService.validateDataIntegrity(
               parsedData,
-              userIntegrity
+              userIntegrity,
             );
           } catch (error) {
             return { isValid: false, errors: ['Parse error'] };
           }
-        })
+        }),
       );
 
       const validationTime = Date.now() - validationStartTime;
@@ -340,15 +340,15 @@ describe('PQC Database Integration', () => {
         data: {
           operation: `concurrent-op-${i}`,
           timestamp: Date.now(),
-          payload: `Concurrent data ${i}`
-        }
+          payload: `Concurrent data ${i}`,
+        },
       }));
 
       const results = await Promise.all(
         concurrentOperations.map(async (op) => {
           const encrypted = await encryptionService.encryptData(op.data, {
             algorithm: PQCAlgorithmType.AES_256_GCM,
-            userId: op.userId
+            userId: op.userId,
           });
 
           const integrity = await validationService.createDataIntegrity(encrypted.encryptedField!, op.userId);
@@ -360,7 +360,7 @@ describe('PQC Database Integration', () => {
             pqcPublicKey: encrypted.encryptedField?.encryptedData || `mock-pqc-data-${op.userId}`,
             pqcKeyGeneratedAt: new Date(),
             encryptedPersonalData: JSON.stringify(encrypted.encryptedField),
-            createdAt: new Date()
+            createdAt: new Date(),
           });
 
           const saved = await user.save();
@@ -373,7 +373,7 @@ describe('PQC Database Integration', () => {
             const userIntegrity = await validationService.createDataIntegrity(parsedData, op.userId);
             validation = await validationService.validateDataIntegrity(
               parsedData,
-              userIntegrity
+              userIntegrity,
             );
           } else {
             validation = { isValid: false, errors: ['No encrypted data found'] };
@@ -383,9 +383,9 @@ describe('PQC Database Integration', () => {
             userId: op.userId,
             saved: !!saved._id,
             retrieved: !!retrieved,
-            valid: validation.isValid
+            valid: validation.isValid,
           };
-        })
+        }),
       );
 
       expect(results).toHaveLength(20);
@@ -404,17 +404,17 @@ describe('PQC Database Integration', () => {
     it('should handle mixed PQC and non-PQC data in the same collection', async () => {
       const pqcUser = {
         email: 'pqc-user@example.com',
-        personalData: { sensitive: 'PQC protected data' }
+        personalData: { sensitive: 'PQC protected data' },
       };
 
       const nonPqcUser = {
         email: 'regular-user@example.com',
-        personalData: { regular: 'Non-PQC data' }
+        personalData: { regular: 'Non-PQC data' },
       };
 
       const encryptedPqcData = await encryptionService.encryptData(pqcUser.personalData, {
         algorithm: PQCAlgorithmType.KYBER_768,
-        userId: 'mixed-pqc-user'
+        userId: 'mixed-pqc-user',
       });
 
       const pqcIntegrity = await validationService.createDataIntegrity(encryptedPqcData.encryptedField!, 'mixed-pqc-user');
@@ -426,14 +426,14 @@ describe('PQC Database Integration', () => {
         pqcPublicKey: encryptedPqcData.encryptedField?.encryptedData || 'mock-pqc-data-mixed',
         pqcKeyGeneratedAt: new Date(),
         encryptedPersonalData: JSON.stringify(encryptedPqcData.encryptedField),
-        createdAt: new Date()
+        createdAt: new Date(),
       }).save();
 
       const savedNonPqcUser = await new userModel({
         email: nonPqcUser.email,
         password: 'TestPassword123!',
         usePQC: false,
-        createdAt: new Date()
+        createdAt: new Date(),
       }).save();
 
       expect(savedPqcUser.usePQC).toBe(true);
@@ -453,7 +453,7 @@ describe('PQC Database Integration', () => {
       const retrievedPqcUser = pqcUsers[0];
       const validation = await validationService.validateDataIntegrity(
         JSON.parse(retrievedPqcUser.encryptedPersonalData),
-        pqcIntegrity
+        pqcIntegrity,
       );
 
       expect(validation.isValid).toBe(true);

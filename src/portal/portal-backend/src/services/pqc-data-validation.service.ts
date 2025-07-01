@@ -77,7 +77,7 @@ export class PQCDataValidationService {
 
     try {
       const dataHash = this.generateDataHash(data);
-      
+
       this.logger.debug(`Verification: dataHash=${dataHash}, signedDataHash=${signature.signedDataHash}`);
 
       if (dataHash !== signature.signedDataHash) {
@@ -161,7 +161,7 @@ export class PQCDataValidationService {
 
       const cryptoUserId = generateCryptoUserId(userId, {
         algorithm: 'ML-DSA-65',
-        operation: 'signing'
+        operation: 'signing',
       });
 
       this.logger.debug(`Using crypto user ID: ${cryptoUserId} for original user: ${userId}`);
@@ -224,7 +224,7 @@ export class PQCDataValidationService {
       this.logger.debug(`Input data type: ${typeof data}, data preview: ${JSON.stringify(data).slice(0, 200)}...`);
       this.logger.debug(`Expected integrity hash: ${integrity.hash}`);
       this.logger.debug(`Integrity signature present: ${!!integrity.signature}`);
-      
+
       const currentHash = this.generateDataHash(data);
       this.logger.debug(`Generated current hash: ${currentHash}`);
 
@@ -234,20 +234,20 @@ export class PQCDataValidationService {
         return result;
       }
 
-      this.logger.debug(`Hash validation passed, proceeding to signature verification`);
+      this.logger.debug('Hash validation passed, proceeding to signature verification');
 
       if (integrity.signature) {
         this.logger.debug(`Verifying signature with algorithm: ${integrity.signature.algorithm}`);
         const signatureResult = await this.verifySignature(data, integrity.signature, options);
         this.logger.debug(`Signature verification result: ${signatureResult.isValid}`);
         this.logger.debug(`Signature verification errors: ${JSON.stringify(signatureResult.errors)}`);
-        
+
         result.isValid = signatureResult.isValid;
         result.errors.push(...signatureResult.errors);
         result.warnings.push(...signatureResult.warnings);
         result.performanceMetrics = signatureResult.performanceMetrics;
       } else {
-        this.logger.debug(`No signature to verify, marking as valid`);
+        this.logger.debug('No signature to verify, marking as valid');
         result.isValid = true;
       }
 
@@ -262,13 +262,13 @@ export class PQCDataValidationService {
 
   private generateDataHash(data: any): string {
     if (!data) {
-      this.logger.warn(`generateDataHash received null/undefined data`);
+      this.logger.warn('generateDataHash received null/undefined data');
       return crypto.createHash('sha256').update('{}').digest('hex');
     }
 
     try {
       let serializedData: string;
-      
+
       if (typeof data === 'string') {
         serializedData = data;
       } else if (typeof data === 'object') {
@@ -276,7 +276,7 @@ export class PQCDataValidationService {
       } else {
         serializedData = String(data);
       }
-      
+
       return crypto.createHash('sha256').update(serializedData).digest('hex');
     } catch (error) {
       this.logger.error(`generateDataHash serialization failed: ${error.message}`);
@@ -287,9 +287,9 @@ export class PQCDataValidationService {
   private async signWithDilithium(dataHash: string, userId?: string): Promise<string> {
     try {
       const signUserId = userId || generateCryptoUserId('anonymous', {
-      algorithm: 'ML-DSA-65',
-      operation: 'signing'
-    });
+        algorithm: 'ML-DSA-65',
+        operation: 'signing',
+      });
       const pqcResult = await this.authService.callPQCService('sign_token', {
         user_id: signUserId,
         payload: { dataHash, timestamp: Date.now(), operation: 'sign' },
@@ -328,7 +328,7 @@ export class PQCDataValidationService {
       this.logger.debug(`Extracted signature part: ${signaturePart.slice(0, 50)}...`);
 
       const isValidFormat = signaturePart.length > 10 && !signaturePart.includes('undefined');
-      
+
       if (!isValidFormat) {
         this.logger.debug('ML-DSA-65 verification failed: invalid signature format');
         return false;
@@ -336,20 +336,20 @@ export class PQCDataValidationService {
 
       try {
         let verifyUserId: string;
-        
+
         if (signatureMetadata?.cryptoUserId) {
           verifyUserId = signatureMetadata.cryptoUserId;
           this.logger.debug(`Using stored crypto user ID from signature metadata: ${verifyUserId}`);
         } else if (userId) {
           verifyUserId = generateCryptoUserId(userId, {
             algorithm: 'ML-DSA-65',
-            operation: 'signing'
+            operation: 'signing',
           });
           this.logger.debug(`Generated crypto user ID for verification: ${verifyUserId}`);
         } else {
           verifyUserId = generateCryptoUserId('anonymous', {
             algorithm: 'ML-DSA-65',
-            operation: 'signing'
+            operation: 'signing',
           });
           this.logger.debug(`Using anonymous crypto user ID: ${verifyUserId}`);
         }
@@ -408,7 +408,7 @@ export class PQCDataValidationService {
   }
 
   private generatePublicKeyHash(): string {
-    return crypto.createHash('sha256').update(`pubkey-deterministic-hash`).digest('hex');
+    return crypto.createHash('sha256').update('pubkey-deterministic-hash').digest('hex');
   }
 
   async batchValidateIntegrity(

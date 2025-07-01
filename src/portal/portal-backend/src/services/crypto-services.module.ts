@@ -8,6 +8,7 @@ import { PQCDataEncryptionService } from './pqc-data-encryption.service';
 import { CircuitBreakerService } from './circuit-breaker.service';
 import { BulkEncryptionService } from './bulk-encryption.service';
 import { FieldEncryptionService } from './field-encryption.service';
+import { EnhancedErrorBoundaryService } from './enhanced-error-boundary.service';
 import { PQCService } from './pqc.service';
 import { AuthModule } from '../auth/auth.module';
 import User, { IUser, UserSchema } from '../models/User';
@@ -30,6 +31,7 @@ import Consent, { IConsent, ConsentSchema } from '../models/Consent';
     CircuitBreakerService,
     BulkEncryptionService,
     FieldEncryptionService,
+    EnhancedErrorBoundaryService,
     PQCService,
   ],
   exports: [
@@ -40,6 +42,7 @@ import Consent, { IConsent, ConsentSchema } from '../models/Consent';
     CircuitBreakerService,
     BulkEncryptionService,
     FieldEncryptionService,
+    EnhancedErrorBoundaryService,
     PQCService,
   ],
 })
