@@ -8,7 +8,7 @@ import { AuthProvider } from '../contexts/AuthContext';
 import Register from '../components/auth/Register';
 
 const server = setupServer(
-  rest.post('http://localhost:8080/portal/auth/register', (_, res, ctx) => {
+  rest.post(`${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/portal/auth/register`, (_, res, ctx) => {
     return res(
       ctx.status(201),
       ctx.json({
