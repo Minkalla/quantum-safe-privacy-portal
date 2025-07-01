@@ -16,7 +16,7 @@ const ErrorMessage: React.FC<ErrorMessageProps> = ({ error, className = '' }) =>
   };
 
   return (
-    <div className={`bg-red-50 border border-red-200 rounded-lg p-4 ${className}`}>
+    <div className={`bg-red-50 border border-red-200 rounded-lg p-4 ${className}`} role="alert">
       <div className="flex items-start space-x-3">
         <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
         <div>
