@@ -1,11 +1,7 @@
 name: CI - Dual Backend Validation v3
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'apps/backend/**'
-      - '.github/workflows/ci-cd-validation-adjusted-v3.yml'
+  workflow_dispatch:
 
 jobs:
   validate-legacy:
