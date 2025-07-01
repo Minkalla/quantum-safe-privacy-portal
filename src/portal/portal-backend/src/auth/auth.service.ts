@@ -402,6 +402,70 @@ export class AuthService {
   }
 
   /**
+   * Refreshes access token using a valid refresh token.
+   * @param refreshToken The refresh token to validate.
+   * @returns New access token and optionally a new refresh token.
+   * @throws UnauthorizedException for invalid or expired refresh tokens.
+   */
+  async refreshToken(refreshToken: string): Promise<{ accessToken: string; refreshToken?: string; user: { id: string; email: string } }> {
+    try {
+      const payload = this.jwtService.verifyToken(refreshToken, 'refresh');
+      if (!payload) {
+        this.invalidRefreshTokenHandler(refreshToken, 'Invalid token payload');
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
+      const user = await this.userModel
+        .findById(payload.userId)
+        .select('+refreshTokenHash');
+
+      if (!user || !user.refreshTokenHash) {
+        this.invalidRefreshTokenHandler(refreshToken, 'User not found or no refresh token hash');
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
+      const isRefreshTokenValid = await bcrypt.compare(refreshToken, user.refreshTokenHash);
+      if (!isRefreshTokenValid) {
+        this.invalidRefreshTokenHandler(refreshToken, 'Token hash mismatch');
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
+      const tokenPayload = { userId: (user._id as ObjectId).toString(), email: user.email };
+      const { accessToken, refreshToken: newRefreshToken } = this.jwtService.generateTokens(tokenPayload, false);
+
+      const hashedNewRefreshToken = await bcrypt.hash(newRefreshToken, 10);
+      user.refreshTokenHash = hashedNewRefreshToken;
+      await user.save();
+
+      this.logger.log(`Token refreshed successfully for user ${user.email}`);
+
+      return {
+        accessToken,
+        refreshToken: newRefreshToken,
+        user: {
+          id: (user._id as ObjectId).toString(),
+          email: user.email,
+        },
+      };
+    } catch (error) {
+      this.logger.warn(`Token refresh failed: ${error.message}`);
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+  }
+
+  /**
+   * Handle invalid refresh tokens with blacklist logging (stub implementation)
+   * This provides a hook for future token blacklist/revocation functionality
+   * @param refreshToken The invalid refresh token
+   * @param reason The reason for invalidation
+   */
+  private invalidRefreshTokenHandler(refreshToken: string, reason: string): void {
+    const tokenHash = refreshToken.substring(0, 10) + '...';
+    this.logger.warn(`Invalid refresh token detected: ${tokenHash}, reason: ${reason}`);
+
+  }
+
+  /**
    * Trigger post-login PQC handshake with comprehensive logging
    * @param userId User identifier
    * @returns Promise with handshake result and metadata
