@@ -419,7 +419,7 @@ def handle_handshake(params: Dict[str, Any]) -> Dict[str, Any]:
         kem_encaps = pqc_service.ml_kem_encapsulate(kem_keypair['public_key'])
         
         dsa_keypair = pqc_service.generate_ml_dsa_keypair()
-        handshake_data = f"{user_id}:{handshake_id}:{timestamp}"
+        handshake_data = f"{user_id}:{handshake_id}:{int(timestamp)}"
         signature_result = pqc_service.ml_dsa_sign(dsa_keypair['private_key'], handshake_data.encode('utf-8'))
         
         handshake_metadata = {
