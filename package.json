@@ -5,7 +5,17 @@
   "private": true,
   "scripts": {
     "test": "IS_TESTING=true npx jest",
-    "postinstall": "npm install --prefix src/portal/portal-backend"
+    "postinstall": "npm install --prefix src/portal/portal-backend",
+    "build:backend-legacy": "cd src/portal/portal-backend && npm run build",
+    "build:backend-new": "cd apps/backend && npm run build",
+    "test:backend-legacy": "cd src/portal/portal-backend && npm run test",
+    "test:backend-new": "cd apps/backend && npm run test",
+    "lint:backend-legacy": "cd src/portal/portal-backend && npm run lint",
+    "lint:backend-new": "cd apps/backend && npm run lint",
+    "start:dev-legacy": "cd src/portal/portal-backend && npm run start:dev",
+    "start:dev-new": "cd apps/backend && npm run start:dev",
+    "install:backend-legacy": "cd src/portal/portal-backend && npm install",
+    "install:backend-new": "cd apps/backend && npm install"
   },
   "devDependencies": {
     "@types/dotenv": "^6.1.1",

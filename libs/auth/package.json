@@ -1,0 +1,23 @@
+{
+  "name": "@libs/auth",
+  "version": "1.0.0",
+  "description": "Authentication module for the Quantum-Safe Privacy Portal",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/mongoose": "^10.0.0",
+    "@nestjs/jwt": "^11.0.0",
+    "mongoose": "^8.4.4",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "@libs/common": "1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.3"
+  }
+}
