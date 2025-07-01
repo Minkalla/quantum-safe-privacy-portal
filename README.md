@@ -194,11 +194,29 @@ cargo clippy -- -D warnings
 
 ## 📚 Documentation
 
+### Core Technical Documentation
 - [API Reference](./docs/API_REFERENCE.md)
 - [Security Guide](./docs/SECURITY.md)
 - [Deployment Guide](./docs/DEPLOYMENT.md)
 - [Architecture Overview](./docs/ARCHITECTURE.md)
 - [Compliance Report](./docs/COMPLIANCE_REPORT.md)
+
+### Authentication & Session Management
+- [Session Management](./docs/SESSION_MANAGEMENT.md) - Comprehensive JWT token lifecycle, refresh flows, and route protection (WBS 1.12)
+- [Authentication Flow Documentation](./docs/AUTHENTICATION_FLOW_DOCUMENTATION.md) - Technical details of JWT structure and authentication patterns
+- [End-to-End Flow Analysis](./docs/END_TO_END_FLOW_ANALYSIS.md) - Complete user journey through authentication flows
+- [WBS Authentication Tracelog](./docs/WBS_AUTH_TRACELOG.md) - Comprehensive tracking of authentication system implementation across WBS phases
+
+### WBS Implementation Status & Readiness
+- [WBS 1.12 Readiness Checklist](./docs/WBS_1.12_READINESS_CHECKLIST.md) - Pre-flight validation for session management implementation
+- [WBS 1.13 Readiness Checklist](./docs/WBS_1.13_READINESS_CHECKLIST.md) - Multi-Factor Authentication implementation preparation
+- [PQC Integration Status Tracking](./docs/PQC_INTEGRATION_STATUS_TRACKING.md) - Complete project status and phase tracking
+- [Handover Summary](./docs/HANDOVER_SUMMARY.md) - Current project status and completed deliverables
+
+### Project Management & Onboarding
+- [New Engineer Onboarding](./docs/NEW_ENGINEER_ONBOARDING_MESSAGE.md) - Complete onboarding guide for new team members
+- [WBS Status Report](./docs/WBS_STATUS_REPORT.md) - Detailed status of all WBS tasks and deliverables
+- [Green Status Guarantee](./docs/GREEN_STATUS_GUARANTEE.md) - Quality assurance and validation framework
 
 ## 🤝 Contributing
 
