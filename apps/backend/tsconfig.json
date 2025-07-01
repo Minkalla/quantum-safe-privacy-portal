@@ -22,7 +22,7 @@
     "isolatedModules": true,
     "esModuleInterop": true,
     "lib": ["ES2020"],
-    "types": ["node", "bcryptjs"],
+    "types": ["node", "bcryptjs", "jest"],
     "typeRoots": ["./node_modules/@types"],
     "paths": {
       "@libs/auth": ["../libs/auth/src"],
