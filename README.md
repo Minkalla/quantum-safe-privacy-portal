@@ -3,7 +3,6 @@
 [![Monorepo CI](https://github.com/Minkalla/quantum-safe-privacy-portal/actions/workflows/ci-cd-validation-adjusted-v3.yml/badge.svg)](https://github.com/Minkalla/quantum-safe-privacy-portal/actions/workflows/ci-cd-validation-adjusted-v3.yml)
 
 
-
 A comprehensive privacy-focused platform implementing NIST Post-Quantum Cryptography (PQC) standards for quantum-resistant security.
 
 ## 🔐 Project Overview
