@@ -27,7 +27,7 @@ mod crypto_security_tests {
     #[test]
     fn signature_non_deterministic() {
         let message = b"test message for signature";
-        
+
         let sig1 = mock_sign_message(message);
         let sig2 = mock_sign_message(message);
 
@@ -48,7 +48,7 @@ mod crypto_security_tests {
         for _ in 0..1000 {
             let mock_data = vec![0u8; 1000];
             let processed = mock_process_data(&mock_data);
-            
+
             assert!(!processed.is_empty());
             drop((mock_data, processed));
         }
@@ -64,7 +64,10 @@ mod crypto_security_tests {
 
 fn mock_sign_message(message: &[u8]) -> Vec<u8> {
     use std::time::{SystemTime, UNIX_EPOCH};
-    let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
     format!("signature_{}_{}", timestamp, message.len()).into_bytes()
 }
 
@@ -84,11 +87,11 @@ fn mock_validate_public_key(key: &[u8]) -> Result<(), &'static str> {
     if key.is_empty() {
         return Err("Empty key data");
     }
-    
+
     if key.len() < 1184 {
         return Err("Key too short");
     }
-    
+
     Ok(())
 }
 

@@ -57,9 +57,11 @@ pub enum PQCError {
 pub type PQCResult<T> = Result<T, PQCError>;
 
 pub mod key_management;
-pub use key_management::{SecureKeyManager, KeyMetadata, KeyStatus, HSMConfig, KeyStatistics};
+pub use key_management::{HSMConfig, KeyMetadata, KeyStatistics, KeyStatus, SecureKeyManager};
 
-pub use security::{ConstantTimeOps, PowerAnalysisProtection, CacheProtection, SideChannelProtection};
+pub use security::{
+    CacheProtection, ConstantTimeOps, PowerAnalysisProtection, SideChannelProtection,
+};
 
 pub struct PQCKeyPair {
     pub public_key: Vec<u8>,
@@ -646,39 +648,39 @@ pub unsafe extern "C" fn free_string(ptr: *mut c_char) {
 mod security_hardening_tests {
     use super::*;
     use zeroize::Zeroize;
-    
+
     #[test]
     fn memory_zeroization() {
         let mut secret_data = [0x42u8; 32];
         let original = secret_data.clone();
-        
+
         assert_eq!(secret_data, original);
-        
+
         secret_data.zeroize();
-        
+
         assert_eq!(secret_data, [0u8; 32]);
         assert_ne!(secret_data, original);
     }
-    
+
     #[test]
     fn input_validation() {
         assert!(validate_public_key(&[]).is_err());
-        
+
         assert!(validate_public_key(&[0u8; 10]).is_err());
-        
+
         let valid_key = [0u8; 1184];
         assert!(validate_public_key(&valid_key).is_ok());
     }
-    
+
     #[test]
     fn error_handling_security() {
         let invalid_key = [0u8; 10];
         let result = pqc_sign_with_key(&invalid_key, b"message");
-        
+
         let error_msg = format!("{:?}", result.unwrap_err());
         assert!(!error_msg.contains("key"));
         assert!(!error_msg.contains("secret"));
-        
+
         assert!(error_msg.contains("Invalid") || error_msg.contains("Error"));
     }
 }
@@ -688,19 +690,21 @@ fn validate_public_key(key: &[u8]) -> PQCResult<()> {
     if key.is_empty() {
         return Err(PQCError::InvalidPublicKey("Empty key data".to_string()));
     }
-    
+
     if key.len() < 1184 {
         return Err(PQCError::InvalidPublicKey("Key too short".to_string()));
     }
-    
+
     Ok(())
 }
 
 #[allow(dead_code)]
 fn pqc_sign_with_key(key: &[u8], _message: &[u8]) -> PQCResult<Vec<u8>> {
     if key.len() < 32 {
-        return Err(PQCError::InvalidPrivateKey("Invalid input length".to_string()));
+        return Err(PQCError::InvalidPrivateKey(
+            "Invalid input length".to_string(),
+        ));
     }
-    
+
     Ok(vec![0u8; 64])
 }

@@ -1,8 +1,8 @@
+use libc::size_t;
 use std::alloc::{alloc, dealloc, Layout};
 use std::ffi::CString;
 use std::os::raw::c_char;
 use std::ptr;
-use libc::size_t;
 use zeroize::Zeroize;
 
 #[repr(C)]

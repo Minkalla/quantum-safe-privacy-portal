@@ -350,8 +350,11 @@ mod key_management_tests {
                 "Dilithium-3"
             };
             let key_id = manager.generate_and_store_key(user_id, algorithm).unwrap();
-            
-            assert!(!key_ids.contains(&key_id), "Duplicate key ID generated: {key_id}");
+
+            assert!(
+                !key_ids.contains(&key_id),
+                "Duplicate key ID generated: {key_id}"
+            );
             key_ids.insert(key_id);
         }
 

@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2020",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "forceConsistentCasingInFileNames": false,
+    "noFallthroughCasesInSwitch": false,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "lib": ["ES2020"],
+    "types": ["node", "bcryptjs", "jest"],
+    "typeRoots": ["./node_modules/@types"],
+    "paths": {
+      "@libs/auth": ["../libs/auth/src"],
+      "@libs/user": ["../libs/user/src"],
+      "@libs/pqc": ["../libs/pqc/src"],
+      "@libs/common": ["../libs/common/src"],
+      "@libs/logger": ["../libs/logger/src"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "src/**/*.spec.ts", "src/**/__tests__/**/*"]
+}

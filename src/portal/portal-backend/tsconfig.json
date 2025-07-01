@@ -22,9 +22,9 @@
     "isolatedModules": true,
     "esModuleInterop": true,
     "lib": ["ES2020"],
-    "types": ["node", "bcryptjs"],
+    "types": ["node", "bcryptjs", "jest"],
     "typeRoots": ["./node_modules/@types"]
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "src/**/*.spec.ts", "src/**/__tests__/**/*", "test/**/*"]
 }
