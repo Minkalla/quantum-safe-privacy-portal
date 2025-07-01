@@ -25,6 +25,7 @@ import { IUser } from '../models/User';
 import { JwtService } from '../jwt/jwt.service';
 import { PQCFeatureFlagsService } from '../pqc/pqc-feature-flags.service';
 import { PQCMonitoringService } from '../pqc/pqc-monitoring.service';
+import { PQCService } from '../services/pqc.service';
 import { ObjectId } from 'mongodb';
 
 // Brute-force protection settings
@@ -40,6 +41,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly pqcFeatureFlags: PQCFeatureFlagsService,
     private readonly pqcMonitoring: PQCMonitoringService,
+    private readonly pqcService: PQCService,
   ) {}
 
   /**
@@ -129,6 +131,10 @@ export class AuthService {
             algorithm: pqcResult.algorithm || 'ML-KEM-768',
             session_id: pqcResult.session_data?.session_id,
             keyId: pqcResult.session_data?.public_key_hash,
+            handshake_id: pqcResult.handshake_metadata?.handshake_id,
+            handshake_timestamp: pqcResult.handshake_metadata?.timestamp,
+            kem_algorithm: pqcResult.handshake_metadata?.kem_algorithm,
+            dsa_algorithm: pqcResult.handshake_metadata?.dsa_algorithm,
             iat: Math.floor(Date.now() / 1000),
             exp: Math.floor(Date.now() / 1000) + (60 * 60), // 1 hour
           };
@@ -182,6 +188,7 @@ export class AuthService {
       'sign_token',
       'verify_token',
       'get_status',
+      'handshake',
     ] as const);
 
     if (!ALLOWED_OPERATIONS.includes(operation as any)) {
@@ -194,7 +201,7 @@ export class AuthService {
 
     const sanitizedParams = this.sanitizePQCParams(params);
     console.log(`DEBUG TS: Calling PQC service: ${operation} with params: ${JSON.stringify(sanitizedParams)}`);
-    
+
     // Special debugging for verify_token operations
     if (operation === 'verify_token') {
       console.log(`DEBUG TS: verify_token - token length: ${sanitizedParams.token?.length || 'undefined'}`);
@@ -220,53 +227,53 @@ export class AuthService {
         cwd: path.resolve(__dirname, '../../../mock-qynauth/src/python_app'), // Set working directory
       });
 
-        let stdout = '';
-        let stderr = '';
+      let stdout = '';
+      let stderr = '';
 
-        pythonProcess.stdout.on('data', (data) => {
-          stdout += data.toString();
-        });
+      pythonProcess.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
 
-        pythonProcess.stderr.on('data', (data) => {
-          const stderrData = data.toString();
-          stderr += stderrData;
-          if (stderrData.includes('DEBUG BRIDGE:') || stderrData.includes('DEBUG:')) {
-            this.logger.debug(`Python stderr: ${stderrData}`);
+      pythonProcess.stderr.on('data', (data) => {
+        const stderrData = data.toString();
+        stderr += stderrData;
+        if (stderrData.includes('DEBUG BRIDGE:') || stderrData.includes('DEBUG:')) {
+          this.logger.debug(`Python stderr: ${stderrData}`);
+        }
+      });
+
+      pythonProcess.on('close', (code) => {
+        console.log(`DEBUG TS: Python process closed with code ${code}`);
+        console.log(`DEBUG TS: stdout length: ${stdout.length}`);
+        console.log(`DEBUG TS: stderr length: ${stderr.length}`);
+
+        if (stderr.length > 0) {
+          console.log(`DEBUG TS: stderr content: ${stderr}`);
+        }
+
+        try {
+          const result = JSON.parse(stdout);
+          console.log(`DEBUG TS: PQC service response for ${operation}: ${JSON.stringify(result)}`);
+          resolve(result);
+        } catch (parseError: any) {
+          if (code === 0) {
+            this.logger.error(`Failed to parse Python service response: ${parseError.message}, stdout: ${stdout}`);
+            reject(new Error(`Failed to parse Python service response: ${parseError.message}`));
+          } else {
+            this.logger.error(`Python PQC service failed with code ${code}: ${stderr}`);
+            reject(new Error(`Python PQC service failed with code ${code}: ${stderr}`));
           }
-        });
+        }
+      });
 
-        pythonProcess.on('close', (code) => {
-          console.log(`DEBUG TS: Python process closed with code ${code}`);
-          console.log(`DEBUG TS: stdout length: ${stdout.length}`);
-          console.log(`DEBUG TS: stderr length: ${stderr.length}`);
-          
-          if (stderr.length > 0) {
-            console.log(`DEBUG TS: stderr content: ${stderr}`);
-          }
-          
-          try {
-            const result = JSON.parse(stdout);
-            console.log(`DEBUG TS: PQC service response for ${operation}: ${JSON.stringify(result)}`);
-            resolve(result);
-          } catch (parseError: any) {
-            if (code === 0) {
-              this.logger.error(`Failed to parse Python service response: ${parseError.message}, stdout: ${stdout}`);
-              reject(new Error(`Failed to parse Python service response: ${parseError.message}`));
-            } else {
-              this.logger.error(`Python PQC service failed with code ${code}: ${stderr}`);
-              reject(new Error(`Python PQC service failed with code ${code}: ${stderr}`));
-            }
-          }
-        });
+      pythonProcess.on('error', (error) => {
+        reject(new Error(`Failed to spawn Python process: ${error.message}`));
+      });
 
-        pythonProcess.on('error', (error) => {
-          reject(new Error(`Failed to spawn Python process: ${error.message}`));
-        });
-
-        pythonProcess.on('timeout', () => {
-          pythonProcess.kill('SIGKILL');
-          reject(new Error('Python PQC service timed out'));
-        });
+      pythonProcess.on('timeout', () => {
+        pythonProcess.kill('SIGKILL');
+        reject(new Error('Python PQC service timed out'));
+      });
     });
   }
 
@@ -290,7 +297,7 @@ export class AuthService {
         const isBase64Like = /^[A-Za-z0-9+/=]+$/.test(value);
         const isUserIdLike = /^[a-zA-Z0-9_-]+$/.test(value);
         const isJsonLike = value.startsWith('{') && value.endsWith('}');
-        
+
         let sanitizedValue;
         if (isBase64Like || isUserIdLike || isJsonLike) {
           sanitizedValue = value
@@ -373,6 +380,12 @@ export class AuthService {
 
     await user.save();
 
+    try {
+      await this.triggerPQCHandshake((user._id as ObjectId).toString());
+    } catch (handshakeError) {
+      this.logger.warn(`PQC handshake failed for user ${user._id}, continuing with login:`, handshakeError);
+    }
+
     const response: any = {
       accessToken,
       user: {
@@ -386,5 +399,41 @@ export class AuthService {
     }
 
     return response;
+  }
+
+  /**
+   * Trigger post-login PQC handshake with comprehensive logging
+   * @param userId User identifier
+   * @returns Promise with handshake result and metadata
+   */
+  async triggerPQCHandshake(userId: string): Promise<any> {
+    const startTime = Date.now();
+    let success = false;
+    let handshakeMetadata: any = null;
+
+    try {
+      const handshakeResult = await this.pqcService.triggerPQCHandshake(userId);
+
+      if (handshakeResult.success) {
+        success = true;
+        handshakeMetadata = handshakeResult.handshake_metadata;
+
+        this.logger.log(`PQC handshake completed for user ${userId}`, {
+          handshake_id: handshakeMetadata.handshake_id,
+          algorithms: `${handshakeMetadata.kem_algorithm}/${handshakeMetadata.dsa_algorithm}`,
+          duration_ms: Date.now() - startTime,
+          fallback_mode: handshakeMetadata.fallback_mode,
+        });
+      } else {
+        throw new Error(handshakeResult.error_message || 'Handshake failed');
+      }
+
+      return handshakeResult;
+    } catch (error) {
+      this.logger.error(`PQC handshake failed for user ${userId}:`, error);
+      throw error;
+    } finally {
+      await this.pqcMonitoring.recordPQCAuthentication(userId, startTime, success);
+    }
   }
 }
