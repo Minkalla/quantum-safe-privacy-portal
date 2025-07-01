@@ -1,6 +1,34 @@
-git switch main
-git pull origin main
-# Apply changes to ci-cd-validation-adjusted-v3.yml
-git add .github/workflows/ci-cd-validation-adjusted-v3.yml
-git commit -m "ci: split validation jobs, add timeouts, block bot triggers"
-git push origin main
+name: CI - Dual Backend Validation v3
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  validate-legacy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: ${{ github.actor != 'devin-ai-integration' }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install & test legacy backend
+        run: |
+          cd src/portal/portal-backend
+          npm ci
+          npm run build
+          npm test
+
+  validate-monorepo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: ${{ github.actor != 'devin-ai-integration' }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install & test monorepo backend
+        run: |
+          cd apps/backend
+          npm ci
+          npm run build
+          npm test
+
+
