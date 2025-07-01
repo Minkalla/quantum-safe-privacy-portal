@@ -1,0 +1,81 @@
+name: "Frontend CI/CD Pipeline"
+
+on:
+  push:
+    branches: [ "main", "devin/*" ]
+    paths: [ "src/portal/portal-frontend/**" ]
+  pull_request:
+    branches: [ "main" ]
+    paths: [ "src/portal/portal-frontend/**" ]
+
+jobs:
+  typecheck-lint:
+    name: "🔍 Typecheck and Lint"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: src/portal/portal-frontend
+    
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+        
+      - name: "📦 Setup Node.js"
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: src/portal/portal-frontend/package.json
+          
+      - name: "📦 Install Dependencies"
+        run: npm install
+        
+      - name: "🔍 TypeScript Check"
+        run: npx tsc --noEmit
+        
+      - name: "🔍 ESLint Check"
+        run: npm run lint
+
+  build-test:
+    name: "🏗️ Build and Test"
+    runs-on: ubuntu-latest
+    needs: typecheck-lint
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: src/portal/portal-frontend
+    
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+        
+      - name: "📦 Setup Node.js"
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: src/portal/portal-frontend/package.json
+          
+      - name: "📦 Install Dependencies"
+        run: npm install
+        
+      - name: "🏗️ Build Application"
+        run: npm run build
+        
+      - name: "🧪 Run Tests"
+        run: npm run test
+        
+      - name: "🔐 Enforce FFI-verification when cryptographic files are changed"
+        run: |
+          CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
+          FFI_FILES=$(echo "$CHANGED" | grep -E "(pqc_service_bridge|ffi|/portal/auth|/portal/consent)" || true)
+          
+          if [[ -n "$FFI_FILES" ]]; then
+            echo "🔒 PQC/FFI-related files changed:"
+            echo "$FFI_FILES"
+            echo "⚠️  Ensure 'npm test ffi-verification' is included in your workflow or local run."
+            exit 1
+          else
+            echo "✅ No PQC/FFI integration files touched."
+          fi

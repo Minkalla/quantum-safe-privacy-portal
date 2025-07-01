@@ -1,0 +1,51 @@
+name: "Monorepo CI/CD Orchestration"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  detect-changes:
+    name: "🔍 Detect Changes"
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            backend:
+              - 'src/portal/portal-backend/**'
+              - 'src/portal/mock-qynauth/**'
+            frontend:
+              - 'src/portal/portal-frontend/**'
+
+  backend-pipeline:
+    name: "🔧 Backend Pipeline"
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
+    uses: ./.github/workflows/backend.yml
+
+  frontend-pipeline:
+    name: "🎨 Frontend Pipeline"
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+    uses: ./.github/workflows/frontend.yml
+
+  notify-completion:
+    name: "📢 Notify Completion"
+    runs-on: ubuntu-latest
+    needs: [backend-pipeline, frontend-pipeline]
+    if: always()
+    steps:
+      - name: "📊 Pipeline Summary"
+        run: |
+          echo "## 🎯 Monorepo Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend: ${{ needs.backend-pipeline.result || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend: ${{ needs.frontend-pipeline.result || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Overall Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY

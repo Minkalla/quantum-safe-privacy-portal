@@ -1,0 +1,90 @@
+name: "Backend CI/CD Pipeline"
+
+on:
+  push:
+    branches: [ "main", "devin/*" ]
+    paths: [ "src/portal/portal-backend/**" ]
+  pull_request:
+    branches: [ "main" ]
+    paths: [ "src/portal/portal-backend/**" ]
+
+env:
+  NODE_ENV: test
+  SKIP_SECRETS_MANAGER: true
+
+jobs:
+  typecheck-lint:
+    name: "🔍 Typecheck and Lint"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: src/portal/portal-backend
+    
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+        
+      - name: "📦 Setup Node.js"
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: src/portal/portal-backend/package-lock.json
+          
+      - name: "📦 Install Dependencies"
+        run: npm ci
+        
+      - name: "🔍 TypeScript Check"
+        run: npm run typecheck
+        
+      - name: "🔍 ESLint Check"
+        run: npm run lint
+        
+      - name: "🎨 Format Check"
+        run: npm run format
+
+  build-test:
+    name: "🏗️ Build and Test"
+    runs-on: ubuntu-latest
+    needs: typecheck-lint
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: src/portal/portal-backend
+    
+    services:
+      mongodb:
+        image: mongo:6.0
+        env:
+          MONGO_INITDB_ROOT_USERNAME: root
+          MONGO_INITDB_ROOT_PASSWORD: password
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+        
+      - name: "📦 Setup Node.js"
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: src/portal/portal-backend/package-lock.json
+          
+      - name: "📦 Install Dependencies"
+        run: npm ci
+        
+      - name: "🏗️ Build Application"
+        run: npm run build
+        
+      - name: "🧪 Run Unit Tests"
+        run: npm run test
+        env:
+          MONGODB_URI: mongodb://root:password@localhost:27017/test?authSource=admin
