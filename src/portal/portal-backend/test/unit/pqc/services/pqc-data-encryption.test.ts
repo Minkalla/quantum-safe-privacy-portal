@@ -73,21 +73,21 @@ describe('PQCDataEncryptionService', () => {
 
   describe('Data Encryption with Kyber-768', () => {
     it('should encrypt data successfully with ML-KEM-768', async () => {
-      const testData = { 
-        sensitive: 'confidential information', 
+      const testData = {
+        sensitive: 'confidential information',
         userId: 'test_user_encryption',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
-      const result = await service.encryptData(testData, { 
-        algorithm: PQCAlgorithmType.KYBER_768, 
-        userId: 'test_user_encryption' 
+      const result = await service.encryptData(testData, {
+        algorithm: PQCAlgorithmType.KYBER_768,
+        userId: 'test_user_encryption',
       });
 
       expect(result).toBeDefined();
       expect(result.success).toBe(true);
       expect(result.encryptedField).toBeDefined();
-      
+
       if (result.encryptedField) {
         expect(result.encryptedField.algorithm).toBe('Kyber-768');
         expect(result.encryptedField.encryptedData).toBeDefined();
@@ -95,7 +95,7 @@ describe('PQCDataEncryptionService', () => {
         expect(result.encryptedField.nonce).toBeDefined();
         expect(result.encryptedField.timestamp).toBeDefined();
       }
-      
+
       expect(result.performanceMetrics).toBeDefined();
       if (result.performanceMetrics) {
         expect(result.performanceMetrics.encryptionTime).toBeGreaterThan(0);
@@ -106,12 +106,12 @@ describe('PQCDataEncryptionService', () => {
       const testData = {
         userId: 'test_user_decrypt',
         content: 'test content for decryption',
-        metadata: { type: 'test', version: '1.0' }
+        metadata: { type: 'test', version: '1.0' },
       };
 
-      const encryptResult = await service.encryptData(testData, { 
-        algorithm: PQCAlgorithmType.KYBER_768, 
-        userId: 'test_user_decrypt' 
+      const encryptResult = await service.encryptData(testData, {
+        algorithm: PQCAlgorithmType.KYBER_768,
+        userId: 'test_user_decrypt',
       });
 
       expect(encryptResult.success).toBe(true);
@@ -124,7 +124,7 @@ describe('PQCDataEncryptionService', () => {
         expect(decryptResult.success).toBe(true);
         expect(decryptResult.decryptedData).toBeDefined();
         expect(decryptResult.performanceMetrics).toBeDefined();
-        
+
         if (decryptResult.performanceMetrics) {
           expect(decryptResult.performanceMetrics.decryptionTime).toBeGreaterThan(0);
         }
@@ -135,17 +135,17 @@ describe('PQCDataEncryptionService', () => {
       const largeData = {
         userId: 'test_user_large',
         content: 'x'.repeat(5000),
-        metadata: Array.from({ length: 50 }, (_, i) => ({ id: i, value: `data_${i}` }))
+        metadata: Array.from({ length: 50 }, (_, i) => ({ id: i, value: `data_${i}` })),
       };
 
-      const encryptResult = await service.encryptData(largeData, { 
-        algorithm: PQCAlgorithmType.KYBER_768, 
-        userId: 'test_user_large' 
+      const encryptResult = await service.encryptData(largeData, {
+        algorithm: PQCAlgorithmType.KYBER_768,
+        userId: 'test_user_large',
       });
 
       expect(encryptResult.success).toBe(true);
       expect(encryptResult.encryptedField).toBeDefined();
-      
+
       if (encryptResult.encryptedField) {
         expect(encryptResult.encryptedField.algorithm).toBe('Kyber-768');
 
@@ -159,19 +159,19 @@ describe('PQCDataEncryptionService', () => {
 
   describe('Data Encryption with AES-256-GCM Fallback', () => {
     it('should encrypt and decrypt data with AES-256-GCM', async () => {
-      const testData = { 
-        sensitive: 'fallback information', 
-        userId: 'test_user_classical' 
+      const testData = {
+        sensitive: 'fallback information',
+        userId: 'test_user_classical',
       };
 
-      const encryptResult = await service.encryptData(testData, { 
-        algorithm: PQCAlgorithmType.AES_256_GCM, 
-        userId: 'test_user_classical' 
+      const encryptResult = await service.encryptData(testData, {
+        algorithm: PQCAlgorithmType.AES_256_GCM,
+        userId: 'test_user_classical',
       });
 
       expect(encryptResult.success).toBe(true);
       expect(encryptResult.encryptedField).toBeDefined();
-      
+
       if (encryptResult.encryptedField) {
         expect(encryptResult.encryptedField.algorithm).toBe('AES-256-GCM');
         expect(encryptResult.encryptedField.encryptedData).toBeDefined();
@@ -187,15 +187,15 @@ describe('PQCDataEncryptionService', () => {
       const testData = { message: 'custom key test' };
       const customKeyId = 'custom-test-key-123';
 
-      const encryptResult = await service.encryptData(testData, { 
-        algorithm: PQCAlgorithmType.AES_256_GCM, 
+      const encryptResult = await service.encryptData(testData, {
+        algorithm: PQCAlgorithmType.AES_256_GCM,
         keyId: customKeyId,
-        userId: 'test_custom_key' 
+        userId: 'test_custom_key',
       });
 
       expect(encryptResult.success).toBe(true);
       expect(encryptResult.encryptedField).toBeDefined();
-      
+
       if (encryptResult.encryptedField) {
         expect(encryptResult.encryptedField.keyId).toBe(customKeyId);
 
@@ -211,19 +211,19 @@ describe('PQCDataEncryptionService', () => {
     it('should generate unique encryption keys for different operations', async () => {
       const testData = { message: 'test' };
 
-      const result1 = await service.encryptData(testData, { 
-        algorithm: PQCAlgorithmType.KYBER_768, 
-        userId: 'user1' 
+      const result1 = await service.encryptData(testData, {
+        algorithm: PQCAlgorithmType.KYBER_768,
+        userId: 'user1',
       });
 
-      const result2 = await service.encryptData(testData, { 
-        algorithm: PQCAlgorithmType.KYBER_768, 
-        userId: 'user2' 
+      const result2 = await service.encryptData(testData, {
+        algorithm: PQCAlgorithmType.KYBER_768,
+        userId: 'user2',
       });
 
       expect(result1.encryptedField).toBeDefined();
       expect(result2.encryptedField).toBeDefined();
-      
+
       if (result1.encryptedField && result2.encryptedField) {
         expect(result1.encryptedField.keyId).not.toBe(result2.encryptedField.keyId);
         expect(result1.encryptedField.encryptedData).not.toBe(result2.encryptedField.encryptedData);
@@ -242,9 +242,9 @@ describe('PQCDataEncryptionService', () => {
     it('should validate encrypted data integrity', async () => {
       const testData = { userId: 'validation_test', data: 'integrity test' };
 
-      const encryptResult = await service.encryptData(testData, { 
-        algorithm: PQCAlgorithmType.KYBER_768, 
-        userId: 'validation_test' 
+      const encryptResult = await service.encryptData(testData, {
+        algorithm: PQCAlgorithmType.KYBER_768,
+        userId: 'validation_test',
       });
 
       expect(encryptResult.success).toBe(true);
@@ -263,15 +263,15 @@ describe('PQCDataEncryptionService', () => {
       const testData = { userId: 'perf_test', data: 'performance test' };
 
       const startTime = Date.now();
-      const result = await service.encryptData(testData, { 
-        algorithm: PQCAlgorithmType.KYBER_768, 
-        userId: 'perf_test' 
+      const result = await service.encryptData(testData, {
+        algorithm: PQCAlgorithmType.KYBER_768,
+        userId: 'perf_test',
       });
       const totalTime = Date.now() - startTime;
 
       expect(totalTime).toBeLessThan(10000);
       expect(result.performanceMetrics).toBeDefined();
-      
+
       if (result.performanceMetrics) {
         expect(result.performanceMetrics.encryptionTime).toBeLessThan(10000);
       }
@@ -281,15 +281,15 @@ describe('PQCDataEncryptionService', () => {
       const testData = { userId: 'perf_test_aes', data: 'aes performance test' };
 
       const startTime = Date.now();
-      const result = await service.encryptData(testData, { 
-        algorithm: PQCAlgorithmType.AES_256_GCM, 
-        userId: 'perf_test_aes' 
+      const result = await service.encryptData(testData, {
+        algorithm: PQCAlgorithmType.AES_256_GCM,
+        userId: 'perf_test_aes',
       });
       const totalTime = Date.now() - startTime;
 
       expect(totalTime).toBeLessThan(5000);
       expect(result.performanceMetrics).toBeDefined();
-      
+
       if (result.performanceMetrics) {
         expect(result.performanceMetrics.encryptionTime).toBeLessThan(5000);
       }
@@ -298,13 +298,13 @@ describe('PQCDataEncryptionService', () => {
     it('should complete decryption within performance threshold', async () => {
       const testData = { userId: 'perf_decrypt', data: 'decryption performance test' };
 
-      const encryptResult = await service.encryptData(testData, { 
-        algorithm: PQCAlgorithmType.KYBER_768, 
-        userId: 'perf_decrypt' 
+      const encryptResult = await service.encryptData(testData, {
+        algorithm: PQCAlgorithmType.KYBER_768,
+        userId: 'perf_decrypt',
       });
 
       expect(encryptResult.encryptedField).toBeDefined();
-      
+
       if (encryptResult.encryptedField) {
         const startTime = Date.now();
         const decryptResult = await service.decryptData(encryptResult.encryptedField);
@@ -312,7 +312,7 @@ describe('PQCDataEncryptionService', () => {
 
         expect(decryptionTime).toBeLessThan(8000);
         expect(decryptResult.performanceMetrics).toBeDefined();
-        
+
         if (decryptResult.performanceMetrics) {
           expect(decryptResult.performanceMetrics.decryptionTime).toBeLessThan(8000);
         }
@@ -328,7 +328,7 @@ describe('PQCDataEncryptionService', () => {
         keyId: 'invalid_key',
         nonce: 'invalid_nonce',
         timestamp: new Date(),
-        metadata: {}
+        metadata: {},
       };
 
       const result = await service.decryptData(malformedData);
@@ -340,9 +340,9 @@ describe('PQCDataEncryptionService', () => {
     it('should handle empty data gracefully', async () => {
       const emptyData = {};
 
-      const result = await service.encryptData(emptyData, { 
-        algorithm: PQCAlgorithmType.KYBER_768, 
-        userId: 'test_empty' 
+      const result = await service.encryptData(emptyData, {
+        algorithm: PQCAlgorithmType.KYBER_768,
+        userId: 'test_empty',
       });
 
       expect(result.success).toBe(true);
@@ -352,9 +352,9 @@ describe('PQCDataEncryptionService', () => {
     it('should handle encryption failures gracefully', async () => {
       const testData = { message: 'test' };
 
-      const result = await service.encryptData(testData, { 
-        algorithm: PQCAlgorithmType.KYBER_768, 
-        userId: '' 
+      const result = await service.encryptData(testData, {
+        algorithm: PQCAlgorithmType.KYBER_768,
+        userId: '',
       });
 
       if (!result.success) {
@@ -371,7 +371,7 @@ describe('PQCDataEncryptionService', () => {
         keyId: 'test-key',
         nonce: 'test-nonce',
         timestamp: new Date(),
-        metadata: {}
+        metadata: {},
       };
 
       const result = await service.decryptData(invalidAESData);

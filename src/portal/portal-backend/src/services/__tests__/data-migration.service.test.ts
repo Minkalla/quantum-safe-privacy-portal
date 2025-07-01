@@ -119,7 +119,7 @@ describe('DataMigrationService', () => {
   describe('migrateUserData', () => {
     it('should migrate user from placeholder to PQC', async () => {
       (service as any).migrationEnabled = true;
-      
+
       const userId = 'test-user-id';
       const mockUser = {
         _id: userId,
@@ -172,7 +172,7 @@ describe('DataMigrationService', () => {
 
     it('should skip migration for already migrated users', async () => {
       (service as any).migrationEnabled = true;
-      
+
       const userId = 'test-user-id';
       const mockUser = {
         _id: userId,
@@ -192,7 +192,7 @@ describe('DataMigrationService', () => {
 
     it('should throw error for non-existent user', async () => {
       (service as any).migrationEnabled = true;
-      
+
       const userId = 'non-existent-user';
       userModel.findById.mockResolvedValue(null);
 
@@ -207,7 +207,7 @@ describe('DataMigrationService', () => {
   describe('rollbackPQC', () => {
     it('should rollback users and consents', async () => {
       (service as any).migrationEnabled = true;
-      
+
       const mockUsers = [
         { _id: 'user1', cryptoVersion: 'pqc-real', backupCryptoVersion: 'placeholder' },
       ];

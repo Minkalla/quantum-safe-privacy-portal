@@ -30,17 +30,17 @@ describe('PQCDataValidationService', () => {
         } else if (operation === 'verify_token') {
           const token = params.token;
           const dataHash = params.payload?.dataHash;
-          
+
           if (token && dataHash) {
             const storedDataHash = signatureStore.get(token);
             const isValid = storedDataHash === dataHash;
-            
+
             return Promise.resolve({
               success: true,
               verified: isValid,
             });
           }
-          
+
           return Promise.resolve({
             success: true,
             verified: false,
@@ -48,11 +48,11 @@ describe('PQCDataValidationService', () => {
         } else if (operation === 'sign_token') {
           const token = `ml-dsa-65-signature-${Math.random().toString(36).substring(7)}-${Date.now()}`;
           const dataHash = params.payload?.dataHash || params.payload?.hash;
-          
+
           if (dataHash) {
             signatureStore.set(token, dataHash);
           }
-          
+
           return Promise.resolve({
             success: true,
             token: token,
@@ -71,17 +71,17 @@ describe('PQCDataValidationService', () => {
         } else if (operation === 'verify_token') {
           const token = params.token;
           const dataHash = params.payload?.dataHash;
-          
+
           if (token && dataHash) {
             const storedDataHash = signatureStore.get(token);
             const isValid = storedDataHash === dataHash;
-            
+
             return Promise.resolve({
               success: true,
               verified: isValid,
             });
           }
-          
+
           return Promise.resolve({
             success: true,
             verified: false,
@@ -89,11 +89,11 @@ describe('PQCDataValidationService', () => {
         } else if (operation === 'sign_token') {
           const token = `ml-dsa-65-signature-${Math.random().toString(36).substring(7)}-${Date.now()}`;
           const dataHash = params.payload?.dataHash || params.payload?.hash;
-          
+
           if (dataHash) {
             signatureStore.set(token, dataHash);
           }
-          
+
           return Promise.resolve({
             success: true,
             token: token,
@@ -141,7 +141,7 @@ describe('PQCDataValidationService', () => {
                 'pqc.fallback_enabled': true,
                 'validation.default_algorithm': 'Dilithium-3',
                 'validation.signature_ttl': 3600000,
-                'performance.monitoring_enabled': true
+                'performance.monitoring_enabled': true,
               };
               return config[key];
             }),
@@ -176,12 +176,12 @@ describe('PQCDataValidationService', () => {
         userId: 'test_user_signature',
         document: 'Important contract document',
         timestamp: new Date().toISOString(),
-        metadata: { type: 'contract', version: '1.0' }
+        metadata: { type: 'contract', version: '1.0' },
       };
 
       const signature = await service.generateSignature(testData, {
         algorithm: PQCAlgorithmType.DILITHIUM_3,
-        userId: 'test_user_signature'
+        userId: 'test_user_signature',
       });
 
       expect(signature).toBeDefined();
@@ -196,7 +196,7 @@ describe('PQCDataValidationService', () => {
       const testData = {
         userId: 'test_user_integrity',
         document: 'Document for integrity verification',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       const integrity = await service.createDataIntegrity(testData, 'test_user_integrity');
@@ -205,7 +205,7 @@ describe('PQCDataValidationService', () => {
       expect(integrity.hash).toBeDefined();
       expect(integrity.algorithm).toBe('SHA-256');
       expect(integrity.signature).toBeDefined();
-      
+
       if (integrity.signature) {
         expect(integrity.signature.signature).toBeDefined();
         expect(integrity.signature.algorithm).toBeDefined();
@@ -218,12 +218,12 @@ describe('PQCDataValidationService', () => {
       const testData = {
         userId: 'test_user_verify',
         document: 'Document to be verified',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       const signature = await service.generateSignature(testData, {
         algorithm: PQCAlgorithmType.DILITHIUM_3,
-        userId: 'test_user_verify'
+        userId: 'test_user_verify',
       });
 
       const verification = await service.verifySignature(testData, signature);
@@ -232,7 +232,7 @@ describe('PQCDataValidationService', () => {
       expect(verification.algorithm).toBe('Dilithium-3');
       expect(verification.timestamp).toBeDefined();
       expect(verification.performanceMetrics).toBeDefined();
-      
+
       if (verification.performanceMetrics) {
         expect(verification.performanceMetrics.validationTime).toBeGreaterThan(0);
       }
@@ -242,17 +242,17 @@ describe('PQCDataValidationService', () => {
       const originalData = {
         userId: 'test_user_tamper',
         document: 'Original document content',
-        amount: 1000
+        amount: 1000,
       };
 
       const signature = await service.generateSignature(originalData, {
         algorithm: PQCAlgorithmType.DILITHIUM_3,
-        userId: 'test_user_tamper'
+        userId: 'test_user_tamper',
       });
 
       const tamperedData = {
         ...originalData,
-        amount: 9999
+        amount: 9999,
       };
 
       const verification = await service.verifySignature(tamperedData, signature);
@@ -266,12 +266,12 @@ describe('PQCDataValidationService', () => {
     it('should generate and verify signatures with classical algorithm', async () => {
       const testData = {
         userId: 'test_user_classical',
-        document: 'Classical signature test'
+        document: 'Classical signature test',
       };
 
       const signature = await service.generateSignature(testData, {
         algorithm: PQCAlgorithmType.RSA_2048,
-        userId: 'test_user_classical'
+        userId: 'test_user_classical',
       });
 
       expect(signature.algorithm).toBe('RSA-2048');
@@ -288,7 +288,7 @@ describe('PQCDataValidationService', () => {
     it('should validate data integrity successfully', async () => {
       const testData = {
         userId: 'test_integrity_validation',
-        content: 'Content for integrity validation'
+        content: 'Content for integrity validation',
       };
 
       const integrity = await service.createDataIntegrity(testData, 'test_integrity_validation');
@@ -305,14 +305,14 @@ describe('PQCDataValidationService', () => {
     it('should detect integrity violations', async () => {
       const originalData = {
         userId: 'test_integrity_violation',
-        content: 'Original content'
+        content: 'Original content',
       };
 
       const integrity = await service.createDataIntegrity(originalData, 'test_integrity_violation');
 
       const modifiedData = {
         ...originalData,
-        content: 'Modified content'
+        content: 'Modified content',
       };
 
       const validation = await service.validateDataIntegrity(modifiedData, integrity);
@@ -324,24 +324,24 @@ describe('PQCDataValidationService', () => {
     it('should handle signature expiration', async () => {
       const testData = {
         userId: 'test_expiry',
-        document: 'Expiring document'
+        document: 'Expiring document',
       };
 
       const signature = await service.generateSignature(testData, {
         algorithm: PQCAlgorithmType.DILITHIUM_3,
-        userId: 'test_expiry'
+        userId: 'test_expiry',
       });
 
       const verification = await service.verifySignature(testData, signature, {
         checkTimestamp: true,
-        maxAge: 1
+        maxAge: 1,
       });
 
       await new Promise(resolve => setTimeout(resolve, 10));
 
       const expiredVerification = await service.verifySignature(testData, signature, {
         checkTimestamp: true,
-        maxAge: 1
+        maxAge: 1,
       });
 
       expect(expiredVerification.isValid).toBe(false);
@@ -354,12 +354,12 @@ describe('PQCDataValidationService', () => {
       const dataItems = [
         {
           data: { id: 1, content: 'Document 1', userId: 'batch_user' },
-          integrity: null as any
+          integrity: null as any,
         },
         {
           data: { id: 2, content: 'Document 2', userId: 'batch_user' },
-          integrity: null as any
-        }
+          integrity: null as any,
+        },
       ];
 
       for (const item of dataItems) {
@@ -380,13 +380,13 @@ describe('PQCDataValidationService', () => {
     it('should complete signature generation within performance threshold', async () => {
       const testData = {
         userId: 'perf_test_sign',
-        document: 'Performance test document'
+        document: 'Performance test document',
       };
 
       const startTime = Date.now();
       const signature = await service.generateSignature(testData, {
         algorithm: PQCAlgorithmType.DILITHIUM_3,
-        userId: 'perf_test_sign'
+        userId: 'perf_test_sign',
       });
       const signTime = Date.now() - startTime;
 
@@ -397,12 +397,12 @@ describe('PQCDataValidationService', () => {
     it('should complete signature verification within performance threshold', async () => {
       const testData = {
         userId: 'perf_test_verify',
-        document: 'Performance verification test'
+        document: 'Performance verification test',
       };
 
       const signature = await service.generateSignature(testData, {
         algorithm: PQCAlgorithmType.DILITHIUM_3,
-        userId: 'perf_test_verify'
+        userId: 'perf_test_verify',
       });
 
       const startTime = Date.now();
@@ -411,7 +411,7 @@ describe('PQCDataValidationService', () => {
 
       expect(verifyTime).toBeLessThan(8000);
       expect(verification.performanceMetrics).toBeDefined();
-      
+
       if (verification.performanceMetrics) {
         expect(verification.performanceMetrics.validationTime).toBeLessThan(8000);
       }
@@ -420,7 +420,7 @@ describe('PQCDataValidationService', () => {
     it('should complete data integrity creation within performance threshold', async () => {
       const testData = {
         userId: 'perf_test_integrity',
-        content: 'Performance integrity test'
+        content: 'Performance integrity test',
       };
 
       const startTime = Date.now();
@@ -440,7 +440,7 @@ describe('PQCDataValidationService', () => {
         algorithm: 'Dilithium-3',
         publicKeyHash: 'invalid_hash',
         timestamp: new Date(),
-        signedDataHash: 'invalid_hash'
+        signedDataHash: 'invalid_hash',
       };
 
       const verification = await service.verifySignature(testData, malformedSignature);
@@ -454,7 +454,7 @@ describe('PQCDataValidationService', () => {
 
       const signature = await service.generateSignature(emptyData, {
         algorithm: PQCAlgorithmType.DILITHIUM_3,
-        userId: 'test_empty_data'
+        userId: 'test_empty_data',
       });
 
       expect(signature.algorithm).toBe('Dilithium-3');
@@ -469,12 +469,12 @@ describe('PQCDataValidationService', () => {
       const largeData = {
         userId: 'test_large_data',
         document: 'x'.repeat(25000),
-        metadata: Array.from({ length: 500 }, (_, i) => ({ field: i, value: `data_${i}` }))
+        metadata: Array.from({ length: 500 }, (_, i) => ({ field: i, value: `data_${i}` })),
       };
 
       const signature = await service.generateSignature(largeData, {
         algorithm: PQCAlgorithmType.DILITHIUM_3,
-        userId: 'test_large_data'
+        userId: 'test_large_data',
       });
 
       expect(signature.algorithm).toBe('Dilithium-3');
@@ -489,7 +489,7 @@ describe('PQCDataValidationService', () => {
 
       const signature = await service.generateSignature(invalidData, {
         algorithm: PQCAlgorithmType.DILITHIUM_3,
-        userId: 'test_invalid_data'
+        userId: 'test_invalid_data',
       });
 
       expect(signature.signedDataHash).toBeDefined();
@@ -501,7 +501,7 @@ describe('PQCDataValidationService', () => {
       try {
         const signature = await service.generateSignature(testData, {
           algorithm: PQCAlgorithmType.DILITHIUM_3,
-          userId: 'test_error_handling'
+          userId: 'test_error_handling',
         });
 
         const verification = await service.verifySignature(testData, signature);

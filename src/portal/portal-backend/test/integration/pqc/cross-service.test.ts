@@ -60,7 +60,7 @@ describe('PQC Cross-Service Integration', () => {
                 'pqc.fallback_enabled': true,
                 'encryption.default_algorithm': 'Kyber-768',
                 'validation.default_algorithm': 'Dilithium-3',
-                'performance.monitoring_enabled': true
+                'performance.monitoring_enabled': true,
               };
               return config[key];
             }),
@@ -88,12 +88,12 @@ describe('PQC Cross-Service Integration', () => {
       const testData = {
         sensitive: 'Highly confidential information',
         userId: 'cross-service-test-user',
-        metadata: { classification: 'top-secret', version: '2.0' }
+        metadata: { classification: 'top-secret', version: '2.0' },
       };
 
       const encrypted = await encryptionService.encryptData(testData, {
         algorithm: PQCAlgorithmType.KYBER_768,
-        userId: 'cross-service-test-user'
+        userId: 'cross-service-test-user',
       });
 
       expect(encrypted.success).toBe(true);
@@ -119,12 +119,12 @@ describe('PQC Cross-Service Integration', () => {
       const originalData = {
         document: 'Cross-service integration document',
         userId: 'signature-test-user',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       const signature = await validationService.generateSignature(originalData, {
         algorithm: 'Dilithium-3' as any,
-        userId: 'signature-test-user'
+        userId: 'signature-test-user',
       });
 
       expect(signature.algorithm).toBe('Dilithium-3');
@@ -132,7 +132,7 @@ describe('PQC Cross-Service Integration', () => {
 
       const encryptedSignature = await encryptionService.encryptData(signature, {
         algorithm: PQCAlgorithmType.AES_256_GCM,
-        userId: 'signature-test-user'
+        userId: 'signature-test-user',
       });
 
       expect(encryptedSignature.success).toBe(true);
@@ -144,7 +144,7 @@ describe('PQC Cross-Service Integration', () => {
         algorithm: signature.algorithm,
         signature: signature.signature,
         signedDataHash: signature.signedDataHash,
-        publicKeyHash: signature.publicKeyHash
+        publicKeyHash: signature.publicKeyHash,
       });
 
       const verification = await validationService.verifySignature(originalData, decryptedSignature.decryptedData!);
@@ -159,25 +159,25 @@ describe('PQC Cross-Service Integration', () => {
         userProfile: {
           id: 'multi-service-user',
           personalInfo: { name: 'Test User', age: 30 },
-          preferences: { theme: 'dark', notifications: true }
+          preferences: { theme: 'dark', notifications: true },
         },
         transactionHistory: [
           { id: 1, amount: 100, date: '2024-01-01' },
-          { id: 2, amount: 250, date: '2024-01-02' }
+          { id: 2, amount: 250, date: '2024-01-02' },
         ],
-        metadata: { lastUpdated: new Date().toISOString() }
+        metadata: { lastUpdated: new Date().toISOString() },
       };
 
       const step1Encrypted = await encryptionService.encryptData(complexData, {
         algorithm: PQCAlgorithmType.KYBER_768,
-        userId: 'multi-service-user'
+        userId: 'multi-service-user',
       });
 
       const step2Integrity = await validationService.createDataIntegrity(step1Encrypted.encryptedField!, 'multi-service-user');
 
       const step3EncryptedIntegrity = await encryptionService.encryptData(step2Integrity, {
         algorithm: PQCAlgorithmType.AES_256_GCM,
-        userId: 'multi-service-user'
+        userId: 'multi-service-user',
       });
 
       const step4DecryptedIntegrity = await encryptionService.decryptData(step3EncryptedIntegrity.encryptedField!, { userId: 'multi-service-user' });
@@ -191,7 +191,7 @@ describe('PQC Cross-Service Integration', () => {
 
       expect(step6DecryptedData.success).toBe(true);
       expect(step6DecryptedData.decryptedData).toBeDefined();
-      
+
       if (step6DecryptedData.decryptedData.algorithm === 'ML-KEM-768') {
         expect(step6DecryptedData.decryptedData.decrypted).toBe(true);
         expect(step6DecryptedData.decryptedData.keyId).toBeDefined();
@@ -206,14 +206,14 @@ describe('PQC Cross-Service Integration', () => {
       const performanceTestData = {
         operation: 'performance-monitoring',
         payload: 'x'.repeat(1000),
-        userId: 'performance-test-user'
+        userId: 'performance-test-user',
       };
 
       const startTime = Date.now();
 
       const encrypted = await encryptionService.encryptData(performanceTestData, {
         algorithm: PQCAlgorithmType.KYBER_768,
-        userId: 'performance-test-user'
+        userId: 'performance-test-user',
       });
 
       const encryptionTime = Date.now() - startTime;
@@ -239,7 +239,7 @@ describe('PQC Cross-Service Integration', () => {
       const concurrentData = Array.from({ length: 5 }, (_, i) => ({
         id: i,
         data: `Concurrent operation ${i}`,
-        userId: `concurrent-user-${i}`
+        userId: `concurrent-user-${i}`,
       }));
 
       const startTime = Date.now();
@@ -248,7 +248,7 @@ describe('PQC Cross-Service Integration', () => {
         concurrentData.map(async (data) => {
           const encrypted = await encryptionService.encryptData(data, {
             algorithm: PQCAlgorithmType.KYBER_768,
-            userId: data.userId
+            userId: data.userId,
           });
 
           const integrity = await validationService.createDataIntegrity(encrypted.encryptedField!, data.userId);
@@ -259,9 +259,9 @@ describe('PQC Cross-Service Integration', () => {
             id: data.id,
             encrypted: encrypted.encryptedField!.algorithm,
             valid: validation.isValid,
-            errors: validation.errors.length
+            errors: validation.errors.length,
           };
-        })
+        }),
       );
 
       const totalTime = Date.now() - startTime;
@@ -281,13 +281,13 @@ describe('PQC Cross-Service Integration', () => {
     it('should handle service integration failures gracefully', async () => {
       const errorTestData = {
         problematic: 'data',
-        userId: 'error-test-user'
+        userId: 'error-test-user',
       };
 
       try {
         const encrypted = await encryptionService.encryptData(errorTestData, {
           algorithm: PQCAlgorithmType.KYBER_768,
-          userId: 'error-test-user'
+          userId: 'error-test-user',
         });
 
         const integrity = await validationService.createDataIntegrity(encrypted.encryptedField!, 'error-test-user');
@@ -305,12 +305,12 @@ describe('PQC Cross-Service Integration', () => {
       const consistencyData = {
         critical: 'consistency test data',
         userId: 'consistency-test-user',
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       const encrypted = await encryptionService.encryptData(consistencyData, {
         algorithm: PQCAlgorithmType.AES_256_GCM,
-        userId: 'consistency-test-user'
+        userId: 'consistency-test-user',
       });
 
       expect(encrypted.success).toBe(true);
