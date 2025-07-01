@@ -29,7 +29,14 @@ impl PowerAnalysisProtection {
             self.perform_dummy_operations();
         }
 
-        let result = operation();
+        let result = if self.operation_masking {
+            self.random_delay();
+            let result = operation();
+            self.random_delay();
+            result
+        } else {
+            operation()
+        };
 
         if self.dummy_operations {
             self.perform_dummy_operations();
