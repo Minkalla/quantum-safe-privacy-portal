@@ -14,14 +14,14 @@ jest.mock('react-router-dom', () => ({
 }));
 
 const createMockJWT = () => {
-  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const payload = btoa(JSON.stringify({
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64');
+  const payload = Buffer.from(JSON.stringify({
     userId: '1',
     email: 'test@example.com',
     role: 'user',
     exp: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
     iat: Math.floor(Date.now() / 1000)
-  }));
+  })).toString('base64');
   const signature = 'mock-signature';
   return `${header}.${payload}.${signature}`;
 };
