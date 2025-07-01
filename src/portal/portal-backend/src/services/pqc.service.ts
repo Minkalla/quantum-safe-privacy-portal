@@ -38,6 +38,7 @@ export class PQCService {
           user_id: userId,
           timestamp: now / 1000,
           fallback_mode: true,
+        },
       };
     }
   }

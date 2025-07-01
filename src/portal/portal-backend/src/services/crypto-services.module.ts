@@ -9,6 +9,7 @@ import { CircuitBreakerService } from './circuit-breaker.service';
 import { BulkEncryptionService } from './bulk-encryption.service';
 import { FieldEncryptionService } from './field-encryption.service';
 import { PQCService } from './pqc.service';
+import { EnhancedErrorBoundaryService } from './enhanced-error-boundary.service';
 import { AuthModule } from '../auth/auth.module';
 import User, { IUser, UserSchema } from '../models/User';
 import Consent, { IConsent, ConsentSchema } from '../models/Consent';
@@ -31,6 +32,7 @@ import Consent, { IConsent, ConsentSchema } from '../models/Consent';
     BulkEncryptionService,
     FieldEncryptionService,
     PQCService,
+    EnhancedErrorBoundaryService,
   ],
   exports: [
     HybridCryptoService,
@@ -41,6 +43,7 @@ import Consent, { IConsent, ConsentSchema } from '../models/Consent';
     BulkEncryptionService,
     FieldEncryptionService,
     PQCService,
+    EnhancedErrorBoundaryService,
   ],
 })
 export class CryptoServicesModule {}
