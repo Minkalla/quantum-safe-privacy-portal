@@ -29,15 +29,15 @@ export class PQCService {
       const reason = err?.message || 'Unknown error';
       this.logger.error(`❌ PQC handshake failed for user ${userId}:`, reason);
 
+      const now = Date.now();
       return {
         success: false,
         error_message: reason,
         handshake_metadata: {
-          handshake_id: `fallback_${Date.now()}`,
+          handshake_id: `fallback_${now}`,
           user_id: userId,
-          timestamp: Date.now() / 1000,
+          timestamp: now / 1000,
           fallback_mode: true,
-        },
       };
     }
   }
