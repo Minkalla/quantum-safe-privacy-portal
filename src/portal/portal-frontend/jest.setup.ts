@@ -6,7 +6,7 @@ Object.assign(global, {
   TextEncoder,
 });
 
-require('whatwg-fetch');
+import 'whatwg-fetch';
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
