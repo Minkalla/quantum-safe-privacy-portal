@@ -217,6 +217,15 @@ This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENS
 
 For security vulnerabilities, please see our [Security Policy](./docs/SECURITY.md) for responsible disclosure procedures.
 
+## 📓 Project Workflow & Specs
+- Feature development follows structured WBS tasks (1.7R, 1.8, etc.)
+- Each WBS includes:
+  - Technical deliverables
+  - Architecture expectations
+  - Review and testing instructions
+- See WBS documentation in internal docs or ask @Ronak for access
+
+This structure reflects WBS 1.8: Monorepo Refactor with Dev Recovery. For classical auth completion, see WBS 1.7R.
 ---
 
 **Part of the [Minkalla](https://github.com/minkalla) open-source ecosystem.**
