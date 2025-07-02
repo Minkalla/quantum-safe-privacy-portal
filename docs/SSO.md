@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document provides comprehensive guidance for implementing, configuring, and troubleshooting SAML 2.0-based Single Sign-On (SSO) integration in the Quantum Safe Privacy Portal.
+This document provides comprehensive guidance for implementing, configuring, and troubleshooting SAML 2.0-based Single Sign-On (SSO) integration in the Quantum Safe Privacy Portal, including the Security Risk Mitigation Framework with HybridCryptoService fallback mechanisms implemented in WBS 1.14.
 
 ## Architecture Overview
 
@@ -53,8 +53,10 @@ sequenceDiagram
 
 #### 3. JWT Service Integration (`src/jwt/jwt.service.ts`)
 - Enhanced to support SSO-specific claims
-- Generates both classical and post-quantum cryptographic tokens
+- Generates both classical and post-quantum cryptographic tokens with HybridCryptoService fallback
 - Includes `authMethod: 'sso'` claim for SSO sessions
+- Implements ML-KEM-768 → RSA-2048 fallback mechanism for token generation
+- Enhanced telemetry logging for all cryptographic operations
 
 ### Frontend Components
 
@@ -160,13 +162,44 @@ npm test -- --testPathPatterns=SsoIntegration.test.tsx
 
 ### Token Security
 - JWT tokens include SSO-specific claims
-- Hybrid cryptographic approach (classical + PQC)
+- **HybridCryptoService Integration**: ML-KEM-768 primary encryption with RSA-2048 fallback
+- **Enhanced Telemetry Logging**: Structured CRYPTO_FALLBACK_USED events with metadata
+- **Circuit Breaker Pattern**: Resilience for PQC operations with automatic fallback
 - Secure token storage and transmission
+
+### Cryptographic Fallback Mechanism
+```typescript
+// Enhanced SSO token generation with security fallback
+async generateSSOToken(userProfile: any): Promise<string> {
+  try {
+    // Primary: ML-KEM-768 encryption
+    const result = await this.hybridCryptoService.encryptWithFallback(
+      JSON.stringify(userProfile),
+      userProfile.nameID
+    );
+    
+    // Enhanced telemetry logging
+    await this.auditService.logSecurityEvent('CRYPTO_FALLBACK_USED', {
+      fallbackReason: result.fallbackUsed ? 'PQC_OPERATION_FAILED' : 'NONE',
+      algorithm: result.algorithm,
+      userId: this.generateStandardizedCryptoUserId(userProfile.nameID, result.algorithm, 'sso_token'),
+      operation: 'sso_token_generation',
+      timestamp: new Date().toISOString(),
+      originalAlgorithm: 'ML-KEM-768'
+    });
+    
+    return result.encryptedData;
+  } catch (error) {
+    throw new CryptoFallbackError('SSO token generation failed', error);
+  }
+}
+```
 
 ### Session Management
 - SSO session timeout handling
-- Automatic token refresh
+- Automatic token refresh with fallback support
 - Secure logout with IdP notification
+- **Standardized User ID Generation**: Consistent crypto user identification across SSO operations
 
 ## Troubleshooting Guide
 
@@ -278,12 +311,34 @@ Handle network failures gracefully:
 - SAML Response validation errors
 - Token refresh failures
 - IdP response times
+- **Cryptographic Fallback Activation Rate**: Monitor ML-KEM-768 → RSA-2048 fallback frequency
+- **Circuit Breaker Trips**: Track PQC operation failures and recovery
+- **Telemetry Event Volume**: Monitor CRYPTO_FALLBACK_USED event frequency
 
 #### Alert Conditions
 - SSO failure rate > 5%
 - IdP response time > 5 seconds
 - AWS Secrets Manager access failures
 - Certificate expiration warnings
+- **Cryptographic Fallback Rate > 10%**: Indicates potential PQC service issues
+- **Circuit Breaker Open State**: PQC operations consistently failing
+- **Missing Telemetry Events**: Potential logging system issues
+
+#### Enhanced Telemetry Structure
+```json
+{
+  "event": "CRYPTO_FALLBACK_USED",
+  "metadata": {
+    "fallbackReason": "PQC_TIMEOUT|ML_KEM_FAILURE|CIRCUIT_BREAKER_OPEN",
+    "algorithm": "RSA-2048|ML-KEM-768",
+    "userId": "crypto_a1b2c3d4e5f6g7h8",
+    "operation": "sso_token_generation|sso_callback|token_refresh",
+    "timestamp": "2025-07-02T03:59:53Z",
+    "originalAlgorithm": "ML-KEM-768",
+    "sessionId": "sso-session-uuid",
+    "idpProvider": "okta|azure|custom"
+  }
+}
 
 ## Maintenance
 
@@ -314,3 +369,10 @@ For SSO-related issues:
 - Technical Support: support@quantum-safe-portal.com
 - Security Issues: security@quantum-safe-portal.com
 - Documentation Updates: docs@quantum-safe-portal.com
+
+---
+
+**Document Status**: ✅ COMPLETE with WBS 1.14 Security Risk Mitigation Framework  
+**Last Updated**: July 02, 2025 04:01 UTC  
+**Security Framework**: HybridCryptoService Integration + Enhanced Telemetry Implemented ✅  
+**Next Review**: Upon WBS 1.15 Device Trust Implementation

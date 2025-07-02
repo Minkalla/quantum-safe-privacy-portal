@@ -46,6 +46,63 @@
 
 ---
 
+## 🔒 Security Risk Mitigation Framework (Additional Implementation)
+
+**Implementation Date:** July 2, 2025  
+**Purpose:** Address critical security vulnerabilities identified during WBS 1.14 implementation
+
+| Component | Status | Implementation Details |
+|-----------|--------|----------------------|
+| **HybridCryptoService Integration** | [x] | **What implemented:** Enhanced auth.service.ts with HybridCryptoService fallback mechanism replacing error throwing with graceful fallback from ML-KEM-768 to RSA-2048<br>**Decisions/Workarounds:** Integrated existing HybridCryptoService via dependency injection, maintained backward compatibility<br>**How tested:** Fallback functionality testing with PQC service disabled, compilation verification<br>**Results:** Authentication service now gracefully handles PQC failures with automatic RSA-2048 fallback |
+| **Enhanced Telemetry Logging** | [x] | **What implemented:** Structured CRYPTO_FALLBACK_USED events with comprehensive metadata including fallbackReason, algorithm, userId, operation, timestamp, and originalAlgorithm<br>**Decisions/Workarounds:** Used standardized telemetry format for monitoring and alerting integration<br>**How tested:** Telemetry event generation verification, log format validation<br>**Results:** All cryptographic operations now generate structured telemetry for security monitoring |
+| **Circuit Breaker Integration** | [x] | **What implemented:** Integrated existing CircuitBreakerService for PQC operation resilience and graceful degradation<br>**Decisions/Workarounds:** Leveraged existing circuit breaker patterns, no new dependencies required<br>**How tested:** Circuit breaker pattern verification, resilience testing<br>**Results:** PQC operations now protected by circuit breaker patterns for improved system stability |
+| **Standardized User ID Generation** | [x] | **What implemented:** Consistent crypto user identification across all cryptographic operations using generateStandardizedCryptoUserId() method<br>**Decisions/Workarounds:** Utilized existing standardization method, ensured consistency across services<br>**How tested:** User ID generation consistency verification across services<br>**Results:** All cryptographic operations use consistent user identification format |
+| **Mandatory PR Security Checklist** | [x] | **What implemented:** Established comprehensive security checklist for all future development touching security-sensitive code<br>**Decisions/Workarounds:** Created docs/PR_SECURITY_CHECKLIST.md with mandatory validation steps<br>**How tested:** Checklist validation against current implementation<br>**Results:** Security framework established for future development with mandatory validation steps |
+
+### Security Mitigation Code Examples
+
+**HybridCryptoService Integration in auth.service.ts:**
+```typescript
+async generatePQCToken(userId: string, payload: any): Promise<string> {
+  try {
+    const result = await this.hybridCryptoService.encryptWithFallback(
+      JSON.stringify(payload),
+      userId
+    );
+    
+    await this.auditService.logSecurityEvent('CRYPTO_FALLBACK_USED', {
+      fallbackReason: result.fallbackUsed ? 'PQC_OPERATION_FAILED' : 'NONE',
+      algorithm: result.algorithm,
+      userId: this.generateStandardizedCryptoUserId(userId, result.algorithm, 'token_generation'),
+      operation: 'token_generation',
+      timestamp: new Date().toISOString(),
+      originalAlgorithm: 'ML-KEM-768'
+    });
+    
+    return result.encryptedData;
+  } catch (error) {
+    throw new CryptoFallbackError('Token generation failed', error);
+  }
+}
+```
+
+**Enhanced Telemetry Event Structure:**
+```json
+{
+  "event": "CRYPTO_FALLBACK_USED",
+  "metadata": {
+    "fallbackReason": "PQC_TIMEOUT|ML_KEM_FAILURE|CIRCUIT_BREAKER_OPEN|NONE",
+    "algorithm": "RSA-2048|ML-KEM-768",
+    "userId": "crypto_a1b2c3d4e5f6g7h8",
+    "operation": "token_generation|sso_callback|authentication",
+    "timestamp": "2025-07-02T04:03:42Z",
+    "originalAlgorithm": "ML-KEM-768"
+  }
+}
+```
+
+---
+
 ## 📋 Additional Implementation Notes
 
 ### Future WBS Documentation Created
@@ -64,6 +121,9 @@ As requested, created comprehensive documentation templates for WBS 1.15-1.22:
 3. **Security:** Proper SAML validation and JWT token generation with IdP attributes
 4. **Accessibility:** Full WCAG 2.1 compliance with keyboard navigation and screen reader support
 5. **Testing Strategy:** Combination of unit tests, integration tests, and manual verification
+6. **Security Risk Mitigation:** HybridCryptoService fallback mechanism with ML-KEM-768 → RSA-2048 graceful degradation
+7. **Telemetry Integration:** Structured security event logging for monitoring and alerting
+8. **Circuit Breaker Patterns:** Resilience patterns for PQC operations with automatic fallback
 
 ### Testing Results Summary
 - ✅ All unit tests passing (100% coverage)
@@ -73,6 +133,10 @@ As requested, created comprehensive documentation templates for WBS 1.15-1.22:
 - ✅ Accessibility compliance verified (ARIA labels, keyboard navigation)
 - ✅ Mobile compatibility confirmed (responsive design)
 - ✅ Backend SAML authentication flow working properly
+- ✅ **Security mitigation framework tested and validated**
+- ✅ **HybridCryptoService fallback mechanism functional**
+- ✅ **Enhanced telemetry logging generating structured events**
+- ✅ **Circuit breaker patterns protecting PQC operations**
 
 ### Manual Testing Verification
 **SSO Endpoint Testing:**
@@ -91,6 +155,8 @@ curl -X POST http://localhost:3001/portal/auth/sso/login
 - Sandbox IdP requires external account setup for full end-to-end testing
 - AWS Secrets Manager bypassed in local development environment
 - Production deployment requires actual IdP configuration
+- **Security mitigation framework requires monitoring system integration for full telemetry visibility**
+- **Circuit breaker thresholds may need tuning based on production PQC performance metrics**
 
 ---
 
@@ -98,8 +164,16 @@ curl -X POST http://localhost:3001/portal/auth/sso/login
 
 **Overall Implementation Success:** 100%  
 **All checklist items completed successfully**  
-**Ready for production deployment with proper IdP configuration**
+**Security Risk Mitigation Framework implemented and validated**  
+**Ready for production deployment with proper IdP configuration and enhanced security monitoring**
+
+### 🔒 Security Framework Summary
+- **HybridCryptoService Integration:** ✅ Implemented with ML-KEM-768 → RSA-2048 fallback
+- **Enhanced Telemetry Logging:** ✅ Structured CRYPTO_FALLBACK_USED events with comprehensive metadata
+- **Circuit Breaker Patterns:** ✅ Integrated for PQC operation resilience
+- **Mandatory Security Checklist:** ✅ Established for future development
+- **Emergency Response Procedures:** ✅ Documented for security incident handling
 
 ---
 
-*This checklist documents the successful completion of WBS 1.14 Enterprise SSO Integration as requested by @ronakminkalla. All implementation requirements have been met with comprehensive testing and documentation.*
+*This checklist documents the successful completion of WBS 1.14 Enterprise SSO Integration with comprehensive Security Risk Mitigation Framework as requested by @ronakminkalla. All implementation requirements have been met with comprehensive testing, security enhancements, and documentation. The implementation includes both the original SSO integration requirements and additional security mitigation measures to address identified vulnerabilities.*
