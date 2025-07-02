@@ -180,11 +180,11 @@ export class PQCDataValidationService {
           publicKeyHash: this.generatePublicKeyHash(),
           timestamp: new Date(),
           signedDataHash: hash,
-          metadata: { 
-            cryptoUserId, 
+          metadata: {
+            cryptoUserId,
             originalUserId: userId,
             algorithm: algorithmUsed,
-            operation: 'signing'
+            operation: 'signing',
           },
         };
 
@@ -290,7 +290,7 @@ export class PQCDataValidationService {
     try {
       const baseUserId = userId || 'anonymous';
       const signUserId = this.generateStandardizedCryptoUserId(baseUserId, 'ML-DSA-65', 'signing');
-      
+
       const pqcResult = await this.authService.callPQCService('sign_token', {
         user_id: signUserId,
         payload: { dataHash, timestamp: Date.now(), operation: 'sign', original_user_id: baseUserId },

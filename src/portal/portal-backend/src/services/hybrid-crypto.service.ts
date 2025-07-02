@@ -97,7 +97,13 @@ export class HybridCryptoService {
         logLevel: 'error',
       },
     ).catch(async (error) => {
-      this.logger.warn(`PQC encryption failed, attempting fallback: ${error.message}`);
+      this.logger.warn('CRYPTO_FALLBACK_USED', {
+        fallbackReason: error.message,
+        algorithm: 'RSA-2048',
+        operation: 'encryptWithFallback',
+        timestamp: new Date().toISOString(),
+        originalAlgorithm: 'ML-KEM-768',
+      });
       return await fallbackOperation();
     });
   }

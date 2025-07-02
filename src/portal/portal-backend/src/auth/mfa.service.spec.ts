@@ -75,7 +75,7 @@ describe('MFAService', () => {
       expect(mockAuditTrailService.logSecurityEvent).toHaveBeenCalledWith(
         'MFA_SETUP_INITIATED',
         { userId: 'user123', email: 'test@example.com' },
-        'SUCCESS'
+        'SUCCESS',
       );
     });
 
@@ -83,7 +83,7 @@ describe('MFAService', () => {
       mockUserModel.findById.mockResolvedValue(null);
 
       await expect(service.setupMFA('user123', 'test@example.com')).rejects.toThrow(
-        BadRequestException
+        BadRequestException,
       );
     });
 
@@ -91,7 +91,7 @@ describe('MFAService', () => {
       mockUserModel.findById.mockResolvedValue({ ...mockUser, mfaEnabled: true });
 
       await expect(service.setupMFA('user123', 'test@example.com')).rejects.toThrow(
-        BadRequestException
+        BadRequestException,
       );
     });
   });
@@ -114,7 +114,7 @@ describe('MFAService', () => {
       expect(mockAuditTrailService.logSecurityEvent).toHaveBeenCalledWith(
         'MFA_VERIFICATION_SUCCESS',
         { userId: 'user123' },
-        'SUCCESS'
+        'SUCCESS',
       );
     });
 
@@ -131,7 +131,7 @@ describe('MFAService', () => {
       expect(result.message).toBe('Backup code verified successfully');
       expect(mockSecretsService.storeSecret).toHaveBeenCalledWith(
         'mfa_backup_codes_user123',
-        JSON.stringify(['EFGH5678'])
+        JSON.stringify(['EFGH5678']),
       );
     });
 
@@ -148,7 +148,7 @@ describe('MFAService', () => {
       expect(mockAuditTrailService.logSecurityEvent).toHaveBeenCalledWith(
         'MFA_VERIFICATION_FAILED',
         { userId: 'user123', tokenLength: 6 },
-        'FAILURE'
+        'FAILURE',
       );
     });
 
@@ -167,7 +167,7 @@ describe('MFAService', () => {
       mockUserModel.findById.mockResolvedValue(null);
 
       await expect(service.verifyMFA('user123', '123456')).rejects.toThrow(
-        UnauthorizedException
+        UnauthorizedException,
       );
     });
 
@@ -175,7 +175,7 @@ describe('MFAService', () => {
       mockSecretsService.getSecret.mockResolvedValue(null);
 
       await expect(service.verifyMFA('user123', '123456')).rejects.toThrow(
-        UnauthorizedException
+        UnauthorizedException,
       );
     });
   });
@@ -221,7 +221,7 @@ describe('MFAService', () => {
       expect(mockAuditTrailService.logSecurityEvent).toHaveBeenCalledWith(
         'MFA_DISABLED',
         { userId: 'user123' },
-        'SUCCESS'
+        'SUCCESS',
       );
     });
 

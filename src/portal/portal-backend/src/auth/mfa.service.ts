@@ -62,7 +62,7 @@ export class MFAService {
       await this.auditTrailService.logSecurityEvent(
         'MFA_SETUP_INITIATED',
         { userId, email: userEmail },
-        'SUCCESS'
+        'SUCCESS',
       );
 
       this.logger.log(`MFA setup initiated for user ${userId}`);
@@ -76,7 +76,7 @@ export class MFAService {
       await this.auditTrailService.logSecurityEvent(
         'MFA_SETUP_FAILED',
         { userId, error: error.message },
-        'FAILURE'
+        'FAILURE',
       );
       this.logger.error(`MFA setup failed for user ${userId}:`, error);
       throw error;
@@ -92,7 +92,7 @@ export class MFAService {
 
       const secretKey = `mfa_secret_${userId}`;
       const secret = await this.secretsService.getSecret(secretKey);
-      
+
       if (!secret) {
         throw new UnauthorizedException('MFA not set up for this user');
       }
@@ -108,25 +108,25 @@ export class MFAService {
       if (!verified) {
         const backupCodesKey = `mfa_backup_codes_${userId}`;
         const backupCodesJson = await this.secretsService.getSecret(backupCodesKey);
-        
+
         if (backupCodesJson) {
           const backupCodes = JSON.parse(backupCodesJson);
           const backupCodeIndex = backupCodes.indexOf(token);
-          
+
           if (backupCodeIndex !== -1) {
             backupCodes.splice(backupCodeIndex, 1);
             await this.secretsService.storeSecret(backupCodesKey, JSON.stringify(backupCodes));
-            
+
             await this.auditTrailService.logSecurityEvent(
               'MFA_BACKUP_CODE_USED',
               { userId, remainingCodes: backupCodes.length },
-              'SUCCESS'
+              'SUCCESS',
             );
-            
+
             if (enableMFA) {
               await this.enableMFAForUser(userId);
             }
-            
+
             return { verified: true, message: 'Backup code verified successfully' };
           }
         }
@@ -134,9 +134,9 @@ export class MFAService {
         await this.auditTrailService.logSecurityEvent(
           'MFA_VERIFICATION_FAILED',
           { userId, tokenLength: token.length },
-          'FAILURE'
+          'FAILURE',
         );
-        
+
         return { verified: false, message: 'Invalid TOTP code or backup code' };
       }
 
@@ -147,7 +147,7 @@ export class MFAService {
       await this.auditTrailService.logSecurityEvent(
         'MFA_VERIFICATION_SUCCESS',
         { userId },
-        'SUCCESS'
+        'SUCCESS',
       );
 
       this.logger.log(`MFA verification successful for user ${userId}`);
@@ -157,7 +157,7 @@ export class MFAService {
       await this.auditTrailService.logSecurityEvent(
         'MFA_VERIFICATION_ERROR',
         { userId, error: error.message },
-        'FAILURE'
+        'FAILURE',
       );
       this.logger.error(`MFA verification error for user ${userId}:`, error);
       throw error;
@@ -183,14 +183,14 @@ export class MFAService {
 
       const secretKey = `mfa_secret_${userId}`;
       const backupCodesKey = `mfa_backup_codes_${userId}`;
-      
+
       await this.secretsService.deleteSecret(secretKey);
       await this.secretsService.deleteSecret(backupCodesKey);
 
       await this.auditTrailService.logSecurityEvent(
         'MFA_DISABLED',
         { userId },
-        'SUCCESS'
+        'SUCCESS',
       );
 
       this.logger.log(`MFA disabled for user ${userId}`);
@@ -198,7 +198,7 @@ export class MFAService {
       await this.auditTrailService.logSecurityEvent(
         'MFA_DISABLE_FAILED',
         { userId, error: error.message },
-        'FAILURE'
+        'FAILURE',
       );
       this.logger.error(`Failed to disable MFA for user ${userId}:`, error);
       throw error;
@@ -214,19 +214,17 @@ export class MFAService {
     await this.auditTrailService.logSecurityEvent(
       'MFA_ENABLED',
       { userId },
-      'SUCCESS'
+      'SUCCESS',
     );
 
     this.logger.log(`MFA enabled for user ${userId}`);
   }
-private generateBackupCodes(): string[] {
-  const crypto = require('crypto');
-  const codes: string[] = [];
-  for (let i = 0; i < 10; i++) {
-    const randomBytes = crypto.randomBytes(4);
-    const code = randomBytes.toString('hex').toUpperCase();
-    codes.push(code);
-      const code = bytes.toString('hex').toUpperCase();
+  private generateBackupCodes(): string[] {
+    const crypto = require('crypto');
+    const codes: string[] = [];
+    for (let i = 0; i < 10; i++) {
+      const randomBytes = crypto.randomBytes(4);
+      const code = randomBytes.toString('hex').toUpperCase();
       codes.push(code);
     }
     return codes;

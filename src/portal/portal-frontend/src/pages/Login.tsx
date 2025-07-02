@@ -13,7 +13,8 @@ import {
   Paper,
   Stepper,
   Step,
-  StepLabel
+  StepLabel,
+  Divider
 } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -50,6 +51,8 @@ const Login: React.FC = () => {
   const [showMFA, setShowMFA] = useState(false);
   const [userId, setUserId] = useState<string>('');
   const [mfaError, setMfaError] = useState<string>('');
+  const [ssoLoading, setSsoLoading] = useState(false);
+  const [ssoError, setSsoError] = useState<string>('');
 
   const initialValues: LoginFormValues = {
     email: '',
@@ -119,6 +122,37 @@ const Login: React.FC = () => {
     }
   };
 
+  const handleSSOLogin = async () => {
+    try {
+      setSsoLoading(true);
+      setSsoError('');
+      clearError();
+      
+      const response = await fetch('/portal/auth/sso/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          relayState: '/dashboard',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.redirectUrl) {
+        window.location.href = data.redirectUrl;
+      } else {
+        throw new Error(data.message || 'SSO login failed');
+      }
+    } catch (err: any) {
+      setSsoError(err.message || 'SSO login failed. Please try again.');
+      console.error('SSO login error:', err);
+    } finally {
+      setSsoLoading(false);
+    }
+  };
+
   const handleSubmit = showMFA ? handleMFASubmit : handlePasswordSubmit;
 
   return (
@@ -165,6 +199,62 @@ const Login: React.FC = () => {
             >
               {mfaError}
             </Alert>
+          )}
+
+          {ssoError && (
+            <Alert 
+              severity="error" 
+              sx={{ mb: 2 }}
+              role="alert"
+              aria-live="polite"
+            >
+              {ssoError}
+            </Alert>
+          )}
+
+          {!showMFA && (
+            <Box sx={{ mb: 3 }}>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={handleSSOLogin}
+                disabled={ssoLoading}
+                sx={{ 
+                  mb: 2,
+                  py: 1.5,
+                  borderColor: 'primary.main',
+                  color: 'primary.main',
+                  '&:hover': {
+                    borderColor: 'primary.dark',
+                    backgroundColor: 'primary.light',
+                    color: 'primary.dark',
+                  },
+                  '&:focus': {
+                    outline: '2px solid',
+                    outlineColor: 'primary.main',
+                    outlineOffset: '2px',
+                  }
+                }}
+                aria-label={ssoLoading ? "Signing in with SSO..." : "Sign in with Single Sign-On"}
+                role="button"
+                tabIndex={0}
+              >
+                {ssoLoading ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <CircularProgress size={20} sx={{ mr: 1 }} />
+                    Signing in with SSO...
+                  </Box>
+                ) : (
+                  'Sign in with SSO'
+                )}
+              </Button>
+              
+              <Divider sx={{ my: 2 }}>
+                <Typography variant="body2" color="text.secondary">
+                  or
+                </Typography>
+              </Divider>
+            </Box>
           )}
 
           <Formik

@@ -27,3 +27,27 @@ global.ResizeObserver = jest.fn().mockImplementation(() => ({
   unobserve: jest.fn(),
   disconnect: jest.fn(),
 }));
+
+global.BroadcastChannel = jest.fn().mockImplementation(() => ({
+  postMessage: jest.fn(),
+  close: jest.fn(),
+  addEventListener: jest.fn(),
+  removeEventListener: jest.fn(),
+  dispatchEvent: jest.fn(),
+}));
+
+global.TransformStream = jest.fn().mockImplementation(() => ({
+  readable: {
+    getReader: jest.fn(() => ({
+      read: jest.fn(() => Promise.resolve({ done: true, value: undefined })),
+      releaseLock: jest.fn(),
+    })),
+  },
+  writable: {
+    getWriter: jest.fn(() => ({
+      write: jest.fn(() => Promise.resolve()),
+      close: jest.fn(() => Promise.resolve()),
+      releaseLock: jest.fn(),
+    })),
+  },
+}));
