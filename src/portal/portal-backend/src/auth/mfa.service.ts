@@ -1,6 +1,7 @@
 import { Injectable, Logger, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { randomBytes } from 'crypto';
 import * as speakeasy from 'speakeasy';
 import { IUser } from '../models/User';
 import { SecretsService } from '../secrets/secrets.service';
@@ -222,7 +223,8 @@ export class MFAService {
   private generateBackupCodes(): string[] {
     const codes: string[] = [];
     for (let i = 0; i < 10; i++) {
-      const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+      const bytes = randomBytes(4);
+      const code = bytes.toString('hex').toUpperCase();
       codes.push(code);
     }
     return codes;
