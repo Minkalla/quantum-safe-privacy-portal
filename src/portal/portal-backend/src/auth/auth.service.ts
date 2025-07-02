@@ -551,14 +551,14 @@ export class AuthService {
     if (!userId || typeof userId !== 'string') {
       throw new BadRequestException('Invalid user ID format');
     }
-    
+  
+    // Validate MongoDB ObjectId format (24 hex characters)
     if (!/^[a-f\d]{24}$/i.test(userId)) {
       throw new BadRequestException('Invalid user ID format');
     }
-    
+  
     return userId;
   }
-
   private sanitizeEmail(email: string): string {
     if (!email || typeof email !== 'string') {
       throw new BadRequestException('Invalid email format');
