@@ -556,7 +556,13 @@ export class AuthService {
     if (!/^[a-f\d]{24}$/i.test(userId)) {
       throw new BadRequestException('Invalid user ID format');
     }
-  
+
+    try {
+      new ObjectId(userId);
+    } catch (error) {
+      throw new BadRequestException('Invalid user ID format');
+    }
+
     return userId;
   }
   private sanitizeEmail(email: string): string {
