@@ -40,7 +40,11 @@ const server = setupServer(
   })
 );
 
-beforeAll(() => server.listen());
+beforeAll(() => {
+  server.listen();
+  delete (window as any).location;
+  (window as any).location = { href: '', assign: jest.fn() };
+});
 afterEach(() => {
   server.resetHandlers();
   mockNavigate.mockClear();

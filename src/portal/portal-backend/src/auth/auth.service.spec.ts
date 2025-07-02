@@ -58,6 +58,20 @@ describe('AuthService - Refresh Token', () => {
     triggerPQCHandshake: jest.fn(),
   };
 
+  const mockHybridCryptoService = {
+    encryptWithFallback: jest.fn(),
+    decryptWithFallback: jest.fn(),
+  };
+
+  const mockQuantumSafeJWTService = {
+    signPQCToken: jest.fn(),
+    verifyPQCToken: jest.fn(),
+  };
+
+  const mockPQCBridgeService = {
+    executePQCOperation: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -81,6 +95,18 @@ describe('AuthService - Refresh Token', () => {
         {
           provide: PQCService,
           useValue: mockPQCService,
+        },
+        {
+          provide: 'HybridCryptoService',
+          useValue: mockHybridCryptoService,
+        },
+        {
+          provide: 'QuantumSafeJWTService',
+          useValue: mockQuantumSafeJWTService,
+        },
+        {
+          provide: 'PQCBridgeService',
+          useValue: mockPQCBridgeService,
         },
       ],
     }).compile();

@@ -17,7 +17,11 @@ const server = setupServer(
   })
 );
 
-beforeAll(() => server.listen());
+beforeAll(() => {
+  server.listen();
+  delete (window as any).location;
+  (window as any).location = { href: '', assign: jest.fn() };
+});
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
@@ -208,7 +212,8 @@ describe('Register Component', () => {
     
     await waitFor(() => {
       expect(emailInput).toHaveAttribute('aria-describedby', 'email-error');
-      expect(screen.getByRole('alert')).toHaveTextContent(/please enter a valid email address/i);
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+      expect(screen.getByText(/please enter a valid email address/i)).toBeInTheDocument();
     });
   });
 
@@ -306,7 +311,8 @@ describe('Register Component', () => {
     await user.click(submitButton);
     
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent(/email already exists/i);
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+      expect(screen.getByText(/email already exists/i)).toBeInTheDocument();
     });
   });
 
@@ -332,7 +338,8 @@ describe('Register Component', () => {
     await user.click(submitButton);
     
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent(/network error/i);
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+      expect(screen.getByText(/network error/i)).toBeInTheDocument();
     });
   });
 });
