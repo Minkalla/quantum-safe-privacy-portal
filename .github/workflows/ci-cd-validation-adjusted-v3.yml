@@ -15,6 +15,9 @@ jobs:
           npm ci
           npm run build
           npm test
+        env:
+          MONGO_URI: ${{ secrets.MONGODB1 }}
+          NODE_ENV: test
 
   validate-monorepo:
     runs-on: ubuntu-latest
@@ -27,3 +30,6 @@ jobs:
           npm ci
           npm run build
           npm test
+        env:
+          MONGO_URI: ${{ secrets.MONGODB1 }}
+          NODE_ENV: test

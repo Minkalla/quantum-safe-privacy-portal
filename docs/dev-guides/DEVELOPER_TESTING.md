@@ -26,7 +26,7 @@ This document provides comprehensive guidance for developers working with the te
 ### Prerequisites
 - Node.js v18+ installed
 - npm or yarn package manager
-- Docker Desktop (for MongoDB testing)
+- MongoDB Atlas access (cloud database - Docker MongoDB deprecated)
 - AWS credentials (for real secret testing)
 
 ### Setup Commands

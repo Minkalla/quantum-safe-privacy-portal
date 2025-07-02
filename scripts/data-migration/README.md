@@ -9,7 +9,7 @@ Migrates existing consent data to PQC-protected format.
 
 **Usage:**
 ```bash
-MONGODB_URI=mongodb://localhost:27017/quantum-safe-portal node migrate-to-pqc.js
+MONGODB_URI=${MONGO_URI} node migrate-to-pqc.js
 ```
 
 ### rollback-pqc.js
@@ -17,7 +17,7 @@ Rolls back PQC protection from consent data.
 
 **Usage:**
 ```bash
-MONGODB_URI=mongodb://localhost:27017/quantum-safe-portal node rollback-pqc.js
+MONGODB_URI=${MONGO_URI} node rollback-pqc.js
 ```
 
 ### validate-migration.js
@@ -25,7 +25,7 @@ Validates the integrity of migrated PQC data.
 
 **Usage:**
 ```bash
-MONGODB_URI=mongodb://localhost:27017/quantum-safe-portal node validate-migration.js
+MONGODB_URI=${MONGO_URI} node validate-migration.js
 ```
 
 ## Environment Variables

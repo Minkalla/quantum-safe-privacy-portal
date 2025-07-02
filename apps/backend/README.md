@@ -119,7 +119,7 @@ To get the `portal-backend` running locally using Docker Compose:
         cp .env.example .env  # For Windows PowerShell, you might use 'copy .env.example .env'
         ```
     * **Edit the `.env` file** and populate the variables:
-        * `MONGO_URI`: For local development, use `mongodb://mongo:27017/portal_dev`.
+        * `MONGO_URI`: Use the MongoDB Atlas connection string from your environment variables or secrets management.
         * `JWT_ACCESS_SECRET` & `JWT_REFRESH_SECRET`: Generate strong, random Base64 strings. (e.g., `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`).
         * `ENABLE_SWAGGER_DOCS`: Set to `true` to access API docs locally.
         * `FRONTEND_URL`: `http://localhost:3000` (or your frontend's actual local dev URL).
@@ -131,9 +131,8 @@ To get the `portal-backend` running locally using Docker Compose:
     ```
     This will:
     * Build the `portal-backend` Docker image.
-    * Download the `mongo:5.0` Docker image.
-    * Start both the `backend` and `mongo` containers.
-    * You will see logs from both services streaming in your terminal.
+    * Start the backend container with MongoDB Atlas connectivity.
+    * You will see logs from the backend service streaming in your terminal.
 
 ## ✅ Verification
 

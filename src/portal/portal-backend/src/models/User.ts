@@ -66,6 +66,14 @@ export interface IUser extends Document {
   mfaEnabled?: boolean;
   mfaEnabledAt?: Date | null;
   mfaSecret?: string | null;
+  trustedDevices?: {
+    deviceId: string;
+    fingerprint: string;
+    deviceName?: string;
+    deviceType?: 'desktop' | 'mobile' | 'tablet';
+    lastUsed: Date;
+    createdAt: Date;
+  }[];
 }
 
 /**
@@ -213,6 +221,17 @@ export const UserSchema = new Schema<IUser>( // MODIFIED: Added 'export' here
       default: null,
       select: false,
     },
+    trustedDevices: [{
+      deviceId: { type: String, required: true },
+      fingerprint: { type: String, required: true },
+      deviceName: { type: String },
+      deviceType: {
+        type: String,
+        enum: ['desktop', 'mobile', 'tablet'],
+      },
+      lastUsed: { type: Date, required: true },
+      createdAt: { type: Date, required: true },
+    }],
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt fields

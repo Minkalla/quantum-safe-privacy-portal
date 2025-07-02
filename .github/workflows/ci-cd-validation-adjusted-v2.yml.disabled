@@ -156,14 +156,14 @@ jobs:
       - name: Run PQC integration tests (Legacy Backend)
         working-directory: src/portal/portal-backend
         env:
-          MONGODB_URI: 'mongodb://localhost:27017/pqc_integration_test'
+          MONGODB_URI: ${{ secrets.MONGODB1 }}
           PQC_ENABLED: 'true'
         run: npm run test:e2e || echo "Legacy PQC integration tests expected to fail without full implementation"
       
       - name: Run PQC integration tests (New Backend)
         working-directory: apps/backend
         env:
-          MONGODB_URI: 'mongodb://localhost:27017/pqc_integration_test_new'
+          MONGODB_URI: ${{ secrets.MONGODB1 }}
           PQC_ENABLED: 'true'
         run: npm run test:e2e || echo "New PQC integration tests expected to fail without full implementation"
 

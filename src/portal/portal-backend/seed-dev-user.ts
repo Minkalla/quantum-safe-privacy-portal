@@ -1,7 +1,7 @@
 import { MongoClient } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
-const uri = 'mongodb://localhost:27017'; // Or use `mongo` if running inside container
+const uri = process.env.MONGODB_URI || process.env.MONGO_URI || (() => { throw new Error('MongoDB URI is required. Set MONGODB_URI or MONGO_URI environment variable.'); })();
 const dbName = 'portal_dev';
 
 async function seedUser() {

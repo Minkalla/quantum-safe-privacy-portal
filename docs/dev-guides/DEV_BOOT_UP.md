@@ -6,7 +6,7 @@ Prerequisites:
 
 Operating System: Windows 10/11, macOS, or Linux
 
-Tools: Git, Node.js (v22.16.0), Docker Desktop (v28.1.1), MongoDB Atlas account
+Tools: Git, Node.js (v22.16.0), Docker Desktop (v28.1.1), MongoDB Atlas account (primary database)
 
 Access: Repository permissions, AWS credentials
 

@@ -1,24 +1,5 @@
 
 services:
-  # MongoDB Database Service
-  mongo:
-    image: mongo:latest
-    container_name: portal-mongo
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    environment:
-      MONGO_INITDB_DATABASE: portal_dev
-    volumes:
-      - mongo_data:/data/db
-    networks:
-      - minkalla-network
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
   # Portal Backend Service
   portal-backend:
     build:
@@ -31,7 +12,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=8080
-      - MONGO_URI=mongodb://mongo:27017/portal_dev
+      - MONGO_URI=${MONGO_URI} # MongoDB Atlas connection string from environment
       - JWT_ACCESS_SECRET=dev_jwt_access_secret_key_32_chars
       - JWT_REFRESH_SECRET=dev_jwt_refresh_secret_key_32_chars
       - JWT_ACCESS_SECRET_ID=local-jwt-access-secret
@@ -43,9 +24,6 @@ services:
       - AWS_REGION=us-east-1
       - AWS_ACCESS_KEY_ID=dummy
       - AWS_SECRET_ACCESS_KEY=dummy
-    depends_on:
-      mongo:
-        condition: service_healthy
     networks:
       - minkalla-network
     healthcheck:
@@ -78,7 +56,3 @@ networks:
   minkalla-network:
     driver: bridge
     name: minkalla-network
-
-volumes:
-  mongo_data:
-    driver: local

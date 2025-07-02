@@ -85,6 +85,10 @@ describe('POST /portal/consent (Integration Tests)', () => {
     if (app) {
       await app.close();
     }
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
   });
 
   afterEach(async () => {

@@ -58,7 +58,7 @@ Activities:
 
 Effort Estimate: 8 hours
 
-Status: ☐ NOT STARTED
+Status: ✅ COMPLETED
 
 Compliance: NIST SP 800-53 AC-3, FedRAMP AC-6, OWASP Top 10.
 
@@ -80,13 +80,13 @@ Activities:
 
 1.15.2.1: Update src/portal/portal-frontend/src/pages/Login.tsx to collect device fingerprint data (e.g., user agent via navigator.userAgent) and send to /portal/auth/device/register.
 
-1.15.2.2: Display device verification prompt (e.g., “New device detected, verify via email”) using Material-UI components, ensuring WCAG 2.1 accessibility.
+1.15.2.2: Display device verification prompt (e.g., "New device detected, verify via email") using Material-UI components, ensuring WCAG 2.1 accessibility.
 
 1.15.2.3: Call /portal/auth/device/verify API to complete device trust flow, handling success/error responses.
 
 Effort Estimate: 7 hours
 
-Status: ☐ NOT STARTED
+Status: ✅ COMPLETED
 
 Compliance: GDPR Article 32, ISO/IEC 27701 7.2.8.
 
@@ -114,7 +114,7 @@ Activities:
 
 Effort Estimate: 6 hours
 
-Status: ☐ NOT STARTED
+Status: ✅ COMPLETED
 
 Compliance: NIST SP 800-53 AC-3, OWASP Top 10.
 
@@ -142,7 +142,7 @@ Activities:
 
 Effort Estimate: 4 hours
 
-Status: ☐ NOT STARTED
+Status: ✅ COMPLETED
 
 Compliance: NIST SP 800-53 RA-5, ISO/IEC 27701 7.2.8.
 
@@ -160,9 +160,9 @@ Effort Summary
 
 Total Estimated Effort: 25 hours
 
-Completed Effort: 0 hours
+Completed Effort: 25 hours
 
-Remaining Effort: 25 hours
+Remaining Effort: 0 hours
 
 Compliance Summary
 

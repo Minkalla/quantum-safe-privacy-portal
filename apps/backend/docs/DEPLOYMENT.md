@@ -154,30 +154,12 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=8080
-      - MONGO_URI=mongodb://mongo:27017/portal_dev
+      - MONGO_URI=${MONGODB_URI} # MongoDB Atlas connection from environment
       - JWT_ACCESS_SECRET=local_dev_jwt_secret
       - JWT_REFRESH_SECRET=local_dev_refresh_secret
       - ENABLE_SWAGGER_DOCS=true
       - FRONTEND_URL=http://localhost:3000
-    depends_on:
-      - mongo
     restart: always
-
-  mongo:
-    image: mongo:5.0
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
-    healthcheck:
-      test: ["CMD", "mongo", "--eval", "db.runCommand({ping: 1})"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: always
-
-volumes:
-  mongo-data:
 nest-cli.json
 Configures the NestJS CLI build process.
 

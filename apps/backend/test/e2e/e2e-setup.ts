@@ -138,14 +138,20 @@ export class E2ETestSetup {
 }
 
 export const setupE2EEnvironment = async (mongoUri?: string) => {
-  const uri = mongoUri || process.env.MONGODB_URI || 'mongodb://localhost:27017';
+  const uri = mongoUri || process.env.MONGODB_URI || process.env.MONGO_URI;
+  if (!uri) {
+    throw new Error('MongoDB URI is required. Set MONGODB_URI or MONGO_URI environment variable.');
+  }
   const setup = new E2ETestSetup(uri);
 
   return await setup.setupCompleteTestEnvironment();
 };
 
 export const cleanupE2EEnvironment = async (mongoUri?: string) => {
-  const uri = mongoUri || process.env.MONGODB_URI || 'mongodb://localhost:27017';
+  const uri = mongoUri || process.env.MONGODB_URI || process.env.MONGO_URI;
+  if (!uri) {
+    throw new Error('MongoDB URI is required. Set MONGODB_URI or MONGO_URI environment variable.');
+  }
   const setup = new E2ETestSetup(uri);
 
   await setup.connect();

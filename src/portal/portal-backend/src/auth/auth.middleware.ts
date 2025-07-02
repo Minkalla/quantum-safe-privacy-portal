@@ -17,19 +17,25 @@
 import { Injectable, NestMiddleware, UnauthorizedException } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { JwtService } from '../jwt/jwt.service';
+import { DeviceService } from './device.service';
 
 interface AuthenticatedRequest extends Request {
   user?: {
     userId: string;
     email: string;
   };
+  deviceFingerprint?: string;
+  deviceTrusted?: boolean;
 }
 
 @Injectable()
 export class AuthMiddleware implements NestMiddleware {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly deviceService: DeviceService,
+  ) {}
 
-  use(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
+  async use(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
@@ -56,10 +62,44 @@ export class AuthMiddleware implements NestMiddleware {
         email: payload.email,
       };
 
+      const deviceFingerprint = req.headers['x-device-fingerprint'] as string;
+      req.deviceFingerprint = deviceFingerprint;
+
+      if (deviceFingerprint && this.requiresDeviceTrust(req.path)) {
+        const { trusted } = await this.deviceService.validateDeviceTrust(
+          payload.userId,
+          deviceFingerprint,
+        );
+
+        req.deviceTrusted = trusted;
+
+        if (!trusted && this.isSensitiveOperation(req.path)) {
+          return this.sendUnauthorizedResponse(res, 'Device not trusted for this operation');
+        }
+      }
+
       next();
     } catch (error) {
       return this.sendUnauthorizedResponse(res, 'Invalid or expired JWT token');
     }
+  }
+
+  private requiresDeviceTrust(path: string): boolean {
+    const deviceTrustPaths = [
+      '/portal/auth/device',
+      '/portal/pqc',
+      '/portal/user/profile',
+    ];
+    return deviceTrustPaths.some(trustPath => path.startsWith(trustPath));
+  }
+
+  private isSensitiveOperation(path: string): boolean {
+    const sensitivePaths = [
+      '/portal/pqc/generate-keys',
+      '/portal/user/profile/update',
+      '/portal/auth/device/register',
+    ];
+    return sensitivePaths.some(sensitivePath => path.startsWith(sensitivePath));
   }
 
   private sendUnauthorizedResponse(res: Response, message: string): void {

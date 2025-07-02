@@ -1,7 +1,7 @@
 const { MongoClient } = require('mongodb');
 
 async function migrateToPQC() {
-  const client = new MongoClient(process.env.MONGODB_URI || 'mongodb://localhost:27017/quantum-safe-portal');
+  const client = new MongoClient(process.env.MONGODB_URI || process.env.MONGO_URI || (() => { throw new Error('MongoDB URI is required. Set MONGODB_URI or MONGO_URI environment variable.'); })());
   
   try {
     await client.connect();
