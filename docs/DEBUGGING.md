@@ -109,8 +109,10 @@ curl -X POST http://localhost:8080/portal/consent \
   -H "Content-Type: application/json" \
   -d '{"userId":"invalid"}' | jq
 
-# Verify database state
-docker exec -it mongo-container mongosh --eval "db.consents.find().pretty()"
+# Verify database state (MongoDB Atlas)
+# Use MongoDB Compass or Atlas web interface to inspect database state
+# Or connect via mongosh with Atlas connection string:
+# mongosh "${MONGODB_URI}" --eval "db.consents.find().pretty()"
 ```
 
 ---

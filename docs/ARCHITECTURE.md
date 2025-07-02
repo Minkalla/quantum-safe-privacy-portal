@@ -15,7 +15,7 @@ This document provides detailed technical architecture overview, including major
 - **Framework:** NestJS (TypeScript) with custom ValidationPipe configuration
 - **Runtime:** Node.js 18+ with ES2022 target
 - **Containerization:** Docker multi-stage builds, Docker Compose orchestration
-- **Database:** MongoDB Atlas (cloud-native, Docker MongoDB deprecated)
+- **Database:** MongoDB Atlas (cloud-native, fully managed database service)
 - **Authentication:** JWT with dual-token strategy (access + refresh tokens)
 - **Observability:** AWS X-Ray, CloudTrail, GuardDuty integration
 - **Security:** bcryptjs, Helmet, CORS, HPP, rate limiting, SQL injection detection
@@ -357,10 +357,10 @@ test/e2e/
 ## 10. Deployment Architecture
 
 ### 10.1 Local Development
-- **Docker Compose**: Backend, MongoDB, X-Ray daemon orchestration
+- **Docker Compose**: Backend and X-Ray daemon orchestration (MongoDB Atlas cloud-hosted)
 - **Hot Reload**: NestJS development mode with file watching
-- **Environment Variables**: `.env` file configuration
-- **Database Seeding**: Automated test data setup
+- **Environment Variables**: `.env` file configuration with MongoDB Atlas connection
+- **Database Seeding**: Automated test data setup via Atlas connection
 
 ### 10.2 Production Deployment (Planned)
 - **Container Registry**: Docker images in AWS ECR

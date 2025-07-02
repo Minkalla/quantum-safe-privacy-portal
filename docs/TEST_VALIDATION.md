@@ -342,7 +342,7 @@ _## 10. WBS 1.7: Docker Compose Runtime & Endpoint Validation
 Validate `/portal/auth/login`, `/portal/auth/register`, and `/api-docs` endpoints under Docker Compose to confirm local–cloud parity.
 
 ### Validation Scope
-- **Infra Environment**: `docker-compose.yml` with backend, frontend, and MongoDB
+- **Infra Environment**: `docker-compose.yml` with backend and frontend (MongoDB Atlas cloud-hosted)
 - **Manual Runtime Tests**: curl and browser-based endpoint validation
 - **Security Middleware**: Confirmed persistence and error handling across containers
 
