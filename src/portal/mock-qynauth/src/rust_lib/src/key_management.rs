@@ -154,12 +154,12 @@ impl SecureKeyManager {
             .or_default()
             .push(key_id.clone());
 
-        info!("Successfully generated and stored key {key_id} for user {user_id}");
+        info!("Successfully generated and stored key [REDACTED] for user [REDACTED]");
         Ok(key_id)
     }
 
     pub fn rotate_key(&mut self, key_id: &str) -> PQCResult<String> {
-        info!("Rotating key {key_id}");
+        info!("Rotating key [REDACTED]");
 
         let (old_keypair, mut old_metadata) = self
             .keys
@@ -184,12 +184,12 @@ impl SecureKeyManager {
             new_metadata.rotation_count = old_metadata.rotation_count + 1;
         }
 
-        info!("Successfully rotated key {key_id} to new key {new_key_id}");
+        info!("Successfully rotated key [REDACTED] to new key [REDACTED]");
         Ok(new_key_id)
     }
 
     pub fn revoke_key(&mut self, key_id: &str) -> PQCResult<()> {
-        info!("Revoking key {key_id}");
+        info!("Revoking key [REDACTED]");
 
         let hsm_ref = if let Some((_, metadata)) = self.keys.get(key_id) {
             metadata.hsm_reference.clone()
@@ -199,7 +199,7 @@ impl SecureKeyManager {
 
         if let Some(hsm_ref) = &hsm_ref {
             self.remove_key_from_hsm(hsm_ref)?;
-            info!("Removed key {key_id} from HSM");
+            info!("Removed key [REDACTED] from HSM");
         }
 
         if let Some((keypair, metadata)) = self.keys.get_mut(key_id) {
@@ -208,7 +208,7 @@ impl SecureKeyManager {
             let keypair_copy = keypair.clone();
             self.secure_delete_key(&keypair_copy)?;
 
-            info!("Successfully revoked key {key_id}");
+            info!("Successfully revoked key [REDACTED]");
             Ok(())
         } else {
             Err(PQCError::KeyNotFound(key_id.to_string()))
@@ -399,13 +399,13 @@ impl SecureKeyManager {
             metadata.key_id
         );
 
-        info!("Simulating HSM key storage for key {}", metadata.key_id);
+        info!("Simulating HSM key storage for key [REDACTED]");
 
         Ok(hsm_reference)
     }
 
     fn remove_key_from_hsm(&self, hsm_reference: &str) -> PQCResult<()> {
-        info!("Simulating HSM key removal for reference: {hsm_reference}");
+        info!("Simulating HSM key removal for reference: [REDACTED]");
         Ok(())
     }
 

@@ -17,7 +17,36 @@ const server = setupServer(
   })
 );
 
-beforeAll(() => server.listen());
+beforeAll(() => {
+  server.listen();
+  delete (window as any).location;
+  (window as any).location = {
+    href: '',
+    assign: jest.fn(),
+    replace: jest.fn(),
+    reload: jest.fn(),
+    toString: jest.fn(() => ''),
+    origin: 'http://localhost',
+    protocol: 'http:',
+    host: 'localhost',
+    hostname: 'localhost',
+    port: '',
+    pathname: '/',
+    search: '',
+    hash: ''
+  };
+  
+  Object.defineProperty(window, 'history', {
+    value: {
+      pushState: jest.fn(),
+      replaceState: jest.fn(),
+      back: jest.fn(),
+      forward: jest.fn(),
+      go: jest.fn()
+    },
+    writable: true
+  });
+});
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
@@ -208,7 +237,9 @@ describe('Register Component', () => {
     
     await waitFor(() => {
       expect(emailInput).toHaveAttribute('aria-describedby', 'email-error');
-      expect(screen.getByRole('alert')).toHaveTextContent(/please enter a valid email address/i);
+      const errorElement = screen.getByRole('alert');
+      expect(errorElement).toBeInTheDocument();
+      expect(errorElement).toHaveTextContent(/please enter a valid email address/i);
     });
   });
 
@@ -234,6 +265,9 @@ describe('Register Component', () => {
     
     await user.tab();
     expect(screen.getByLabelText(/show confirm password/i)).toHaveFocus();
+    
+    await user.tab();
+    expect(screen.getByRole('button', { name: /create account/i })).toHaveFocus();
     
     await user.tab();
     expect(screen.getByRole('button', { name: /sign in here/i })).toHaveFocus();
@@ -306,7 +340,9 @@ describe('Register Component', () => {
     await user.click(submitButton);
     
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent(/email already exists/i);
+      const errorElement = screen.getByRole('alert');
+      expect(errorElement).toBeInTheDocument();
+      expect(errorElement).toHaveTextContent(/email already exists/i);
     });
   });
 
@@ -332,7 +368,9 @@ describe('Register Component', () => {
     await user.click(submitButton);
     
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent(/network error/i);
+      const errorElement = screen.getByRole('alert');
+      expect(errorElement).toBeInTheDocument();
+      expect(errorElement).toHaveTextContent(/network error/i);
     });
   });
 });

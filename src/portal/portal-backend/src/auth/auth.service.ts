@@ -15,7 +15,7 @@
  * protection and secure password management.
  */
 
-import { Injectable, ConflictException, UnauthorizedException, ForbiddenException, Logger } from '@nestjs/common';
+import { Injectable, ConflictException, UnauthorizedException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
@@ -27,6 +27,8 @@ import { PQCFeatureFlagsService } from '../pqc/pqc-feature-flags.service';
 import { PQCMonitoringService } from '../pqc/pqc-monitoring.service';
 import { PQCService } from '../services/pqc.service';
 import { HybridCryptoService } from '../services/hybrid-crypto.service';
+import { QuantumSafeJWTService } from '../services/quantum-safe-jwt.service';
+import { PQCBridgeService } from '../services/pqc-bridge.service';
 import { ObjectId } from 'mongodb';
 
 // Brute-force protection settings
@@ -44,6 +46,8 @@ export class AuthService {
     private readonly pqcMonitoring: PQCMonitoringService,
     private readonly pqcService: PQCService,
     private readonly hybridCryptoService: HybridCryptoService,
+    private readonly quantumSafeJWTService: QuantumSafeJWTService,
+    private readonly pqcBridgeService: PQCBridgeService,
   ) {}
 
   /**
@@ -55,7 +59,7 @@ export class AuthService {
   async register(registerDto: RegisterDto): Promise<{ userId: string; email: string }> {
     const { email, password } = registerDto;
 
-    const existingUser = await this.userModel.findOne({ email });
+    const existingUser = await this.userModel.findOne({ email: this.sanitizeEmail(email) });
     if (existingUser) {
       throw new ConflictException('Email already registered');
     }
@@ -144,7 +148,7 @@ export class AuthService {
           await this.pqcMonitoring.recordPQCKeyGeneration(userId, startTime, true);
 
           return {
-            access_token: payload, // Return payload for now since we don't have JWT service here
+            access_token: await this.quantumSafeJWTService.signPQCToken(payload),
             pqc_enabled: true,
             algorithm: pqcResult.algorithm,
             session_data: pqcResult.session_data,
@@ -201,13 +205,17 @@ export class AuthService {
   }
 
   /**
-   * Public wrapper for PQC service calls - addresses encapsulation concerns
+   * Execute PQC service calls through secure bridge service
    * @param operation The PQC operation to perform
    * @param params Parameters for the operation
    * @returns Promise with PQC service response
    */
-  async callPQCService(operation: string, params: any): Promise<any> {
-    return this.callPythonPQCService(operation, params);
+  async executePQCServiceCall(operation: string, params: any): Promise<any> {
+    return this.pqcBridgeService.executePQCOperation(operation, params, {
+      fallbackEnabled: true,
+      timeout: 30000,
+      retries: 2,
+    });
   }
 
   /**
@@ -380,7 +388,7 @@ export class AuthService {
     const { email, password, rememberMe } = loginDto;
 
     const user = await this.userModel
-      .findOne({ email })
+      .findOne({ email: this.sanitizeEmail(email) })
       .select('+password +failedLoginAttempts +lockUntil +refreshTokenHash');
 
     if (!user) {
@@ -454,7 +462,7 @@ export class AuthService {
       }
 
       const user = await this.userModel
-        .findById(payload.userId)
+        .findById(this.sanitizeUserId(payload.userId))
         .select('+refreshTokenHash');
 
       if (!user || !user.refreshTokenHash) {
@@ -537,5 +545,36 @@ export class AuthService {
     } finally {
       await this.pqcMonitoring.recordPQCAuthentication(userId, startTime, success);
     }
+  }
+
+  private sanitizeUserId(userId: string): string {
+    if (!userId || typeof userId !== 'string') {
+      throw new BadRequestException('Invalid user ID format');
+    }
+  
+    // Validate MongoDB ObjectId format (24 hex characters)
+    if (!/^[a-f\d]{24}$/i.test(userId)) {
+      throw new BadRequestException('Invalid user ID format');
+    }
+
+    try {
+      new ObjectId(userId);
+    } catch (error) {
+      throw new BadRequestException('Invalid user ID format');
+    }
+
+    return userId;
+  }
+  private sanitizeEmail(email: string): string {
+    if (!email || typeof email !== 'string') {
+      throw new BadRequestException('Invalid email format');
+    }
+    
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email)) {
+      throw new BadRequestException('Invalid email format');
+    }
+    
+    return email.toLowerCase().trim();
   }
 }

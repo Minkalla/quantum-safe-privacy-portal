@@ -86,6 +86,40 @@ describe('PQC FFI Integration Verification', () => {
         { provide: PQCDataEncryptionService, useValue: mockPQCDataEncryptionService },
         { provide: 'UserModel', useValue: mockUserModel },
         { provide: ConfigService, useValue: mockConfigService },
+        {
+          provide: 'HybridCryptoService',
+          useValue: {
+            encryptWithFallback: jest.fn(),
+            decryptWithFallback: jest.fn(),
+            generateKeyPairWithFallback: jest.fn(),
+          },
+        },
+        {
+          provide: 'QuantumSafeJWTService',
+          useValue: {
+            signPQCToken: jest.fn(),
+            verifyPQCToken: jest.fn(),
+          },
+        },
+        {
+          provide: 'QuantumSafeCryptoIdentityService',
+          useValue: {
+            generateStandardizedCryptoUserId: jest.fn(),
+          },
+        },
+        {
+          provide: 'PQCBridgeService',
+          useValue: {
+            executePQCOperation: jest.fn(),
+          },
+        },
+        {
+          provide: 'PQCService',
+          useValue: {
+            performPQCHandshake: jest.fn(),
+            triggerPQCHandshake: jest.fn(),
+          },
+        },
         { provide: SecretsService, useValue: mockSecretsService },
         { provide: PQCFeatureFlagsService, useValue: mockPQCFeatureFlagsService },
         { provide: PQCMonitoringService, useValue: mockPQCMonitoringService },
@@ -170,7 +204,7 @@ print("FFI_VERIFICATION_SUCCESS")
       console.log(`Starting FFI roundtrip test for user: ${testUserId}`);
       console.log('Test payload:', JSON.stringify(testPayload));
 
-      const signResult = await authService.callPQCService('sign_token', {
+      const signResult = await authService.executePQCServiceCall('sign_token', {
         user_id: testUserId,
         data_hash: JSON.stringify(testPayload),
       });
@@ -190,7 +224,7 @@ print("FFI_VERIFICATION_SUCCESS")
         token_length: signResult.signed_token?.length,
       });
 
-      const verifyResult = await authService.callPQCService('verify_token', {
+      const verifyResult = await authService.executePQCServiceCall('verify_token', {
         user_id: testUserId,
         token: signResult.signed_token,
       });
@@ -221,7 +255,7 @@ print("FFI_VERIFICATION_SUCCESS")
 
       console.log(`Starting ML-KEM FFI test for user: ${testUserId}`);
 
-      const sessionResult = await authService.callPQCService('generate_session_key', {
+      const sessionResult = await authService.executePQCServiceCall('generate_session_key', {
         user_id: testUserId,
         metadata: testMetadata,
       });
@@ -269,7 +303,7 @@ print("FFI_VERIFICATION_SUCCESS")
 
       const startTime = Date.now();
 
-      const signResult = await authService.callPQCService('sign_token', {
+      const signResult = await authService.executePQCServiceCall('sign_token', {
         user_id: traceUserId,
         data_hash: JSON.stringify(tracePayload),
       });
@@ -279,7 +313,7 @@ print("FFI_VERIFICATION_SUCCESS")
       console.log(`Signed token length: ${signResult.signed_token?.length} characters`);
 
       const verifyStartTime = Date.now();
-      const verifyResult = await authService.callPQCService('verify_token', {
+      const verifyResult = await authService.executePQCServiceCall('verify_token', {
         user_id: traceUserId,
         token: signResult.signed_token,
       });
@@ -307,7 +341,7 @@ print("FFI_VERIFICATION_SUCCESS")
       const testUserId = 'ffi_error_test_user_' + Date.now();
       const validPayload = { test: 'data' };
 
-      const signResult = await authService.callPQCService('sign_token', {
+      const signResult = await authService.executePQCServiceCall('sign_token', {
         user_id: testUserId,
         data_hash: JSON.stringify(validPayload),
       });
@@ -319,7 +353,7 @@ print("FFI_VERIFICATION_SUCCESS")
 
       const tamperedToken = signResult.signed_token!.replace(/.$/, 'X');
 
-      const verifyResult = await authService.callPQCService('verify_token', {
+      const verifyResult = await authService.executePQCServiceCall('verify_token', {
         user_id: testUserId,
         token: tamperedToken,
       });
@@ -335,7 +369,7 @@ print("FFI_VERIFICATION_SUCCESS")
       const user2 = 'ffi_user2_' + Date.now();
       const testPayload = { test: 'user_mismatch' };
 
-      const signResult = await authService.callPQCService('sign_token', {
+      const signResult = await authService.executePQCServiceCall('sign_token', {
         user_id: user1,
         data_hash: JSON.stringify(testPayload),
       });
@@ -345,7 +379,7 @@ print("FFI_VERIFICATION_SUCCESS")
         return;
       }
 
-      const verifyResult = await authService.callPQCService('verify_token', {
+      const verifyResult = await authService.executePQCServiceCall('verify_token', {
         user_id: user2,
         token: signResult.signed_token,
       });

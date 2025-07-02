@@ -11,6 +11,11 @@ import { PQCMonitoringService } from '../../src/pqc/pqc-monitoring.service';
 import { ConsentType } from '../../src/consent/dto/create-consent.dto';
 import { JwtService } from '../../src/jwt/jwt.service';
 import { AuthService } from '../../src/auth/auth.service';
+import { HybridCryptoService } from '../../src/services/hybrid-crypto.service';
+import { QuantumSafeJWTService } from '../../src/services/quantum-safe-jwt.service';
+import { QuantumSafeCryptoIdentityService } from '../../src/services/quantum-safe-crypto-identity.service';
+import { PQCBridgeService } from '../../src/services/pqc-bridge.service';
+import { PQCService } from '../../src/services/pqc.service';
 
 describe('E2E Consent Flow Tests', () => {
   let app: INestApplication;
@@ -57,6 +62,30 @@ describe('E2E Consent Flow Tests', () => {
       .overrideProvider(PQCMonitoringService)
       .useValue({
         recordPQCKeyGeneration: jest.fn().mockResolvedValue(undefined),
+      })
+      .overrideProvider('HybridCryptoService')
+      .useValue({
+        encryptWithFallback: jest.fn(),
+        decryptWithFallback: jest.fn(),
+        generateKeyPairWithFallback: jest.fn(),
+      })
+      .overrideProvider('QuantumSafeJWTService')
+      .useValue({
+        signPQCToken: jest.fn(),
+        verifyPQCToken: jest.fn(),
+      })
+      .overrideProvider('QuantumSafeCryptoIdentityService')
+      .useValue({
+        generateStandardizedCryptoUserId: jest.fn(),
+      })
+      .overrideProvider('PQCBridgeService')
+      .useValue({
+        executePQCOperation: jest.fn(),
+      })
+      .overrideProvider('PQCService')
+      .useValue({
+        performPQCHandshake: jest.fn(),
+        triggerPQCHandshake: jest.fn(),
       })
       .compile();
 

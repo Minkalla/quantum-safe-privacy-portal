@@ -30,7 +30,7 @@ export class MFAService {
 
   async setupMFA(userId: string, userEmail: string): Promise<MFASetupResult> {
     try {
-      const user = await this.userModel.findById(userId);
+      const user = await this.userModel.findById(this.sanitizeUserId(userId));
       if (!user) {
         throw new BadRequestException('User not found');
       }
@@ -85,7 +85,7 @@ export class MFAService {
 
   async verifyMFA(userId: string, token: string, enableMFA = false): Promise<MFAVerificationResult> {
     try {
-      const user = await this.userModel.findById(userId);
+      const user = await this.userModel.findById(this.sanitizeUserId(userId));
       if (!user) {
         throw new UnauthorizedException('User not found');
       }
@@ -165,18 +165,18 @@ export class MFAService {
   }
 
   async isMFAEnabled(userId: string): Promise<boolean> {
-    const user = await this.userModel.findById(userId);
+    const user = await this.userModel.findById(this.sanitizeUserId(userId));
     return user?.mfaEnabled || false;
   }
 
   async disableMFA(userId: string): Promise<void> {
     try {
-      const user = await this.userModel.findById(userId);
+      const user = await this.userModel.findById(this.sanitizeUserId(userId));
       if (!user) {
         throw new BadRequestException('User not found');
       }
 
-      await this.userModel.findByIdAndUpdate(userId, {
+      await this.userModel.findByIdAndUpdate(this.sanitizeUserId(userId), {
         mfaEnabled: false,
         mfaEnabledAt: null,
       });
@@ -206,7 +206,7 @@ export class MFAService {
   }
 
   private async enableMFAForUser(userId: string): Promise<void> {
-    await this.userModel.findByIdAndUpdate(userId, {
+    await this.userModel.findByIdAndUpdate(this.sanitizeUserId(userId), {
       mfaEnabled: true,
       mfaEnabledAt: new Date(),
     });
@@ -228,5 +228,18 @@ export class MFAService {
       codes.push(code);
     }
     return codes;
+  }
+
+  private sanitizeUserId(userId: string): string {
+    if (!userId || typeof userId !== 'string') {
+      throw new BadRequestException('Invalid user ID');
+    }
+  
+    // Validate MongoDB ObjectId format (24 hex characters)
+    if (!/^[a-f\d]{24}$/i.test(userId)) {
+      throw new BadRequestException('User ID format invalid');
+    }
+  
+    return userId;
   }
 }

@@ -212,7 +212,7 @@ export class AuthController {
   @ApiResponse({ status: 403, description: 'Account locked.' })
   @ApiResponse({ status: 429, description: 'Too many login attempts.' })
   async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     const sqlInjectionPatterns = [
       /('|(\\'))/i,
       /(;|\\;)/i,
@@ -278,7 +278,7 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid credentials.' })
   @ApiResponse({ status: 403, description: 'Account locked.' })
   async loginPQC(@Body() loginDto: PQCLoginDto, @Res({ passthrough: true }) res: Response) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     const sqlInjectionPatterns = [
       /('|(\\'))/i,
       /(;|\\;)/i,

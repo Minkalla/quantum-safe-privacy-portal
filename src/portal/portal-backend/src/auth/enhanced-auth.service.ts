@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, UnauthorizedException, ForbiddenException, Logger } from '@nestjs/common';
+import { Injectable, ConflictException, UnauthorizedException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
@@ -43,10 +43,35 @@ export class EnhancedAuthService {
     private readonly pqcMonitoring: PQCMonitoringService,
   ) {}
 
+  private sanitizeUserId(userId: string): string {
+    if (!userId || typeof userId !== 'string') {
+      throw new BadRequestException('Invalid user ID format');
+    }
+    
+    if (!/^[a-f\d]{24}$/i.test(userId)) {
+      throw new BadRequestException('Invalid user ID format');
+    }
+    
+    return userId;
+  }
+
+  private sanitizeEmail(email: string): string {
+    if (!email || typeof email !== 'string') {
+      throw new BadRequestException('Invalid email format');
+    }
+    
+    const emailRegex = /^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?@[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email) || email.length > 254) {
+      throw new BadRequestException('Invalid email format');
+    }
+    
+    return email.toLowerCase().trim();
+  }
+
   async registerWithPQC(registerDto: PQCRegisterDto): Promise<AuthenticationResponse> {
     const { email, password, usePQC = false, preferredAuthMode = AuthenticationMode.CLASSICAL } = registerDto;
 
-    const existingUser = await this.userModel.findOne({ email });
+    const existingUser = await this.userModel.findOne({ email: this.sanitizeEmail(email) });
     if (existingUser) {
       throw new ConflictException('Email already registered');
     }
@@ -69,7 +94,7 @@ export class EnhancedAuthService {
       try {
         pqcResult = await this.generatePQCKeys(userId);
         if (pqcResult.success) {
-          await this.userModel.findByIdAndUpdate(userId, {
+          await this.userModel.findByIdAndUpdate(this.sanitizeUserId(userId), {
             pqcPublicKey: pqcResult.sessionData?.publicKeyHash,
             pqcSigningKey: 'stored_securely',
             pqcKeyGeneratedAt: new Date(),
@@ -103,7 +128,7 @@ export class EnhancedAuthService {
     const { email, password, authMode = AuthenticationMode.HYBRID, rememberMe = false, usePQC } = loginDto;
 
     const user = await this.userModel
-      .findOne({ email })
+      .findOne({ email: this.sanitizeEmail(email) })
       .select('+password +failedLoginAttempts +lockUntil +refreshTokenHash +usePQC');
 
     if (!user) {

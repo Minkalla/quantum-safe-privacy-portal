@@ -83,7 +83,36 @@ const server = setupServer(
   })
 );
 
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: 'error' });
+  delete (window as any).location;
+  (window as any).location = {
+    href: '',
+    assign: jest.fn(),
+    replace: jest.fn(),
+    reload: jest.fn(),
+    toString: jest.fn(() => ''),
+    origin: 'http://localhost',
+    protocol: 'http:',
+    host: 'localhost',
+    hostname: 'localhost',
+    port: '',
+    pathname: '/',
+    search: '',
+    hash: ''
+  };
+  
+  Object.defineProperty(window, 'history', {
+    value: {
+      pushState: jest.fn(),
+      replaceState: jest.fn(),
+      back: jest.fn(),
+      forward: jest.fn(),
+      go: jest.fn()
+    },
+    writable: true
+  });
+});
 afterEach(() => {
   server.resetHandlers();
   mockNavigate.mockClear();
@@ -143,8 +172,6 @@ describe('SSO Integration Tests', () => {
         })
       );
 
-      delete (window as any).location;
-      window.location = { href: '' } as any;
       
       renderLogin();
       
@@ -199,8 +226,6 @@ describe('SSO Integration Tests', () => {
         })
       );
 
-      delete (window as any).location;
-      window.location = { href: '' } as any;
       
       renderLogin();
       
@@ -250,8 +275,6 @@ describe('SSO Integration Tests', () => {
         })
       );
 
-      delete (window as any).location;
-      window.location = { href: '' } as any;
       
       renderLogin();
       

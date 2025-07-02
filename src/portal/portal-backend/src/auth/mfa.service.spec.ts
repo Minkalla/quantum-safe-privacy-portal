@@ -13,7 +13,7 @@ describe('MFAService', () => {
   let mockAuditTrailService: any;
 
   const mockUser = {
-    _id: 'user123',
+    _id: 'user123456789012',
     email: 'test@example.com',
     mfaEnabled: false,
     mfaEnabledAt: null,
@@ -65,7 +65,7 @@ describe('MFAService', () => {
       mockUserModel.findById.mockResolvedValue(mockUser);
       mockSecretsService.storeSecret.mockResolvedValue(undefined);
 
-      const result = await service.setupMFA('user123', 'test@example.com');
+      const result = await service.setupMFA('user123456789012', 'test@example.com');
 
       expect(result).toHaveProperty('secret');
       expect(result).toHaveProperty('qrCodeUrl');
@@ -74,7 +74,7 @@ describe('MFAService', () => {
       expect(mockSecretsService.storeSecret).toHaveBeenCalledTimes(2);
       expect(mockAuditTrailService.logSecurityEvent).toHaveBeenCalledWith(
         'MFA_SETUP_INITIATED',
-        { userId: 'user123', email: 'test@example.com' },
+        { userId: 'user123456789012', email: 'test@example.com' },
         'SUCCESS',
       );
     });
@@ -82,7 +82,7 @@ describe('MFAService', () => {
     it('should throw BadRequestException if user not found', async () => {
       mockUserModel.findById.mockResolvedValue(null);
 
-      await expect(service.setupMFA('user123', 'test@example.com')).rejects.toThrow(
+      await expect(service.setupMFA('user123456789012', 'test@example.com')).rejects.toThrow(
         BadRequestException,
       );
     });
@@ -90,7 +90,7 @@ describe('MFAService', () => {
     it('should throw BadRequestException if MFA already enabled', async () => {
       mockUserModel.findById.mockResolvedValue({ ...mockUser, mfaEnabled: true });
 
-      await expect(service.setupMFA('user123', 'test@example.com')).rejects.toThrow(
+      await expect(service.setupMFA('user123456789012', 'test@example.com')).rejects.toThrow(
         BadRequestException,
       );
     });
@@ -107,13 +107,13 @@ describe('MFAService', () => {
     it('should verify TOTP code successfully', async () => {
       jest.spyOn(speakeasy.totp, 'verify').mockReturnValue(true);
 
-      const result = await service.verifyMFA('user123', '123456');
+      const result = await service.verifyMFA('user123456789012', '123456');
 
       expect(result.verified).toBe(true);
       expect(result.message).toBe('TOTP code verified successfully');
       expect(mockAuditTrailService.logSecurityEvent).toHaveBeenCalledWith(
         'MFA_VERIFICATION_SUCCESS',
-        { userId: 'user123' },
+        { userId: 'user123456789012' },
         'SUCCESS',
       );
     });
@@ -125,7 +125,7 @@ describe('MFAService', () => {
         .mockResolvedValueOnce(mockSecret)
         .mockResolvedValueOnce(JSON.stringify(backupCodes));
 
-      const result = await service.verifyMFA('user123', 'ABCD1234');
+      const result = await service.verifyMFA('user123456789012', 'ABCD1234');
 
       expect(result.verified).toBe(true);
       expect(result.message).toBe('Backup code verified successfully');
@@ -141,13 +141,13 @@ describe('MFAService', () => {
         .mockResolvedValueOnce(mockSecret)
         .mockResolvedValueOnce(JSON.stringify(['ABCD1234']));
 
-      const result = await service.verifyMFA('user123', '999999');
+      const result = await service.verifyMFA('user123456789012', '999999');
 
       expect(result.verified).toBe(false);
       expect(result.message).toBe('Invalid TOTP code or backup code');
       expect(mockAuditTrailService.logSecurityEvent).toHaveBeenCalledWith(
         'MFA_VERIFICATION_FAILED',
-        { userId: 'user123', tokenLength: 6 },
+        { userId: 'user123456789012', tokenLength: 6 },
         'FAILURE',
       );
     });
@@ -155,9 +155,9 @@ describe('MFAService', () => {
     it('should enable MFA when enableMFA flag is true', async () => {
       jest.spyOn(speakeasy.totp, 'verify').mockReturnValue(true);
 
-      await service.verifyMFA('user123', '123456', true);
+      await service.verifyMFA('user123456789012', '123456', true);
 
-      expect(mockUserModel.findByIdAndUpdate).toHaveBeenCalledWith('user123', {
+      expect(mockUserModel.findByIdAndUpdate).toHaveBeenCalledWith('user123456789012', {
         mfaEnabled: true,
         mfaEnabledAt: expect.any(Date),
       });
@@ -166,7 +166,7 @@ describe('MFAService', () => {
     it('should throw UnauthorizedException if user not found', async () => {
       mockUserModel.findById.mockResolvedValue(null);
 
-      await expect(service.verifyMFA('user123', '123456')).rejects.toThrow(
+      await expect(service.verifyMFA('user123456789012', '123456')).rejects.toThrow(
         UnauthorizedException,
       );
     });
@@ -174,7 +174,7 @@ describe('MFAService', () => {
     it('should throw UnauthorizedException if MFA not set up', async () => {
       mockSecretsService.getSecret.mockResolvedValue(null);
 
-      await expect(service.verifyMFA('user123', '123456')).rejects.toThrow(
+      await expect(service.verifyMFA('user123456789012', '123456')).rejects.toThrow(
         UnauthorizedException,
       );
     });
@@ -184,7 +184,7 @@ describe('MFAService', () => {
     it('should return true if MFA is enabled', async () => {
       mockUserModel.findById.mockResolvedValue({ ...mockUser, mfaEnabled: true });
 
-      const result = await service.isMFAEnabled('user123');
+      const result = await service.isMFAEnabled('user123456789012');
 
       expect(result).toBe(true);
     });
@@ -192,7 +192,7 @@ describe('MFAService', () => {
     it('should return false if MFA is not enabled', async () => {
       mockUserModel.findById.mockResolvedValue(mockUser);
 
-      const result = await service.isMFAEnabled('user123');
+      const result = await service.isMFAEnabled('user123456789012');
 
       expect(result).toBe(false);
     });
@@ -200,7 +200,7 @@ describe('MFAService', () => {
     it('should return false if user not found', async () => {
       mockUserModel.findById.mockResolvedValue(null);
 
-      const result = await service.isMFAEnabled('user123');
+      const result = await service.isMFAEnabled('user123456789012');
 
       expect(result).toBe(false);
     });
@@ -211,16 +211,16 @@ describe('MFAService', () => {
       mockUserModel.findById.mockResolvedValue({ ...mockUser, mfaEnabled: true });
       mockSecretsService.deleteSecret.mockResolvedValue(undefined);
 
-      await service.disableMFA('user123');
+      await service.disableMFA('user123456789012');
 
-      expect(mockUserModel.findByIdAndUpdate).toHaveBeenCalledWith('user123', {
+      expect(mockUserModel.findByIdAndUpdate).toHaveBeenCalledWith('user123456789012', {
         mfaEnabled: false,
         mfaEnabledAt: null,
       });
       expect(mockSecretsService.deleteSecret).toHaveBeenCalledTimes(2);
       expect(mockAuditTrailService.logSecurityEvent).toHaveBeenCalledWith(
         'MFA_DISABLED',
-        { userId: 'user123' },
+        { userId: 'user123456789012' },
         'SUCCESS',
       );
     });
@@ -228,7 +228,7 @@ describe('MFAService', () => {
     it('should throw BadRequestException if user not found', async () => {
       mockUserModel.findById.mockResolvedValue(null);
 
-      await expect(service.disableMFA('user123')).rejects.toThrow(BadRequestException);
+      await expect(service.disableMFA('user123456789012')).rejects.toThrow(BadRequestException);
     });
   });
 });

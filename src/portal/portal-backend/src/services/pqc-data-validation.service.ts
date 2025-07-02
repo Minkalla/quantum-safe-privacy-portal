@@ -10,6 +10,7 @@ import {
 import { AuthService } from '../auth/auth.service';
 import { generateCryptoUserId, validateCryptoUserId } from '../utils/crypto-user-id.util';
 import { EnhancedErrorBoundaryService, PQCErrorCategory } from './enhanced-error-boundary.service';
+import { QuantumSafeCryptoIdentityService } from './quantum-safe-crypto-identity.service';
 
 export interface SignatureOptions {
   algorithm?: PQCAlgorithmType;
@@ -33,6 +34,7 @@ export class PQCDataValidationService {
     private readonly configService: ConfigService,
     private readonly authService: AuthService,
     private readonly errorBoundary: EnhancedErrorBoundaryService,
+    private readonly cryptoIdentityService: QuantumSafeCryptoIdentityService,
   ) {}
 
   async generateSignature(data: any, options: SignatureOptions = {}): Promise<PQCSignature> {
@@ -163,7 +165,7 @@ export class PQCDataValidationService {
 
       this.logger.debug(`Using crypto user ID: ${cryptoUserId} for original user: ${userId}`);
 
-      const pqcResult = await this.authService.callPQCService('sign_token', {
+      const pqcResult = await this.authService.executePQCServiceCall('sign_token', {
         user_id: cryptoUserId,
         payload: { data, hash, operation: 'create_integrity', original_user_id: userId },
       });
@@ -291,7 +293,7 @@ export class PQCDataValidationService {
       const baseUserId = userId || 'anonymous';
       const signUserId = this.generateStandardizedCryptoUserId(baseUserId, 'ML-DSA-65', 'signing');
 
-      const pqcResult = await this.authService.callPQCService('sign_token', {
+      const pqcResult = await this.authService.executePQCServiceCall('sign_token', {
         user_id: signUserId,
         payload: { dataHash, timestamp: Date.now(), operation: 'sign', original_user_id: baseUserId },
       });
@@ -350,7 +352,7 @@ export class PQCDataValidationService {
           this.logger.debug(`Generated standardized crypto user ID for verification: ${verifyUserId} from base: ${baseUserId}`);
         }
 
-        const pqcResult = await this.authService.callPQCService('verify_token', {
+        const pqcResult = await this.authService.executePQCServiceCall('verify_token', {
           user_id: verifyUserId,
           token: signaturePart,
           payload: { dataHash, timestamp: Date.now(), operation: 'verify', original_user_id: baseUserId },
@@ -412,10 +414,7 @@ export class PQCDataValidationService {
    * This ensures the same user ID is used for both signing and verification operations
    */
   private generateStandardizedCryptoUserId(baseUserId: string, algorithm: string, operation: string): string {
-    return generateCryptoUserId(baseUserId, {
-      algorithm: algorithm,
-      operation: operation,
-    });
+    return this.cryptoIdentityService.generateStandardizedCryptoUserId(baseUserId, algorithm, operation);
   }
 
   async batchValidateIntegrity(
