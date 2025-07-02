@@ -23,6 +23,7 @@ import { EnhancedAuthService } from './enhanced-auth.service';
 import { AuthMiddleware } from './auth.middleware';
 import { MFAService } from './mfa.service';
 import { SsoService } from './sso.service';
+import { DeviceService } from './device.service';
 import { UserSchema } from '../models/User';
 import { JwtModule } from '../jwt/jwt.module';
 import { PQCFeatureFlagsModule } from '../pqc/pqc-feature-flags.module';
@@ -40,8 +41,8 @@ import { SecretsModule } from '../secrets/secrets.module';
     SecretsModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, EnhancedAuthService, AuthMiddleware, MFAService, SsoService],
-  exports: [AuthService, EnhancedAuthService, AuthMiddleware, MFAService, SsoService],
+  providers: [AuthService, EnhancedAuthService, AuthMiddleware, MFAService, SsoService, DeviceService],
+  exports: [AuthService, EnhancedAuthService, AuthMiddleware, MFAService, SsoService, DeviceService],
 })
 export class AuthModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

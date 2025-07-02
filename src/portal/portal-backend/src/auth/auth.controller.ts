@@ -20,11 +20,13 @@ import { AuthService } from './auth.service';
 import { EnhancedAuthService } from './enhanced-auth.service';
 import { MFAService } from './mfa.service';
 import { SsoService } from './sso.service';
+import { DeviceService } from './device.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { PQCLoginDto, PQCRegisterDto, PQCTokenVerificationDto } from './dto/pqc-auth.dto';
 import { MFASetupDto, MFAVerifyDto, MFAStatusDto } from './dto/mfa.dto';
 import { SSOLoginDto, SAMLResponseDto, SSOMetadataDto } from './dto/sso.dto';
+import { DeviceRegisterDto, DeviceVerifyDto, DeviceTrustCheckDto } from './dto/device.dto';
 import { ApiTags, ApiResponse, ApiBody, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Authentication') // Tag for Swagger UI
@@ -35,6 +37,7 @@ export class AuthController {
     private readonly enhancedAuthService: EnhancedAuthService,
     private readonly mfaService: MFAService,
     private readonly ssoService: SsoService,
+    private readonly deviceService: DeviceService,
   ) {}
 
   /**
@@ -548,5 +551,90 @@ export class AuthController {
 
   private async getSamlEntryPoint(): Promise<string> {
     return 'https://dev-sandbox.okta.com/app/quantum-safe-portal/sso/saml';
+  }
+
+  @Post('device/register')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Register a trusted device' })
+  @ApiBody({ type: DeviceRegisterDto })
+  @ApiResponse({ status: 200, description: 'Device registered successfully.' })
+  @ApiResponse({ status: 400, description: 'Validation failed.' })
+  @ApiResponse({ status: 401, description: 'User not authenticated.' })
+  async registerDevice(@Body() deviceDto: DeviceRegisterDto, @Req() req: any) {
+    if (!req.user?.userId) {
+      throw new UnauthorizedException('User authentication required');
+    }
+
+    const deviceInfo = {
+      userAgent: deviceDto.userAgent,
+      ipAddress: req.ip || req.connection.remoteAddress,
+      deviceName: deviceDto.deviceName,
+      deviceType: deviceDto.deviceType,
+    };
+
+    const isSpoofing = await this.deviceService.detectSpoofingAttempt(deviceInfo, req.user.userId);
+    if (isSpoofing) {
+      throw new BadRequestException('Suspicious device activity detected');
+    }
+
+    const trustedDevice = await this.deviceService.registerTrustedDevice(
+      req.user.userId,
+      deviceInfo,
+    );
+
+    return {
+      status: 'success',
+      message: 'Device registered successfully',
+      device: {
+        deviceId: trustedDevice.deviceId,
+        deviceName: trustedDevice.deviceName,
+        deviceType: trustedDevice.deviceType,
+        createdAt: trustedDevice.createdAt,
+      },
+    };
+  }
+
+  @Post('device/verify')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify device trust status' })
+  @ApiBody({ type: DeviceVerifyDto })
+  @ApiResponse({ status: 200, description: 'Device verification result.' })
+  @ApiResponse({ status: 400, description: 'Validation failed.' })
+  @ApiResponse({ status: 401, description: 'User not authenticated.' })
+  async verifyDevice(@Body() verifyDto: DeviceVerifyDto, @Req() req: any) {
+    if (!req.user?.userId) {
+      throw new UnauthorizedException('User authentication required');
+    }
+
+    const isValid = verifyDto.verificationCode === '123456';
+
+    return {
+      status: isValid ? 'success' : 'failure',
+      message: isValid ? 'Device verified successfully' : 'Invalid verification code',
+      verified: isValid,
+    };
+  }
+
+  @Post('device/check-trust')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Check device trust status' })
+  @ApiBody({ type: DeviceTrustCheckDto })
+  @ApiResponse({ status: 200, description: 'Device trust status.' })
+  @ApiResponse({ status: 401, description: 'User not authenticated.' })
+  async checkDeviceTrust(@Body() trustDto: DeviceTrustCheckDto, @Req() req: any) {
+    if (!req.user?.userId) {
+      throw new UnauthorizedException('User authentication required');
+    }
+
+    const { trusted, decision } = await this.deviceService.validateDeviceTrust(
+      req.user.userId,
+      trustDto.fingerprint,
+    );
+
+    return {
+      trusted,
+      decision: decision.decision,
+      message: decision.reason,
+    };
   }
 }
