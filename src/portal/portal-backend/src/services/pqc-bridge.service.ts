@@ -74,6 +74,10 @@ export class PQCBridgeService {
     if (!/^[a-zA-Z0-9_]+$/.test(operation)) {
       throw new Error(`Operation contains invalid characters: ${operation}`);
     }
+
+    if (params.user_id && !/^[a-f\d]{24}$/i.test(params.user_id)) {
+      throw new Error(`Invalid user ID format in PQC operation params`);
+    }
   }
 
   private async performPQCOperation(

@@ -13,10 +13,16 @@ export class QuantumSafeJWTService {
 
   async signPQCToken(payload: any): Promise<string> {
     try {
+      // Attempt PQC-enhanced JWT signing
+      const pqcToken = await this.hybridCryptoService.signWithPQC(payload);
+      if (pqcToken) {
+        return pqcToken;
+      }
       return this.jwtService.sign(payload);
     } catch (error) {
       this.logger.warn('PQC JWT signing failed, falling back to classical JWT signing', error);
-      return this.jwtService.sign(payload);
+      // Fallback to standard JWT signing with basic payload
+      return this.jwtService.sign({ ...payload, pqc_fallback: true });
     }
   }
 
