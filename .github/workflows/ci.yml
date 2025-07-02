@@ -75,3 +75,4 @@ jobs:
       - name: Doc Validation (optional for frontend)
         run: |
           echo "Skipping documentation checks for frontend."
+# MongoDB Atlas validation trigger
