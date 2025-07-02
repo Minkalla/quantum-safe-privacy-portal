@@ -14,15 +14,17 @@
  * for API documentation.
  */
 
-import { Controller, Post, Body, Res, HttpCode, HttpStatus, UnauthorizedException, Get, Req, Param, Delete } from '@nestjs/common';
+import { Controller, Post, Body, Res, HttpCode, HttpStatus, UnauthorizedException, Get, Req, Param, Delete, BadRequestException } from '@nestjs/common';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { EnhancedAuthService } from './enhanced-auth.service';
 import { MFAService } from './mfa.service';
+import { SsoService } from './sso.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { PQCLoginDto, PQCRegisterDto, PQCTokenVerificationDto } from './dto/pqc-auth.dto';
 import { MFASetupDto, MFAVerifyDto, MFAStatusDto } from './dto/mfa.dto';
+import { SSOLoginDto, SAMLResponseDto, SSOMetadataDto } from './dto/sso.dto';
 import { ApiTags, ApiResponse, ApiBody, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Authentication') // Tag for Swagger UI
@@ -32,6 +34,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly enhancedAuthService: EnhancedAuthService,
     private readonly mfaService: MFAService,
+    private readonly ssoService: SsoService,
   ) {}
 
   /**
@@ -450,5 +453,100 @@ export class AuthController {
       status: 'success',
       message: 'MFA disabled successfully',
     };
+  }
+
+  @Post('sso/login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Initiate SAML SSO authentication' })
+  @ApiBody({ type: SSOLoginDto })
+  @ApiResponse({ status: 200, description: 'SAML authentication initiated successfully. Returns redirect URL to IdP.' })
+  @ApiResponse({ status: 400, description: 'Validation failed.' })
+  @ApiResponse({ status: 500, description: 'SSO configuration error.' })
+  async initiateSSO(@Body() ssoLoginDto: SSOLoginDto, @Res({ passthrough: true }) res: Response) {
+    try {
+      await this.ssoService.initializeSamlStrategy();
+      
+      const samlRequest = await this.ssoService.generateSamlRequest(ssoLoginDto.relayState);
+      
+      const redirectUrl = `${await this.getSamlEntryPoint()}?SAMLRequest=${encodeURIComponent(samlRequest.samlRequest)}&RelayState=${encodeURIComponent(samlRequest.relayState || '')}`;
+      
+      return {
+        status: 'success',
+        message: 'SAML authentication initiated',
+        redirectUrl,
+        requestId: samlRequest.requestId,
+        relayState: samlRequest.relayState,
+      };
+    } catch (error) {
+      throw new BadRequestException(`SSO initiation failed: ${error.message}`);
+    }
+  }
+
+  @Post('sso/callback')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Handle SAML IdP response and complete authentication' })
+  @ApiBody({ type: SAMLResponseDto })
+  @ApiResponse({ status: 200, description: 'SAML authentication completed successfully. Returns access token and user info.' })
+  @ApiResponse({ status: 400, description: 'Invalid SAML response.' })
+  @ApiResponse({ status: 401, description: 'SAML authentication failed.' })
+  @ApiResponse({ status: 403, description: 'User not authorized.' })
+  async handleSSOCallback(@Body() samlResponseDto: SAMLResponseDto, @Res({ passthrough: true }) res: Response) {
+    try {
+      if (!samlResponseDto.SAMLResponse) {
+        throw new BadRequestException('SAML response is required');
+      }
+
+      const validationResult = await this.ssoService.processSamlResponse(
+        samlResponseDto.SAMLResponse,
+        samlResponseDto.RelayState
+      );
+
+      if (!validationResult.isValid) {
+        throw new UnauthorizedException(`SAML authentication failed: ${validationResult.error}`);
+      }
+
+      if (!validationResult.jwtTokens) {
+        throw new UnauthorizedException('Token generation failed');
+      }
+
+      const cookieOptions = {
+        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        httpOnly: true,
+        secure: process.env['NODE_ENV'] === 'production',
+        sameSite: 'strict' as const,
+      };
+
+      res.cookie('refreshToken', validationResult.jwtTokens.refreshToken, cookieOptions);
+
+      return {
+        status: 'success',
+        message: 'SSO authentication completed successfully',
+        accessToken: validationResult.jwtTokens.accessToken,
+        user: validationResult.user,
+        relayState: samlResponseDto.RelayState,
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException || error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(`SAML callback processing failed: ${error.message}`);
+    }
+  }
+
+  @Get('sso/metadata')
+  @ApiOperation({ summary: 'Get Service Provider SAML metadata' })
+  @ApiResponse({ status: 200, description: 'Service Provider metadata retrieved successfully.' })
+  @ApiResponse({ status: 500, description: 'Metadata generation failed.' })
+  async getSSOMetadata(): Promise<SSOMetadataDto> {
+    try {
+      const metadata = await this.ssoService.getMetadata();
+      return { metadata };
+    } catch (error) {
+      throw new BadRequestException(`Metadata generation failed: ${error.message}`);
+    }
+  }
+
+  private async getSamlEntryPoint(): Promise<string> {
+    return 'https://dev-sandbox.okta.com/app/quantum-safe-portal/sso/saml';
   }
 }

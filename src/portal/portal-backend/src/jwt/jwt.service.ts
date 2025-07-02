@@ -21,9 +21,18 @@ import { SecretsService } from '../secrets/secrets.service';
 import { PQCFeatureFlagsService } from '../pqc/pqc-feature-flags.service';
 import { PQCMonitoringService } from '../pqc/pqc-monitoring.service';
 
-interface TokenPayload {
+export interface TokenPayload {
   userId: string;
   email: string;
+}
+
+export interface SSOTokenPayload extends TokenPayload {
+  firstName?: string;
+  lastName?: string;
+  roles?: string[];
+  authMethod: 'sso' | 'password' | 'pqc';
+  idpIssuer?: string;
+  sessionId?: string;
 }
 
 @Injectable()
@@ -91,6 +100,34 @@ export class JwtService {
     }
   }
 
+  /**
+   * Generates SSO-specific tokens with additional IdP attributes and claims.
+   *
+   * @param {SSOTokenPayload} ssoPayload - The SSO data including IdP attributes.
+   * @param {boolean} [rememberMe=false] - If true, the refresh token will have a longer expiry.
+   * @returns {{ accessToken: string, refreshToken: string }} An object containing both tokens.
+   * @throws {InternalServerErrorException} If JWT secrets are not initialized.
+   */
+  generateSSOTokens(
+    ssoPayload: SSOTokenPayload,
+    rememberMe: boolean = false,
+  ): { accessToken: string; refreshToken: string } {
+    if (!this.jwtAccessSecret || !this.jwtRefreshSecret) {
+      this.logger.error('JWT secrets are not initialized. Cannot generate SSO tokens.');
+      throw new InternalServerErrorException('JWT service not fully initialized.');
+    }
+
+    const usePQC = this.pqcFeatureFlags.isEnabled('pqc_jwt_signing', ssoPayload.userId);
+
+    if (usePQC) {
+      this.logger.debug(`Using PQC JWT signing for SSO user ${ssoPayload.userId}`);
+      return this.generateSSOPQCTokens(ssoPayload, rememberMe);
+    } else {
+      this.logger.debug(`Using classical JWT signing for SSO user ${ssoPayload.userId}`);
+      return this.generateSSOClassicalTokens(ssoPayload, rememberMe);
+    }
+  }
+
   private generateClassicalTokens(
     payload: TokenPayload,
     rememberMe: boolean = false,
@@ -136,15 +173,74 @@ export class JwtService {
     }
   }
 
+  private generateSSOClassicalTokens(
+    ssoPayload: SSOTokenPayload,
+    rememberMe: boolean = false,
+  ): { accessToken: string; refreshToken: string } {
+    const enhancedPayload = {
+      ...ssoPayload,
+      iat: Math.floor(Date.now() / 1000),
+      iss: 'quantum-safe-portal',
+      aud: 'quantum-safe-portal-users',
+    };
+
+    const accessToken = jwt.sign(enhancedPayload, this.jwtAccessSecret, { expiresIn: '15m' });
+    const refreshTokenExpiry = rememberMe ? '30d' : '7d';
+    const refreshToken = jwt.sign(enhancedPayload, this.jwtRefreshSecret, { expiresIn: refreshTokenExpiry });
+
+    this.logger.log(`SSO classical tokens generated for user ${ssoPayload.email} via ${ssoPayload.authMethod}. Access Token expires in 15m, Refresh Token in ${refreshTokenExpiry}.`);
+
+    return { accessToken, refreshToken };
+  }
+
+  private generateSSOPQCTokens(
+    ssoPayload: SSOTokenPayload,
+    rememberMe: boolean = false,
+  ): { accessToken: string; refreshToken: string } {
+    const startTime = Date.now();
+    let success = false;
+
+    try {
+      const enhancedPayload = {
+        ...ssoPayload,
+        pqc: 'dilithium-3',
+        iat: Math.floor(Date.now() / 1000),
+        iss: 'quantum-safe-portal',
+        aud: 'quantum-safe-portal-users',
+      };
+
+      const accessToken = jwt.sign(enhancedPayload, this.jwtAccessSecret, { expiresIn: '15m' });
+      const refreshTokenExpiry = rememberMe ? '30d' : '7d';
+      const refreshToken = jwt.sign(enhancedPayload, this.jwtRefreshSecret, { expiresIn: refreshTokenExpiry });
+
+      success = true;
+      this.logger.log(`SSO PQC tokens generated for user ${ssoPayload.email} via ${ssoPayload.authMethod}. Access Token expires in 15m, Refresh Token in ${refreshTokenExpiry}.`);
+
+      this.pqcMonitoring.recordPQCJWTSigning(ssoPayload.userId, startTime, success).catch(error => {
+        this.logger.warn(`Failed to record SSO PQC JWT metrics: ${error.message}`);
+      });
+
+      return { accessToken, refreshToken };
+    } catch (error) {
+      this.logger.error(`Failed to generate SSO PQC tokens for user ${ssoPayload.email}:`, error);
+
+      this.pqcMonitoring.recordPQCJWTSigning(ssoPayload.userId, startTime, success).catch(metricError => {
+        this.logger.warn(`Failed to record SSO PQC JWT failure metrics: ${metricError.message}`);
+      });
+
+      throw error;
+    }
+  }
+
   /**
    * Verifies a given JWT.
    *
    * @param {string} token - The JWT string to verify.
    * @param {string} secretType - 'access' or 'refresh' to determine which secret to use.
-   * @returns {TokenPayload | null} The decoded payload if verification is successful, otherwise null.
+   * @returns {TokenPayload | SSOTokenPayload | null} The decoded payload if verification is successful, otherwise null.
    * @throws {InternalServerErrorException} If JWT secrets are not initialized.
    */
-  verifyToken(token: string, secretType: 'access' | 'refresh'): TokenPayload | null {
+  verifyToken(token: string, secretType: 'access' | 'refresh'): TokenPayload | SSOTokenPayload | null {
     let secret: string | undefined;
 
     if (!this.jwtAccessSecret || !this.jwtRefreshSecret) {
@@ -164,12 +260,22 @@ export class JwtService {
     }
 
     try {
-      const decoded = jwt.verify(token, secret) as TokenPayload;
+      const decoded = jwt.verify(token, secret) as TokenPayload | SSOTokenPayload;
       this.logger.debug(`Token of type '${secretType}' verified successfully for user: ${decoded.email}`);
       return decoded;
     } catch (err: any) { // CHANGED: Explicitly type 'err' as 'any'
       this.logger.warn(`Token verification failed for type '${secretType}': ${err.message}`);
       return null;
     }
+  }
+
+  /**
+   * Checks if a token contains SSO-specific claims.
+   *
+   * @param {TokenPayload | SSOTokenPayload} payload - The decoded token payload.
+   * @returns {boolean} True if the token contains SSO claims.
+   */
+  isSSOToken(payload: TokenPayload | SSOTokenPayload): payload is SSOTokenPayload {
+    return 'authMethod' in payload && payload.authMethod === 'sso';
   }
 }
