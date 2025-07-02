@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
-import { rest } from 'msw';
+import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import Login from '../pages/Login';
 import { AuthProvider } from '../contexts/AuthContext';
@@ -27,19 +27,16 @@ const createMockJWT = () => {
 };
 
 const server = setupServer(
-  rest.post('http://localhost:8080/portal/auth/login', (_req, res, ctx) => {
-    return res(
-      ctx.status(200),
-      ctx.json({
-        accessToken: createMockJWT(),
-        refreshToken: 'mock-refresh-token',
-        user: {
-          id: '1',
-          email: 'test@example.com',
-          role: 'user'
-        }
-      })
-    );
+  http.post('http://localhost:8080/portal/auth/login', () => {
+    return HttpResponse.json({
+      accessToken: createMockJWT(),
+      refreshToken: 'mock-refresh-token',
+      user: {
+        id: '1',
+        email: 'test@example.com',
+        role: 'user'
+      }
+    });
   })
 );
 
@@ -157,20 +154,17 @@ describe('Login Component', () => {
       let requestBody: any;
       
       server.use(
-        rest.post('http://localhost:8080/portal/auth/login', async (req, res, ctx) => {
-          requestBody = await req.json();
-          return res(
-            ctx.status(200),
-            ctx.json({
-              accessToken: createMockJWT(),
-              refreshToken: 'mock-refresh-token',
-              user: {
-                id: '1',
-                email: 'test@example.com',
-                role: 'user'
-              }
-            })
-          );
+        http.post('http://localhost:8080/portal/auth/login', async ({ request }) => {
+          requestBody = await request.json();
+          return HttpResponse.json({
+            accessToken: createMockJWT(),
+            refreshToken: 'mock-refresh-token',
+            user: {
+              id: '1',
+              email: 'test@example.com',
+              role: 'user'
+            }
+          });
         })
       );
       
@@ -233,14 +227,11 @@ describe('Login Component', () => {
       const user = userEvent.setup();
       
       server.use(
-        rest.post('http://localhost:8080/portal/auth/login', (_req, res, ctx) => {
-          return res(
-            ctx.status(401),
-            ctx.json({
-              message: 'Invalid credentials',
-              error: 'Unauthorized'
-            })
-          );
+        http.post('http://localhost:8080/portal/auth/login', () => {
+          return HttpResponse.json({
+            message: 'Invalid credentials',
+            error: 'Unauthorized'
+          }, { status: 401 });
         })
       );
       
@@ -264,20 +255,17 @@ describe('Login Component', () => {
       const user = userEvent.setup();
       
       server.use(
-        rest.post('http://localhost:8080/portal/auth/login', (_req, res, ctx) => {
-          return res(
-            ctx.delay(1000),
-            ctx.status(200),
-            ctx.json({
-              accessToken: createMockJWT(),
-              refreshToken: 'mock-refresh-token',
-              user: {
-                id: '1',
-                email: 'test@example.com',
-                role: 'user'
-              }
-            })
-          );
+        http.post('http://localhost:8080/portal/auth/login', async () => {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return HttpResponse.json({
+            accessToken: createMockJWT(),
+            refreshToken: 'mock-refresh-token',
+            user: {
+              id: '1',
+              email: 'test@example.com',
+              role: 'user'
+            }
+          });
         })
       );
       
@@ -325,14 +313,11 @@ describe('Login Component', () => {
       const user = userEvent.setup();
       
       server.use(
-        rest.post('http://localhost:8080/portal/auth/login', (_req, res, ctx) => {
-          return res(
-            ctx.status(401),
-            ctx.json({
-              message: 'Invalid credentials',
-              error: 'Unauthorized'
-            })
-          );
+        http.post('http://localhost:8080/portal/auth/login', () => {
+          return HttpResponse.json({
+            message: 'Invalid credentials',
+            error: 'Unauthorized'
+          }, { status: 401 });
         })
       );
       
@@ -382,21 +367,18 @@ describe('Login Component', () => {
       let requestCount = 0;
       
       server.use(
-        rest.post('http://localhost:8080/portal/auth/login', (_req, res, ctx) => {
+        http.post('http://localhost:8080/portal/auth/login', async () => {
           requestCount++;
-          return res(
-            ctx.delay(500),
-            ctx.status(200),
-            ctx.json({
-              accessToken: createMockJWT(),
-              refreshToken: 'mock-refresh-token',
-              user: {
-                id: '1',
-                email: 'test@example.com',
-                role: 'user'
-              }
-            })
-          );
+          await new Promise(resolve => setTimeout(resolve, 500));
+          return HttpResponse.json({
+            accessToken: createMockJWT(),
+            refreshToken: 'mock-refresh-token',
+            user: {
+              id: '1',
+              email: 'test@example.com',
+              role: 'user'
+            }
+          });
         })
       );
       
