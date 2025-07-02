@@ -60,8 +60,8 @@ export class EnhancedAuthService {
       throw new BadRequestException('Invalid email format');
     }
     
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(email)) {
+    const emailRegex = /^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?@[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email) || email.length > 254) {
       throw new BadRequestException('Invalid email format');
     }
     
