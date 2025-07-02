@@ -11,7 +11,9 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check-paperwork": "test -s paperwork.md || (echo 'Missing paperwork.md' && exit 1)",
+    "check-checklist": "test -s PR_SECURITY_CHECKLIST.md || (echo 'Missing PR_SECURITY_CHECKLIST.md' && exit 1)"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
