@@ -267,6 +267,9 @@ describe('Register Component', () => {
     expect(screen.getByLabelText(/show confirm password/i)).toHaveFocus();
     
     await user.tab();
+    expect(screen.getByRole('button', { name: /create account/i })).toHaveFocus();
+    
+    await user.tab();
     expect(screen.getByRole('button', { name: /sign in here/i })).toHaveFocus();
   });
 

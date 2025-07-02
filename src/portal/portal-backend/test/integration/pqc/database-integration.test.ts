@@ -127,13 +127,6 @@ describe('PQC Database Integration', () => {
             executePQCOperation: jest.fn(),
           },
         },
-        {
-          provide: 'PQCService',
-          useValue: {
-            performPQCHandshake: jest.fn(),
-            triggerPQCHandshake: jest.fn(),
-          },
-        },
       ],
     }).compile();
 

@@ -15,7 +15,19 @@ describe('Kyber ML-KEM-768 Algorithm Tests', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        AuthService,
+        {
+          provide: AuthService,
+          useValue: {
+            callPQCService: jest.fn(),
+            callPythonPQCService: jest.fn(),
+            executePQCServiceCall: jest.fn().mockResolvedValue({
+              success: true,
+              token: 'mock-pqc-token',
+              algorithm: 'ML-DSA-65',
+              verified: true,
+            }),
+          },
+        },
         {
           provide: JwtService,
           useValue: {

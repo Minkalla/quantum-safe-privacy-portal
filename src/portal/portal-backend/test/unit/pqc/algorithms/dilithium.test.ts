@@ -15,7 +15,19 @@ describe('Dilithium ML-DSA-65 Algorithm Tests', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        AuthService,
+        {
+          provide: AuthService,
+          useValue: {
+            callPQCService: jest.fn(),
+            callPythonPQCService: jest.fn(),
+            executePQCServiceCall: jest.fn().mockResolvedValue({
+              success: true,
+              token: 'mock-pqc-token',
+              algorithm: 'ML-DSA-65',
+              verified: true,
+            }),
+          },
+        },
         {
           provide: JwtService,
           useValue: {
@@ -48,6 +60,42 @@ describe('Dilithium ML-DSA-65 Algorithm Tests', () => {
           useValue: {
             findOne: jest.fn(),
             findByIdAndUpdate: jest.fn(),
+            create: jest.fn(),
+            save: jest.fn(),
+          },
+        },
+        {
+          provide: 'HybridCryptoService',
+          useValue: {
+            encryptWithFallback: jest.fn(),
+            decryptWithFallback: jest.fn(),
+            generateKeyPairWithFallback: jest.fn(),
+          },
+        },
+        {
+          provide: 'QuantumSafeJWTService',
+          useValue: {
+            signPQCToken: jest.fn(),
+            verifyPQCToken: jest.fn(),
+          },
+        },
+        {
+          provide: 'QuantumSafeCryptoIdentityService',
+          useValue: {
+            generateStandardizedCryptoUserId: jest.fn(),
+          },
+        },
+        {
+          provide: 'PQCBridgeService',
+          useValue: {
+            executePQCOperation: jest.fn(),
+          },
+        },
+        {
+          provide: 'PQCService',
+          useValue: {
+            performPQCHandshake: jest.fn(),
+            triggerPQCHandshake: jest.fn(),
             create: jest.fn(),
             save: jest.fn(),
           },

@@ -86,24 +86,12 @@ describe('PQC FFI Integration Verification', () => {
         { provide: PQCDataEncryptionService, useValue: mockPQCDataEncryptionService },
         { provide: 'UserModel', useValue: mockUserModel },
         { provide: ConfigService, useValue: mockConfigService },
-        { provide: SecretsService, useValue: mockSecretsService },
-        { provide: PQCFeatureFlagsService, useValue: mockPQCFeatureFlagsService },
-        { provide: PQCMonitoringService, useValue: mockPQCMonitoringService },
-        { provide: EnhancedErrorBoundaryService, useValue: mockEnhancedErrorBoundaryService },
-        { provide: HybridCryptoService, useValue: mockHybridCryptoService },
         {
           provide: 'HybridCryptoService',
           useValue: {
             encryptWithFallback: jest.fn(),
             decryptWithFallback: jest.fn(),
             generateKeyPairWithFallback: jest.fn(),
-          },
-        },
-        {
-          provide: 'PQCService',
-          useValue: {
-            performPQCHandshake: jest.fn(),
-            triggerPQCHandshake: jest.fn(),
           },
         },
         {
@@ -122,14 +110,21 @@ describe('PQC FFI Integration Verification', () => {
         {
           provide: 'PQCBridgeService',
           useValue: {
-            executePQCOperation: jest.fn().mockResolvedValue({
-              success: true,
-              token: 'mock-pqc-token',
-              algorithm: 'ML-DSA-65',
-              verified: true,
-            }),
+            executePQCOperation: jest.fn(),
           },
         },
+        {
+          provide: 'PQCService',
+          useValue: {
+            performPQCHandshake: jest.fn(),
+            triggerPQCHandshake: jest.fn(),
+          },
+        },
+        { provide: SecretsService, useValue: mockSecretsService },
+        { provide: PQCFeatureFlagsService, useValue: mockPQCFeatureFlagsService },
+        { provide: PQCMonitoringService, useValue: mockPQCMonitoringService },
+        { provide: EnhancedErrorBoundaryService, useValue: mockEnhancedErrorBoundaryService },
+        { provide: HybridCryptoService, useValue: mockHybridCryptoService },
       ],
     }).compile();
 

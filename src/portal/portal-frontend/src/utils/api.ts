@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
+ timport axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { AuthError } from '../types/auth';
 import { extractUserFromToken, isTokenExpired } from './jwt';
 
@@ -19,10 +19,10 @@ let isSSO = false;
 export const setAuthToken = (token: string | null) => {
   authToken = token;
   isSSO = false;
-  
+
   if (token) {
     apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    
+
     try {
       const userData = extractUserFromToken(token);
       if (userData && 'authMethod' in userData && userData.authMethod === 'sso') {
@@ -60,7 +60,7 @@ const processQueue = (error: any, token: string | null = null) => {
       resolve(token);
     }
   });
-  
+
   failedQueue = [];
 };
 
@@ -93,21 +93,21 @@ apiClient.interceptors.response.use(
         });
 
         const { accessToken } = response.data;
-        
+
         if (accessToken) {
           if (isTokenExpired(accessToken)) {
             throw new Error('Received expired token from refresh endpoint');
           }
-          
+
           localStorage.setItem('accessToken', accessToken);
           setAuthToken(accessToken);
-          
+
           if (isSSO) {
             console.debug('SSO token successfully refreshed');
           }
-          
+
           processQueue(null, accessToken);
-          
+
           originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
           return apiClient(originalRequest);
         } else {
@@ -115,11 +115,11 @@ apiClient.interceptors.response.use(
         }
       } catch (refreshError: any) {
         console.error('Token refresh failed:', refreshError.message);
-        
+
         if (isSSO) {
           console.error('SSO token refresh failed, redirecting to SSO login');
         }
-        
+
         processQueue(refreshError, null);
         setAuthToken(null);
         localStorage.removeItem('accessToken');
@@ -134,12 +134,12 @@ apiClient.interceptors.response.use(
       if (isSSO) {
         console.warn('SSO token unauthorized, clearing authentication state');
       }
-      
+
       setAuthToken(null);
       localStorage.removeItem('accessToken');
       window.dispatchEvent(new CustomEvent('auth:unauthorized'));
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -148,7 +148,7 @@ export const handleApiError = (error: AxiosError): AuthError => {
   if (error.response?.data) {
     return error.response.data as AuthError;
   }
-  
+
   return {
     statusCode: error.response?.status || 500,
     message: error.message || 'An unexpected error occurred',
