@@ -25,7 +25,13 @@ describe('Auth Integration (e2e)', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
         ConfigModule,
-        MongooseModule.forRoot(process.env.MONGO_URI || 'mongodb://localhost:27017/test'),
+        MongooseModule.forRoot((() => {
+          const uri = process.env.MONGO_URI || process.env.MONGODB_URI || process.env.MONGO_TEST_URI;
+          if (!uri) {
+            throw new Error('MongoDB URI is required for tests. Set MONGO_URI, MONGODB_URI, or MONGO_TEST_URI environment variable.');
+          }
+          return uri;
+        })()),
         AuthModule,
         UserModule,
         JwtModule,
@@ -38,7 +44,13 @@ describe('Auth Integration (e2e)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
   });
 
   describe('Protected Routes', () => {
