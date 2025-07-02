@@ -16,7 +16,7 @@ export class PQCService {
     };
 
     try {
-      const response = await this.authService.callPQCService('handshake', payload);
+      const response = await this.authService.executePQCServiceCall('handshake', payload);
 
       this.logger.log(`✅ PQC handshake successful for user ${userId}:`, {
         handshake_id: response.handshake_metadata?.handshake_id,

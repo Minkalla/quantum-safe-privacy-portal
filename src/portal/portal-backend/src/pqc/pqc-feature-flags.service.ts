@@ -75,7 +75,7 @@ export class PQCFeatureFlagsService {
     }
 
     if (userId && flagName in this.rolloutPercentages) {
-      const userHash = crypto.createHash('md5').update(userId).digest('hex');
+      const userHash = crypto.createHash('sha256').update(userId).digest('hex');
       const userPercentage = parseInt(userHash.substring(0, 2), 16) % 100;
       const rolloutPercentage = this.rolloutPercentages[flagName as keyof PQCRolloutPercentages];
       return userPercentage < rolloutPercentage;
