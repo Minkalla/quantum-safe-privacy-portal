@@ -87,6 +87,53 @@ describe('PQC Database Integration', () => {
             }),
           },
         },
+        {
+          provide: AuthService,
+          useValue: {
+            callPQCService: jest.fn(),
+            callPythonPQCService: jest.fn(),
+            executePQCServiceCall: jest.fn().mockResolvedValue({
+              success: true,
+              token: 'mock-pqc-token',
+              algorithm: 'ML-DSA-65',
+              verified: true,
+            }),
+          },
+        },
+        {
+          provide: 'HybridCryptoService',
+          useValue: {
+            encryptWithFallback: jest.fn(),
+            decryptWithFallback: jest.fn(),
+            generateKeyPairWithFallback: jest.fn(),
+          },
+        },
+        {
+          provide: 'QuantumSafeJWTService',
+          useValue: {
+            signPQCToken: jest.fn(),
+            verifyPQCToken: jest.fn(),
+          },
+        },
+        {
+          provide: 'QuantumSafeCryptoIdentityService',
+          useValue: {
+            generateStandardizedCryptoUserId: jest.fn(),
+          },
+        },
+        {
+          provide: 'PQCBridgeService',
+          useValue: {
+            executePQCOperation: jest.fn(),
+          },
+        },
+        {
+          provide: 'PQCService',
+          useValue: {
+            performPQCHandshake: jest.fn(),
+            triggerPQCHandshake: jest.fn(),
+          },
+        },
       ],
     }).compile();
 

@@ -109,7 +109,15 @@ describe('PQCDataValidationService', () => {
         PQCDataValidationService,
         {
           provide: AuthService,
-          useValue: mockAuthService,
+          useValue: {
+            ...mockAuthService,
+            executePQCServiceCall: jest.fn().mockResolvedValue({
+              success: true,
+              token: 'mock-pqc-token',
+              algorithm: 'ML-DSA-65',
+              verified: true,
+            }),
+          },
         },
         {
           provide: JwtService,
@@ -160,6 +168,40 @@ describe('PQCDataValidationService', () => {
           provide: EnhancedErrorBoundaryService,
           useValue: {
             executeWithErrorBoundary: jest.fn().mockImplementation(async (fn) => await fn()),
+          },
+        },
+        {
+          provide: 'QuantumSafeCryptoIdentityService',
+          useValue: {
+            generateStandardizedCryptoUserId: jest.fn(),
+          },
+        },
+        {
+          provide: 'HybridCryptoService',
+          useValue: {
+            encryptWithFallback: jest.fn(),
+            decryptWithFallback: jest.fn(),
+            generateKeyPairWithFallback: jest.fn(),
+          },
+        },
+        {
+          provide: 'QuantumSafeJWTService',
+          useValue: {
+            signPQCToken: jest.fn(),
+            verifyPQCToken: jest.fn(),
+          },
+        },
+        {
+          provide: 'PQCBridgeService',
+          useValue: {
+            executePQCOperation: jest.fn(),
+          },
+        },
+        {
+          provide: 'PQCService',
+          useValue: {
+            performPQCHandshake: jest.fn(),
+            triggerPQCHandshake: jest.fn(),
           },
         },
       ],

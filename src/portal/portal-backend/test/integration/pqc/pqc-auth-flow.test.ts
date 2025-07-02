@@ -13,6 +13,10 @@ import { CircuitBreakerService } from '../../../src/services/circuit-breaker.ser
 import { HybridCryptoService } from '../../../src/services/hybrid-crypto.service';
 import { ClassicalCryptoService } from '../../../src/services/classical-crypto.service';
 import { getModelToken } from '@nestjs/mongoose';
+import { PQCService } from '../../../src/services/pqc.service';
+import { QuantumSafeJWTService } from '../../../src/services/quantum-safe-jwt.service';
+import { PQCBridgeService } from '../../../src/services/pqc-bridge.service';
+import { QuantumSafeCryptoIdentityService } from '../../../src/services/quantum-safe-crypto-identity.service';
 
 describe('PQC Authentication Flow Integration', () => {
   let authService: AuthService;
@@ -76,6 +80,55 @@ describe('PQC Authentication Flow Integration', () => {
             findByIdAndUpdate: jest.fn(),
             create: jest.fn(),
             save: jest.fn(),
+          },
+        },
+        {
+          provide: HybridCryptoService,
+          useValue: {
+            encryptWithFallback: jest.fn(),
+            decryptWithFallback: jest.fn(),
+            generateKeyPairWithFallback: jest.fn(),
+          },
+        },
+        {
+          provide: QuantumSafeJWTService,
+          useValue: {
+            signPQCToken: jest.fn(),
+            verifyPQCToken: jest.fn(),
+          },
+        },
+        {
+          provide: QuantumSafeCryptoIdentityService,
+          useValue: {
+            generateStandardizedCryptoUserId: jest.fn(),
+          },
+        },
+        {
+          provide: PQCBridgeService,
+          useValue: {
+            executePQCOperation: jest.fn().mockResolvedValue({
+              success: true,
+              token: 'mock-pqc-token',
+              algorithm: 'ML-DSA-65',
+              verified: true,
+            }),
+          },
+        },
+        {
+          provide: PQCService,
+          useValue: {
+            performPQCHandshake: jest.fn().mockResolvedValue({
+              success: true,
+              token: 'mock-pqc-token',
+              algorithm: 'ML-DSA-65',
+            }),
+            triggerPQCHandshake: jest.fn().mockResolvedValue({
+              success: true,
+              handshake_metadata: {
+                handshake_id: 'mock-handshake-id',
+                fallback_mode: false,
+              },
+            }),
           },
         },
       ],

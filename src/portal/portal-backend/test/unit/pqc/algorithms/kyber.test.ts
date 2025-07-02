@@ -52,6 +52,45 @@ describe('Kyber ML-KEM-768 Algorithm Tests', () => {
             save: jest.fn(),
           },
         },
+        {
+          provide: 'HybridCryptoService',
+          useValue: {
+            encryptWithFallback: jest.fn(),
+            decryptWithFallback: jest.fn(),
+            generateKeyPairWithFallback: jest.fn(),
+          },
+        },
+        {
+          provide: 'QuantumSafeJWTService',
+          useValue: {
+            signPQCToken: jest.fn(),
+            verifyPQCToken: jest.fn(),
+          },
+        },
+        {
+          provide: 'QuantumSafeCryptoIdentityService',
+          useValue: {
+            generateStandardizedCryptoUserId: jest.fn(),
+          },
+        },
+        {
+          provide: 'PQCBridgeService',
+          useValue: {
+            executePQCOperation: jest.fn().mockResolvedValue({
+              success: true,
+              token: 'mock-pqc-token',
+              algorithm: 'ML-DSA-65',
+              verified: true,
+            }),
+          },
+        },
+        {
+          provide: 'PQCService',
+          useValue: {
+            performPQCHandshake: jest.fn(),
+            triggerPQCHandshake: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
