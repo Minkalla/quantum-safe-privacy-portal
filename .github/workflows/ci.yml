@@ -34,6 +34,9 @@ jobs:
 
       - name: Tests
         run: npm test
+        env:
+          MONGO_URI: ${{ secrets.MONGODB1 }}
+          NODE_ENV: test
 
       - name: Doc Validation
         run: |
@@ -65,6 +68,9 @@ jobs:
 
       - name: Tests
         run: npm test
+        env:
+          MONGO_URI: ${{ secrets.MONGODB1 }}
+          NODE_ENV: test
 
       - name: Doc Validation (optional for frontend)
         run: |

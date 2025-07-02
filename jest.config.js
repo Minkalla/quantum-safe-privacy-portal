@@ -73,4 +73,7 @@ module.exports = {
 
   testTimeout: 60000,
   rootDir: './',
+  globalSetup: '<rootDir>/jest-global-setup.ts',
+  globalTeardown: '<rootDir>/jest-global-teardown.ts',
+  detectOpenHandles: true,
 };
