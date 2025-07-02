@@ -26,6 +26,7 @@ import { JwtService } from '../jwt/jwt.service';
 import { PQCFeatureFlagsService } from '../pqc/pqc-feature-flags.service';
 import { PQCMonitoringService } from '../pqc/pqc-monitoring.service';
 import { PQCService } from '../services/pqc.service';
+import { HybridCryptoService } from '../services/hybrid-crypto.service';
 import { ObjectId } from 'mongodb';
 
 // Brute-force protection settings
@@ -42,6 +43,7 @@ export class AuthService {
     private readonly pqcFeatureFlags: PQCFeatureFlagsService,
     private readonly pqcMonitoring: PQCMonitoringService,
     private readonly pqcService: PQCService,
+    private readonly hybridCryptoService: HybridCryptoService,
   ) {}
 
   /**
@@ -153,7 +155,43 @@ export class AuthService {
         this.logger.log(`Enhanced PQC bindings failed, falling back to placeholder: ${pythonError.message}`);
       }
 
-      throw new Error('PQC service unavailable and no fallback configured');
+      try {
+        const fallbackPayload = {
+          sub: userId,
+          pqc: false,
+          algorithm: 'RSA-2048',
+          fallback: true,
+          iat: Math.floor(Date.now() / 1000),
+          exp: Math.floor(Date.now() / 1000) + (60 * 60), // 1 hour
+        };
+
+        const fallbackResult = await this.hybridCryptoService.encryptWithFallback(
+          JSON.stringify(fallbackPayload),
+          'fallback-public-key',
+        );
+
+        this.logger.warn('CRYPTO_FALLBACK_USED', {
+          fallbackReason: 'PQC service unavailable',
+          algorithm: fallbackResult.algorithm,
+          userId: userId,
+          operation: 'generatePQCToken',
+          timestamp: new Date().toISOString(),
+          originalAlgorithm: 'ML-KEM-768',
+        });
+
+        return {
+          token: fallbackResult.ciphertext,
+          algorithm: fallbackResult.algorithm,
+          metadata: {
+            fallbackUsed: true,
+            fallbackReason: 'PQC service unavailable',
+            timestamp: new Date().toISOString(),
+          },
+        };
+      } catch (fallbackError) {
+        this.logger.error(`Both PQC and classical crypto failed: ${fallbackError.message}`);
+        throw new Error(`Cryptographic services unavailable: ${fallbackError.message}`);
+      }
 
     } catch (error) {
       this.logger.error(`PQC token generation failed for user ${userId}:`, error);
