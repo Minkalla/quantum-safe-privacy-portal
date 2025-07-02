@@ -389,7 +389,10 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'MFA already enabled or user not found.' })
   @ApiResponse({ status: 500, description: 'Internal server error.' })
   async setupMFA(@Body() setupDto: MFASetupDto, @Req() req: any) {
-    const result = await this.mfaService.setupMFA(setupDto.userId, req.user?.email || 'user@example.com');
+    if (!req.user?.email) {
+      throw new UnauthorizedException('User authentication required for MFA setup');
+    }
+    const result = await this.mfaService.setupMFA(setupDto.userId, req.user.email);
     
     return {
       status: 'success',
