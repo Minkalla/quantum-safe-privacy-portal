@@ -16,6 +16,11 @@ describe('PQC Performance API', () => {
     process.env['SKIP_SECRETS_MANAGER'] = 'true';
     process.env['JWT_ACCESS_SECRET_ID'] = 'test-access-secret';
     process.env['JWT_REFRESH_SECRET_ID'] = 'test-refresh-secret';
+    process.env['PORT'] = '4000';
+    process.env['AWS_REGION'] = 'us-east-1';
+    process.env['ENABLE_SWAGGER_DOCS'] = 'false';
+    process.env['FRONTEND_URL'] = 'http://localhost:3000';
+    process.env['APP_VERSION'] = '1.0.0';
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [ConfigModule.forRoot({ isGlobal: true }), JwtModule],

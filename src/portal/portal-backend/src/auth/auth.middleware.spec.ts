@@ -12,6 +12,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Request, Response } from 'express';
 import { AuthMiddleware } from './auth.middleware';
 import { JwtService } from '../jwt/jwt.service';
+import { DeviceService } from './device.service';
 
 describe('AuthMiddleware', () => {
   let middleware: AuthMiddleware;
@@ -31,6 +32,14 @@ describe('AuthMiddleware', () => {
         {
           provide: JwtService,
           useValue: mockJwtService,
+        },
+        {
+          provide: DeviceService,
+          useValue: {
+            validateDeviceTrust: jest.fn().mockResolvedValue({ trusted: true }),
+            isDeviceTrusted: jest.fn(),
+            registerDevice: jest.fn(),
+          },
         },
       ],
     }).compile();
