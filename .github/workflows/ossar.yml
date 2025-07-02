@@ -1,0 +1,42 @@
+# OSSAR GitHub Action Workflow
+# https://github.com/github/ossar-action
+
+name: OSSAR
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: '36 23 * * 0'  # Every Sunday at 11:36 PM UTC
+
+permissions:
+  contents: read
+
+jobs:
+  OSSAR-Scan:
+    runs-on: windows-latest  # OSSAR requires Windows agent
+    permissions:
+      contents: read
+      security-events: write  # Required to upload SARIF results
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Optional: Install dotnet for self-hosted runners
+      # - name: Install .NET
+      #   uses: actions/setup-dotnet@v4
+      #   with:
+      #     dotnet-version: '3.1.x'
+
+      - name: Run OSSAR
+        uses: github/ossar-action@v1
+        id: ossar
+
+      - name: Upload OSSAR results to Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.ossar.outputs.sarifFile }}
