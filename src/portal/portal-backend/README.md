@@ -94,7 +94,7 @@ portal-backend/
 
 To get the `portal-backend` running locally using Docker Compose:
 
-- The `docker-compose.yml` now includes an `xray-daemon` service for AWS X-Ray distributed tracing. This allows you to test observability features locally. All containers (`backend`, `mongo`, and `xray-daemon`) are orchestrated together for a production-like environment.
+- The `docker-compose.yml` now uses MongoDB Atlas cloud service instead of local MongoDB containers. This provides a production-like environment with cloud-native database connectivity.
 
 1.  **Prerequisites:**
     * [Node.js](https://nodejs.org/) (v18.x recommended, but v20.x also works)
@@ -119,7 +119,7 @@ To get the `portal-backend` running locally using Docker Compose:
         cp .env.example .env  # For Windows PowerShell, you might use 'copy .env.example .env'
         ```
     * **Edit the `.env` file** and populate the variables:
-        * `MONGO_URI`: For local development, use `mongodb://mongo:27017/portal_dev`.
+        * `MONGO_URI`: Use the MongoDB Atlas connection string from your environment variables or secrets management.
         * `JWT_ACCESS_SECRET` & `JWT_REFRESH_SECRET`: Generate strong, random Base64 strings. (e.g., `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`).
         * `ENABLE_SWAGGER_DOCS`: Set to `true` to access API docs locally.
         * `FRONTEND_URL`: `http://localhost:3000` (or your frontend's actual local dev URL).
@@ -131,9 +131,8 @@ To get the `portal-backend` running locally using Docker Compose:
     ```
     This will:
     * Build the `portal-backend` Docker image.
-    * Download the `mongo:5.0` Docker image.
-    * Start both the `backend` and `mongo` containers.
-    * You will see logs from both services streaming in your terminal.
+    * Start the backend service connected to MongoDB Atlas.
+    * You will see logs from the backend service streaming in your terminal.
 
 ## ✅ Verification
 
@@ -155,7 +154,7 @@ Once `docker compose up --build` completes and streams logs, open a **new termin
     ```bash
     docker ps
     ```
-    Expected output: Both `portal-backend-backend-1` and `portal-backend-mongo-1` containers listed with `Up` status.
+    Expected output: `portal-backend-backend-1` container listed with `Up` status.
 
 ## 🔍 Observability & Security Scanning
 

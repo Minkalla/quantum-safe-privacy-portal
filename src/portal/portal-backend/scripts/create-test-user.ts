@@ -2,7 +2,7 @@ import { hashSync } from 'bcrypt';
 import { connect, model, Schema } from 'mongoose';
 
 (async () => {
-  await connect('mongodb://localhost:27017/portal_dev');
+  await connect(process.env.MONGO_URI || 'mongodb://localhost:27017/portal_dev');
 
   const User = model('User', new Schema({
     email: String,

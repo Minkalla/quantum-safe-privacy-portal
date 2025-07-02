@@ -56,7 +56,7 @@ Location: `/tmp/pqc_environment/testing/.env.test.development`
 ```bash
 # PQC Development Testing Environment
 NODE_ENV=test_development
-MONGODB_URI=mongodb://localhost:27017/pqc_test_dev_db
+MONGODB_URI=${MONGO_URI}/pqc_test_dev_db # Use MongoDB Atlas connection from environment
 
 # PQC Testing Configuration
 PQC_ENABLED=true
@@ -76,7 +76,7 @@ Location: `/tmp/pqc_environment/testing/.env.test.integration`
 ```bash
 # PQC Integration Testing Environment
 NODE_ENV=test_integration
-MONGODB_URI=mongodb://localhost:27017/pqc_test_integration_db
+MONGODB_URI=${MONGO_URI}/pqc_test_integration_db # Use MongoDB Atlas connection from environment
 
 # PQC Testing Configuration
 PQC_ENABLED=true

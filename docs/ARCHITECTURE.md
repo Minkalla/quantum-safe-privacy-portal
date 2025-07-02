@@ -15,7 +15,7 @@ This document provides detailed technical architecture overview, including major
 - **Framework:** NestJS (TypeScript) with custom ValidationPipe configuration
 - **Runtime:** Node.js 18+ with ES2022 target
 - **Containerization:** Docker multi-stage builds, Docker Compose orchestration
-- **Database:** MongoDB 5.0+ (local via Docker Compose, Atlas for production)
+- **Database:** MongoDB Atlas (cloud-native, Docker MongoDB deprecated)
 - **Authentication:** JWT with dual-token strategy (access + refresh tokens)
 - **Observability:** AWS X-Ray, CloudTrail, GuardDuty integration
 - **Security:** bcryptjs, Helmet, CORS, HPP, rate limiting, SQL injection detection

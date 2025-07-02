@@ -27,7 +27,7 @@ The `portal-backend` service can be run locally using Docker Compose, providing 
     ```
 
 3.  **Start the services:**
-    This command starts both the `backend` and `mongo` services in detached mode.
+    This command starts the backend service connected to MongoDB Atlas.
     ```bash
     docker-compose up -d
     ```
@@ -36,7 +36,7 @@ The `portal-backend` service can be run locally using Docker Compose, providing 
     ```bash
     docker-compose ps
     ```
-    Ensure both `portal-backend-backend-1` and `portal-backend-mongo-1` are `Up` and `healthy` (or `starting`).
+    Ensure `portal-backend-backend-1` is `Up` and `healthy` (or `starting`).
 
 5.  **Check backend logs (optional, for debugging):**
     ```bash
@@ -154,30 +154,12 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=8080
-      - MONGO_URI=mongodb://mongo:27017/portal_dev
+      - MONGO_URI=mongodb+srv://minkalla-backend-user:HaZWbH2fWBRheV8t@minkallaportalcluster.gqfxskp.mongodb.net/portal_dev?retryWrites=true&w=majority&appName=MinkallaPortalCluster
       - JWT_ACCESS_SECRET=local_dev_jwt_secret
       - JWT_REFRESH_SECRET=local_dev_refresh_secret
       - ENABLE_SWAGGER_DOCS=true
       - FRONTEND_URL=http://localhost:3000
-    depends_on:
-      - mongo
     restart: always
-
-  mongo:
-    image: mongo:5.0
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
-    healthcheck:
-      test: ["CMD", "mongo", "--eval", "db.runCommand({ping: 1})"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: always
-
-volumes:
-  mongo-data:
 nest-cli.json
 Configures the NestJS CLI build process.
 

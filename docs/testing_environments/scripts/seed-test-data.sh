@@ -17,7 +17,7 @@ seed_database() {
         return 1
     fi
     
-    mongosh "mongodb://localhost:27017/$db_name" --eval "
+    mongosh "${MONGO_URI}/$db_name" --eval "
         const userCount = $user_count;
         
         // Generate test users

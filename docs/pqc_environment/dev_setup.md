@@ -54,8 +54,9 @@ Location: `/tmp/pqc_environment/configs/.env.pqc.development`
 ```bash
 # PQC Development Environment
 NODE_ENV=pqc_development
-MONGODB_URI=mongodb://localhost:27017/pqc_dev_db
-MONGO_URI=mongodb://localhost:27017/pqc_dev_db
+# MongoDB Atlas (Docker MongoDB deprecated)
+MONGODB_URI=${MONGO_URI} # Use MongoDB Atlas connection string from environment variables
+MONGO_URI=${MONGO_URI} # Use MongoDB Atlas connection string from environment variables
 
 # PQC Feature Flags
 PQC_ENABLED=true

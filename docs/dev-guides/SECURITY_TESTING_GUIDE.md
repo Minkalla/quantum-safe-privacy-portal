@@ -610,8 +610,8 @@ export PQC_ENABLED=true
 export PQC_FALLBACK_ENABLED=true
 export CRYPTO_TEST_MODE=real  # Never use 'mock' for security tests
 
-# Test database
-export TEST_DB_URL=mongodb://localhost:27017/quantum-portal-test
+# Test database (MongoDB Atlas - local Docker deprecated)
+export TEST_DB_URL=${MONGO_URI}/quantum-portal-test # Use MongoDB Atlas connection from environment
 
 # Test secrets (use test values only)
 export TEST_JWT_SECRET=test-jwt-secret-for-security-testing

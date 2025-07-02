@@ -283,8 +283,8 @@ npm install cypress --save-dev
 # Navigate to backend directory
 cd src/portal/portal-backend
 
-# Start MongoDB (if not using Docker)
-docker compose up -d mongo
+# MongoDB Atlas is now used (Docker MongoDB deprecated)
+# No local MongoDB setup required
 
 # Install Cypress dependencies
 npm install cypress --save-dev
@@ -304,7 +304,7 @@ npx cypress run --spec "test/e2e/login-flow.cy.js"
 
 #### Environment Variables Required
 ```bash
-MONGODB_URI=mongodb://localhost:27017/e2e_test_db
+MONGODB_URI=${MONGO_URI} # Use MongoDB Atlas connection string from environment variables
 JWT_ACCESS_SECRET_ID=test-access-secret-e2e
 JWT_REFRESH_SECRET_ID=test-refresh-secret-e2e
 SKIP_SECRETS_MANAGER=true
