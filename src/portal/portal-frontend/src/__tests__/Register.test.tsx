@@ -2,21 +2,18 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
-import { rest } from 'msw';
+import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { AuthProvider } from '../contexts/AuthContext';
 import Register from '../components/auth/Register';
 
 const server = setupServer(
-  rest.post(`${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/portal/auth/register`, (_, res, ctx) => {
-    return res(
-      ctx.status(201),
-      ctx.json({
-        message: 'User registered successfully',
-        userId: '123',
-        email: 'test@example.com'
-      })
-    );
+  http.post(`${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/portal/auth/register`, () => {
+    return HttpResponse.json({
+      message: 'User registered successfully',
+      userId: '123',
+      email: 'test@example.com'
+    }, { status: 201 });
   })
 );
 
@@ -254,16 +251,13 @@ describe('Register Component', () => {
 
   test('submits form with valid data and shows loading state', async () => {
     server.use(
-      rest.post('http://localhost:8080/portal/auth/register', (_, res, ctx) => {
-        return res(
-          ctx.delay(100), // Add 100ms delay
-          ctx.status(201),
-          ctx.json({
-            message: 'User registered successfully',
-            userId: '123',
-            email: 'test@example.com'
-          })
-        );
+      http.post('http://localhost:8080/portal/auth/register', async () => {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        return HttpResponse.json({
+          message: 'User registered successfully',
+          userId: '123',
+          email: 'test@example.com'
+        }, { status: 201 });
       })
     );
 
@@ -288,15 +282,12 @@ describe('Register Component', () => {
 
   test('displays error message on registration failure', async () => {
     server.use(
-      rest.post('http://localhost:8080/portal/auth/register', (_, res, ctx) => {
-        return res(
-          ctx.status(400),
-          ctx.json({
-            statusCode: 400,
-            message: 'Email already exists',
-            error: 'Email already exists'
-          })
-        );
+      http.post('http://localhost:8080/portal/auth/register', () => {
+        return HttpResponse.json({
+          statusCode: 400,
+          message: 'Email already exists',
+          error: 'Email already exists'
+        }, { status: 400 });
       })
     );
 
@@ -321,8 +312,8 @@ describe('Register Component', () => {
 
   test('handles network timeout error', async () => {
     server.use(
-      rest.post('http://localhost:8080/portal/auth/register', (_, res) => {
-        return res.networkError('Network timeout');
+      http.post('http://localhost:8080/portal/auth/register', () => {
+        return HttpResponse.error();
       })
     );
 
