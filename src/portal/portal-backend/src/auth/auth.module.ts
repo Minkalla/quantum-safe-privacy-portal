@@ -21,10 +21,13 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { EnhancedAuthService } from './enhanced-auth.service';
 import { AuthMiddleware } from './auth.middleware';
+import { MFAService } from './mfa.service';
 import { UserSchema } from '../models/User';
 import { JwtModule } from '../jwt/jwt.module';
 import { PQCFeatureFlagsModule } from '../pqc/pqc-feature-flags.module';
 import { CryptoServicesModule } from '../services/crypto-services.module';
+import { MonitoringModule } from '../monitoring/monitoring.module';
+import { SecretsModule } from '../secrets/secrets.module';
 
 @Module({
   imports: [
@@ -32,10 +35,12 @@ import { CryptoServicesModule } from '../services/crypto-services.module';
     JwtModule,
     PQCFeatureFlagsModule,
     forwardRef(() => CryptoServicesModule),
+    MonitoringModule,
+    SecretsModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, EnhancedAuthService, AuthMiddleware],
-  exports: [AuthService, EnhancedAuthService, AuthMiddleware],
+  providers: [AuthService, EnhancedAuthService, AuthMiddleware, MFAService],
+  exports: [AuthService, EnhancedAuthService, AuthMiddleware, MFAService],
 })
 export class AuthModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

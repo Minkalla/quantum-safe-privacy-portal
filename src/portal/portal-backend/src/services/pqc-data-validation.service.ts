@@ -159,10 +159,7 @@ export class PQCDataValidationService {
       this.logger.log(`Creating data integrity for user: ${userId}`);
       const hash = this.generateDataHash(data);
 
-      const cryptoUserId = generateCryptoUserId(userId, {
-        algorithm: 'ML-DSA-65',
-        operation: 'signing',
-      });
+      const cryptoUserId = this.generateStandardizedCryptoUserId(userId, 'ML-DSA-65', 'signing');
 
       this.logger.debug(`Using crypto user ID: ${cryptoUserId} for original user: ${userId}`);
 
@@ -183,7 +180,12 @@ export class PQCDataValidationService {
           publicKeyHash: this.generatePublicKeyHash(),
           timestamp: new Date(),
           signedDataHash: hash,
-          metadata: { cryptoUserId, originalUserId: userId }, // Store both IDs for verification
+          metadata: { 
+            cryptoUserId, 
+            originalUserId: userId,
+            algorithm: algorithmUsed,
+            operation: 'signing'
+          },
         };
 
         this.logger.log(`Data integrity created successfully with ${algorithmUsed} for crypto user: ${cryptoUserId}`);
@@ -286,17 +288,16 @@ export class PQCDataValidationService {
 
   private async signWithDilithium(dataHash: string, userId?: string): Promise<string> {
     try {
-      const signUserId = userId || generateCryptoUserId('anonymous', {
-        algorithm: 'ML-DSA-65',
-        operation: 'signing',
-      });
+      const baseUserId = userId || 'anonymous';
+      const signUserId = this.generateStandardizedCryptoUserId(baseUserId, 'ML-DSA-65', 'signing');
+      
       const pqcResult = await this.authService.callPQCService('sign_token', {
         user_id: signUserId,
-        payload: { dataHash, timestamp: Date.now(), operation: 'sign' },
+        payload: { dataHash, timestamp: Date.now(), operation: 'sign', original_user_id: baseUserId },
       });
 
       if (pqcResult.success && pqcResult.token) {
-        this.logger.debug('ML-DSA-65 signature completed');
+        this.logger.debug(`ML-DSA-65 signature completed for crypto user: ${signUserId}`);
         return `dilithium3:${pqcResult.token}`;
       } else {
         throw new Error(pqcResult.error_message || 'ML-DSA-65 signing failed');
@@ -336,32 +337,27 @@ export class PQCDataValidationService {
 
       try {
         let verifyUserId: string;
+        let baseUserId: string;
 
         if (signatureMetadata?.cryptoUserId) {
           verifyUserId = signatureMetadata.cryptoUserId;
+          baseUserId = signatureMetadata.originalUserId || userId || 'anonymous';
           this.logger.debug(`Using stored crypto user ID from signature metadata: ${verifyUserId}`);
-        } else if (userId) {
-          verifyUserId = generateCryptoUserId(userId, {
-            algorithm: 'ML-DSA-65',
-            operation: 'signing',
-          });
-          this.logger.debug(`Generated crypto user ID for verification: ${verifyUserId}`);
         } else {
-          verifyUserId = generateCryptoUserId('anonymous', {
-            algorithm: 'ML-DSA-65',
-            operation: 'signing',
-          });
-          this.logger.debug(`Using anonymous crypto user ID: ${verifyUserId}`);
+          baseUserId = userId || 'anonymous';
+          const algorithm = signatureMetadata?.algorithm || 'ML-DSA-65';
+          verifyUserId = this.generateStandardizedCryptoUserId(baseUserId, algorithm, 'signing');
+          this.logger.debug(`Generated standardized crypto user ID for verification: ${verifyUserId} from base: ${baseUserId}`);
         }
 
         const pqcResult = await this.authService.callPQCService('verify_token', {
           user_id: verifyUserId,
           token: signaturePart,
-          payload: { dataHash, timestamp: Date.now(), operation: 'verify' },
+          payload: { dataHash, timestamp: Date.now(), operation: 'verify', original_user_id: baseUserId },
         });
 
         if (pqcResult.success && pqcResult.verified) {
-          this.logger.debug('ML-DSA-65 verification completed successfully');
+          this.logger.debug(`ML-DSA-65 verification completed successfully for crypto user: ${verifyUserId}`);
           return true;
         } else {
           this.logger.debug(`ML-DSA-65 verification failed: ${pqcResult.error_message || 'PQC service rejected signature'}`);
@@ -409,6 +405,17 @@ export class PQCDataValidationService {
 
   private generatePublicKeyHash(): string {
     return crypto.createHash('sha256').update('pubkey-deterministic-hash').digest('hex');
+  }
+
+  /**
+   * Generate a standardized crypto user ID for consistent cryptographic operations
+   * This ensures the same user ID is used for both signing and verification operations
+   */
+  private generateStandardizedCryptoUserId(baseUserId: string, algorithm: string, operation: string): string {
+    return generateCryptoUserId(baseUserId, {
+      algorithm: algorithm,
+      operation: operation,
+    });
   }
 
   async batchValidateIntegrity(

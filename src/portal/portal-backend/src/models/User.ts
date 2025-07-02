@@ -63,6 +63,9 @@ export interface IUser extends Document {
   cryptoAlgorithm?: string;
   encryptedEmail?: string;
   encryptedPersonalData?: string;
+  mfaEnabled?: boolean;
+  mfaEnabledAt?: Date | null;
+  mfaSecret?: string | null;
 }
 
 /**
@@ -195,6 +198,19 @@ export const UserSchema = new Schema<IUser>( // MODIFIED: Added 'export' here
     },
     encryptedPersonalData: {
       type: String,
+      select: false,
+    },
+    mfaEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    mfaEnabledAt: {
+      type: Date,
+      default: null,
+    },
+    mfaSecret: {
+      type: String,
+      default: null,
       select: false,
     },
   },

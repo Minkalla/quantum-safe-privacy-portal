@@ -2,12 +2,12 @@
 
 **Document Purpose**: Comprehensive reference for future agents working on the quantum-safe-privacy-portal repository  
 **Created**: July 1, 2025  
-**Last Updated**: WBS 1.12 Session Management Implementation  
-**Scope**: Authentication, Session Management, PQC Integration, and Core Infrastructure  
+**Last Updated**: WBS 1.13 MFA Implementation + Security Hardening  
+**Scope**: Authentication, Session Management, MFA, PQC Integration, Security Hardening, and Core Infrastructure  
 
 ## 🎯 Quick Navigation for Common Tasks
 
-### Authentication & Session Management (WBS 1.10-1.12)
+### Authentication & Session Management (WBS 1.10-1.13)
 ```
 📁 Backend Authentication Core
 ├── src/portal/portal-backend/src/auth/
@@ -15,7 +15,11 @@
 │   ├── auth.controller.ts           # Authentication endpoints (/portal/auth/*)
 │   ├── auth.middleware.ts           # JWT validation middleware (WBS 1.12)
 │   ├── auth.module.ts               # Authentication module configuration
-│   └── jwt-auth.guard.ts            # NestJS JWT guard implementation
+│   ├── jwt-auth.guard.ts            # NestJS JWT guard implementation
+│   ├── mfa.service.ts               # MFA TOTP service with speakeasy (WBS 1.13)
+│   ├── mfa.service.spec.ts          # MFA unit tests (15/15 passing, 99.13% coverage)
+│   └── dto/
+│       └── mfa.dto.ts               # MFA request/response DTOs
 
 📁 JWT & Token Management
 ├── src/portal/portal-backend/src/jwt/
@@ -26,8 +30,8 @@
 │   └── AuthContext.tsx              # React authentication context and state
 ├── src/portal/portal-frontend/src/components/auth/
 │   ├── ProtectedRoute.tsx           # Route protection component (WBS 1.12)
-│   ├── Login.tsx                    # Login form component (WBS 1.11)
-│   └── Register.tsx                 # Registration form component (WBS 1.10)
+│   ├── Login.tsx                    # Login form with MFA TOTP input (WBS 1.11, 1.13)
+│   └── Register.tsx                 # Registration with MFA QR code setup (WBS 1.10, 1.13)
 ├── src/portal/portal-frontend/src/utils/
 │   ├── api.ts                       # API client with token refresh logic (WBS 1.12)
 │   └── jwt.ts                       # JWT utility functions
@@ -45,13 +49,18 @@
 │   └── Consent.ts                   # MongoDB Consent model
 ```
 
-### Post-Quantum Cryptography (PQC) Integration
+### Post-Quantum Cryptography (PQC) Integration & Security
 ```
 📁 PQC Services & Implementation
 ├── src/portal/portal-backend/src/services/
 │   ├── pqc.service.ts               # Core PQC operations
-│   ├── hybrid-crypto.service.ts     # PQC/Classical crypto hybrid service
+│   ├── hybrid-crypto.service.ts     # PQC/Classical crypto hybrid service (WBS 1.13 enhanced)
+│   ├── pqc-data-validation.service.ts # Standardized user IDs, crypto operations (WBS 1.13)
 │   └── crypto-services.module.ts    # Crypto services module
+├── src/portal/portal-backend/src/errors/
+│   └── crypto-fallback.error.ts     # PQC → classical fallback error handling (WBS 1.13)
+├── src/portal/portal-backend/src/utils/
+│   └── crypto-user-id.util.ts       # Standardized crypto user ID generation (WBS 1.13)
 ├── src/portal/portal-backend/src/controllers/
 │   └── pqc-user.controller.ts       # PQC-specific user operations
 
@@ -230,13 +239,15 @@ describe('Login Component', () => {
 ├── docs/
 │   ├── SESSION_MANAGEMENT.md           # Comprehensive session management guide (WBS 1.12)
 │   ├── AUTHENTICATION_FLOW_DOCUMENTATION.md  # Technical authentication details
-│   ├── END_TO_END_FLOW_ANALYSIS.md     # Complete user journey analysis
+│   ├── END_TO_END_FLOW_ANALYSIS.md     # Complete user journey analysis (updated WBS 1.13)
+│   ├── MFA.md                          # Complete MFA implementation guide (WBS 1.13)
+│   ├── SECURITY_MITIGATION_SUMMARY.md  # Phase 1 security hardening summary (WBS 1.13)
 │   ├── WBS_AUTH_TRACELOG.md            # Authentication implementation tracking
 │   ├── WBS_1.12_READINESS_CHECKLIST.md # Session management implementation checklist
 │   ├── WBS_1.13_READINESS_CHECKLIST.md # MFA implementation preparation
-│   ├── HANDOVER_SUMMARY.md             # Current project status summary
+│   ├── HANDOVER_SUMMARY.md             # Current project status summary (updated WBS 1.13)
 │   ├── NEW_ENGINEER_ONBOARDING_MESSAGE.md # Complete onboarding guide
-│   ├── PQC_INTEGRATION_STATUS_TRACKING.md # Project phase tracking
+│   ├── PQC_INTEGRATION_STATUS_TRACKING.md # Project phase tracking (updated WBS 1.13)
 │   └── WBS_STATUS_REPORT.md            # Detailed WBS task status
 └── README.md                           # Main project documentation with links
 ```
@@ -368,4 +379,58 @@ npm run preview    # Preview production build
 
 ---
 
-**Note**: This guide reflects the state of the repository as of WBS 1.12 completion (July 1, 2025). Future implementations may introduce new patterns and file locations that should be documented here.
+**Note**: This guide reflects the state of the repository as of WBS 1.13 completion (July 2, 2025). The MFA implementation and Phase 1 security hardening are complete. Future implementations may introduce new patterns and file locations that should be documented here.
+
+## 🔐 MFA Implementation Patterns (WBS 1.13)
+
+### MFA Service Pattern
+```typescript
+// Backend MFA Service Pattern
+import { MFAService } from '../auth/mfa.service';
+
+// Setup MFA for user
+const mfaResult = await mfaService.setupMFA(userId, userEmail);
+// Returns: { secret, qrCodeUrl, backupCodes }
+
+// Verify TOTP code
+const verification = await mfaService.verifyMFA(userId, totpCode, enableMFA);
+// Returns: { verified: boolean, message: string }
+```
+
+### Frontend MFA Integration Pattern
+```typescript
+// Login with MFA
+const handleMFASubmit = async (totpCode: string) => {
+  try {
+    const response = await authService.verifyMFA(totpCode);
+    if (response.verified) {
+      navigate('/dashboard');
+    }
+  } catch (error) {
+    setError('Invalid TOTP code');
+  }
+};
+
+// Registration with MFA setup
+const handleMFASetup = async (enableMFA: boolean) => {
+  if (enableMFA) {
+    const mfaData = await authService.setupMFA();
+    setQrCodeUrl(mfaData.qrCodeUrl);
+    setBackupCodes(mfaData.backupCodes);
+  }
+};
+```
+
+### Security Error Handling Pattern
+```typescript
+// Crypto Fallback Error Pattern
+import { CryptoFallbackError } from '../errors/crypto-fallback.error';
+
+try {
+  // PQC operation
+} catch (error) {
+  const fallbackError = CryptoFallbackError.forSignature(error);
+  await fallbackError.logToAuditTrail(auditService, userId, 'signature');
+  // Proceed with classical crypto fallback
+}
+```
