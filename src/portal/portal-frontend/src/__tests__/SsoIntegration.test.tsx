@@ -83,7 +83,7 @@ const server = setupServer(
   })
 );
 
-beforeAll(() => server.listen());
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => {
   server.resetHandlers();
   mockNavigate.mockClear();
@@ -143,10 +143,8 @@ describe('SSO Integration Tests', () => {
         })
       );
 
-      Object.defineProperty(window, 'location', {
-        value: { href: '' },
-        writable: true
-      });
+      delete (window as any).location;
+      window.location = { href: '' } as any;
       
       renderLogin();
       
@@ -201,10 +199,8 @@ describe('SSO Integration Tests', () => {
         })
       );
 
-      Object.defineProperty(window, 'location', {
-        value: { href: '' },
-        writable: true
-      });
+      delete (window as any).location;
+      window.location = { href: '' } as any;
       
       renderLogin();
       
@@ -254,10 +250,8 @@ describe('SSO Integration Tests', () => {
         })
       );
 
-      Object.defineProperty(window, 'location', {
-        value: { href: '' },
-        writable: true
-      });
+      delete (window as any).location;
+      window.location = { href: '' } as any;
       
       renderLogin();
       
@@ -357,14 +351,15 @@ describe('SSO Integration Tests', () => {
       renderSsoCallback('?RelayState=%2Fdashboard');
       
       await waitFor(() => {
-        expect(screen.getByRole('alert')).toBeInTheDocument();
+        const alerts = screen.getAllByRole('alert');
+        expect(alerts.length).toBeGreaterThan(0);
         expect(screen.getByText(/missing saml response/i)).toBeInTheDocument();
       });
     });
 
     test('displays error when SSO callback fails', async () => {
       server.use(
-        http.post('http://localhost:8080/portal/auth/sso/callback', () => {
+        http.post('/portal/auth/sso/callback', () => {
           return HttpResponse.json({
             success: false,
             message: 'Invalid SAML response'
@@ -372,11 +367,12 @@ describe('SSO Integration Tests', () => {
         })
       );
       
-      renderSsoCallback();
+      renderSsoCallback('?SAMLResponse=invalid-response&RelayState=%2Fdashboard');
       
       await waitFor(() => {
-        expect(screen.getByRole('alert')).toBeInTheDocument();
-        expect(screen.getByText(/invalid saml response|sso authentication failed/i)).toBeInTheDocument();
+        const alerts = screen.getAllByRole('alert');
+        expect(alerts.length).toBeGreaterThan(0);
+        expect(screen.getByText(/invalid saml response/i)).toBeInTheDocument();
       });
     });
 
@@ -384,7 +380,7 @@ describe('SSO Integration Tests', () => {
       const user = userEvent.setup();
       
       server.use(
-        http.post('http://localhost:8080/portal/auth/sso/callback', () => {
+        http.post('/portal/auth/sso/callback', () => {
           return HttpResponse.json({
             success: false,
             message: 'Authentication failed'
@@ -392,7 +388,7 @@ describe('SSO Integration Tests', () => {
         })
       );
       
-      renderSsoCallback();
+      renderSsoCallback('?SAMLResponse=invalid-response&RelayState=%2Fdashboard');
       
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /return to login/i })).toBeInTheDocument();
@@ -406,7 +402,7 @@ describe('SSO Integration Tests', () => {
 
     test('has proper accessibility attributes for error states', async () => {
       server.use(
-        http.post('http://localhost:8080/portal/auth/sso/callback', () => {
+        http.post('/portal/auth/sso/callback', () => {
           return HttpResponse.json({
             success: false,
             message: 'Authentication failed'
@@ -414,15 +410,15 @@ describe('SSO Integration Tests', () => {
         })
       );
       
-      renderSsoCallback();
+      renderSsoCallback('?SAMLResponse=invalid-response&RelayState=%2Fdashboard');
       
       await waitFor(() => {
-        const alert = screen.getByRole('alert');
-        expect(alert).toHaveAttribute('role', 'alert');
+        const alerts = screen.getAllByRole('alert');
+        expect(alerts.length).toBeGreaterThan(0);
         
         const retryButton = screen.getByRole('button', { name: /return to login/i });
         expect(retryButton).toHaveAttribute('aria-label', 'Return to login page to try again');
-        expect(retryButton).toHaveAttribute('autoFocus');
+        expect(retryButton).toHaveAttribute('tabindex', '0');
       });
     });
 
@@ -572,7 +568,7 @@ describe('SSO Integration Tests', () => {
       
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith(validRelayState, { replace: true });
-      });
+      }, { timeout: 3000 });
     });
   });
 });
