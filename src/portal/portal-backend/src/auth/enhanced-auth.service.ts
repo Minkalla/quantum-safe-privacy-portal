@@ -48,12 +48,11 @@ export class EnhancedAuthService {
       throw new BadRequestException('Invalid user ID format');
     }
     
-    const sanitized = userId.replace(/[^a-zA-Z0-9]/g, '');
-    if (sanitized.length < 1 || sanitized.length > 50) {
-      throw new BadRequestException('User ID length out of bounds');
+    if (!/^[a-f\d]{24}$/i.test(userId)) {
+      throw new BadRequestException('Invalid user ID format');
     }
     
-    return sanitized;
+    return userId;
   }
 
   private sanitizeEmail(email: string): string {
@@ -61,7 +60,7 @@ export class EnhancedAuthService {
       throw new BadRequestException('Invalid email format');
     }
     
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!emailRegex.test(email)) {
       throw new BadRequestException('Invalid email format');
     }
