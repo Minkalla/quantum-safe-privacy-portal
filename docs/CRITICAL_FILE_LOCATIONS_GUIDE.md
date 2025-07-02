@@ -141,8 +141,8 @@ import { isTokenExpired } from '../utils/jwt';
 
 ### Environment Variables (.env)
 ```bash
-# Database
-MONGODB_URI=mongodb://localhost:27017/quantum-safe-portal
+# Database - MongoDB Atlas
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/quantum-safe-portal
 
 # JWT Configuration
 JWT_SECRET=your-secret-key

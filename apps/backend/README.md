@@ -131,9 +131,8 @@ To get the `portal-backend` running locally using Docker Compose:
     ```
     This will:
     * Build the `portal-backend` Docker image.
-    * Download the `mongo:5.0` Docker image.
-    * Start both the `backend` and `mongo` containers.
-    * You will see logs from both services streaming in your terminal.
+    * Start the backend container with MongoDB Atlas connectivity.
+    * You will see logs from the backend service streaming in your terminal.
 
 ## ✅ Verification
 

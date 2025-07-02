@@ -12,7 +12,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=8080
-      - MONGO_URI=${MONGO_URI:-mongodb://localhost:27017/portal_dev} # Use MongoDB Atlas from environment or fallback
+      - MONGO_URI=${MONGO_URI} # MongoDB Atlas connection string from environment
       - JWT_ACCESS_SECRET=dev_jwt_access_secret_key_32_chars
       - JWT_REFRESH_SECRET=dev_jwt_refresh_secret_key_32_chars
       - JWT_ACCESS_SECRET_ID=local-jwt-access-secret

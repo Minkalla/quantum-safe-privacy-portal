@@ -148,7 +148,7 @@ The testing environments integrate with the existing PQC pipeline validation wor
 ```yaml
 # .github/workflows/pqc-pipeline-validation.yml
 env:
-  MONGODB_URI: 'mongodb://localhost:27017/pqc_test_integration_db'
+  MONGODB_URI: ${{ secrets.MONGODB1 }}
   PQC_ENABLED: 'true'
   PQC_TEST_MODE: 'true'
 ```
