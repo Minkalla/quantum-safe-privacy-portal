@@ -219,11 +219,13 @@ export class MFAService {
 
     this.logger.log(`MFA enabled for user ${userId}`);
   }
-
-  private generateBackupCodes(): string[] {
-    const codes: string[] = [];
-    for (let i = 0; i < 10; i++) {
-      const bytes = randomBytes(4);
+private generateBackupCodes(): string[] {
+  const crypto = require('crypto');
+  const codes: string[] = [];
+  for (let i = 0; i < 10; i++) {
+    const randomBytes = crypto.randomBytes(4);
+    const code = randomBytes.toString('hex').toUpperCase();
+    codes.push(code);
       const code = bytes.toString('hex').toUpperCase();
       codes.push(code);
     }
