@@ -48,7 +48,9 @@
     "test:load": "jest --testPathPattern=load",
     "test:monitoring": "jest --testPathPattern=monitoring",
     "test:pqc:all": "jest --testPathPattern=test/unit/pqc --testPathPattern=test/integration/pqc --verbose",
-    "lint:crypto": "eslint \"src/**/*crypto*.ts\" \"src/**/*pqc*.ts\" --fix"
+    "lint:crypto": "eslint \"src/**/*crypto*.ts\" \"src/**/*pqc*.ts\" --fix",
+    "check-paperwork": "test -s paperwork.md || (echo 'Missing paperwork.md' && exit 1)",
+    "check-checklist": "test -s PR_SECURITY_CHECKLIST.md || (echo 'Missing PR_SECURITY_CHECKLIST.md' && exit 1)"
   },
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.830.0",
