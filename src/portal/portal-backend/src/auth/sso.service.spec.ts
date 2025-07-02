@@ -128,7 +128,7 @@ describe('SsoService', () => {
           signatureAlgorithm: 'sha256',
           digestAlgorithm: 'sha256',
         }),
-        expect.any(Function)
+        expect.any(Function),
       );
     });
 
@@ -348,7 +348,7 @@ describe('SsoService', () => {
   describe('verifyCallback', () => {
     it('should successfully verify SAML callback with valid profile', async () => {
       const mockDone = jest.fn();
-      
+
       await service['verifyCallback'](mockProfile, mockDone);
 
       expect(mockJwtService.generateSSOTokens).toHaveBeenCalledWith(
@@ -361,7 +361,7 @@ describe('SsoService', () => {
           authMethod: 'sso',
           idpIssuer: 'https://idp.example.com',
           sessionId: expect.stringMatching(/^_[a-f0-9]{32}$/),
-        })
+        }),
       );
 
       expect(mockDone).toHaveBeenCalledWith(null, expect.objectContaining({
@@ -388,7 +388,7 @@ describe('SsoService', () => {
 
       expect(mockDone).toHaveBeenCalledWith(
         expect.any(Error),
-        undefined
+        undefined,
       );
     });
 
@@ -404,7 +404,7 @@ describe('SsoService', () => {
         expect.objectContaining({
           message: 'SAML verification failed',
         }),
-        undefined
+        undefined,
       );
     });
   });
@@ -412,7 +412,7 @@ describe('SsoService', () => {
   describe('cleanup operations', () => {
     it('should clean up expired requests', () => {
       const cleanupSpy = jest.spyOn(service as any, 'cleanupExpiredRequests');
-      
+
       service.onModuleInit();
 
       expect(cleanupSpy).toBeDefined();

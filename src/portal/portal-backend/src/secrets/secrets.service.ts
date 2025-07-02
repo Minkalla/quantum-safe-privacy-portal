@@ -20,12 +20,12 @@
  */
 
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
-import { 
-  SecretsManagerClient, 
-  GetSecretValueCommand, 
-  CreateSecretCommand, 
-  UpdateSecretCommand, 
-  DeleteSecretCommand 
+import {
+  SecretsManagerClient,
+  GetSecretValueCommand,
+  CreateSecretCommand,
+  UpdateSecretCommand,
+  DeleteSecretCommand,
 } from '@aws-sdk/client-secrets-manager';
 import { ConfigService } from '@nestjs/config';
 
@@ -137,7 +137,7 @@ export class SecretsService {
           const createCommand = new CreateSecretCommand({
             Name: secretId,
             SecretString: secretValue,
-            Description: `MFA secret for Quantum-Safe Privacy Portal`,
+            Description: 'MFA secret for Quantum-Safe Privacy Portal',
           });
           await this.secretsManagerClient.send(createCommand);
           this.logger.log(`Successfully created new secret "${secretId}".`);
@@ -179,7 +179,7 @@ export class SecretsService {
         ForceDeleteWithoutRecovery: true,
       });
       await this.secretsManagerClient.send(deleteCommand);
-      
+
       this.secretCache.delete(secretId);
       this.logger.log(`Successfully deleted secret "${secretId}".`);
     } catch (error: any) {

@@ -396,7 +396,7 @@ export class AuthController {
       throw new UnauthorizedException('User authentication required for MFA setup');
     }
     const result = await this.mfaService.setupMFA(setupDto.userId, req.user.email);
-    
+
     return {
       status: 'success',
       message: 'MFA setup initiated successfully',
@@ -414,11 +414,11 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'MFA not set up for user.' })
   async verifyMFA(@Body() verifyDto: MFAVerifyDto) {
     const result = await this.mfaService.verifyMFA(
-      verifyDto.userId, 
-      verifyDto.token, 
-      verifyDto.enableMFA || false
+      verifyDto.userId,
+      verifyDto.token,
+      verifyDto.enableMFA || false,
     );
-    
+
     return {
       status: result.verified ? 'success' : 'failure',
       message: result.message,
@@ -432,7 +432,7 @@ export class AuthController {
   @ApiResponse({ status: 404, description: 'User not found.' })
   async getMFAStatus(@Param('userId') userId: string) {
     const isEnabled = await this.mfaService.isMFAEnabled(userId);
-    
+
     return {
       status: 'success',
       message: 'MFA status retrieved successfully',
@@ -448,7 +448,7 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'User not found.' })
   async disableMFA(@Body() statusDto: MFAStatusDto) {
     await this.mfaService.disableMFA(statusDto.userId);
-    
+
     return {
       status: 'success',
       message: 'MFA disabled successfully',
@@ -465,11 +465,11 @@ export class AuthController {
   async initiateSSO(@Body() ssoLoginDto: SSOLoginDto, @Res({ passthrough: true }) res: Response) {
     try {
       await this.ssoService.initializeSamlStrategy();
-      
+
       const samlRequest = await this.ssoService.generateSamlRequest(ssoLoginDto.relayState);
-      
+
       const redirectUrl = `${await this.getSamlEntryPoint()}?SAMLRequest=${encodeURIComponent(samlRequest.samlRequest)}&RelayState=${encodeURIComponent(samlRequest.relayState || '')}`;
-      
+
       return {
         status: 'success',
         message: 'SAML authentication initiated',
@@ -498,7 +498,7 @@ export class AuthController {
 
       const validationResult = await this.ssoService.processSamlResponse(
         samlResponseDto.SAMLResponse,
-        samlResponseDto.RelayState
+        samlResponseDto.RelayState,
       );
 
       if (!validationResult.isValid) {

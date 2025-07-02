@@ -8,7 +8,7 @@ export class SSOLoginDto {
   })
   @IsOptional()
   @IsString()
-  relayState?: string;
+    relayState?: string;
 
   @ApiPropertyOptional({
     description: 'Optional target URL to redirect after successful authentication',
@@ -16,7 +16,7 @@ export class SSOLoginDto {
   })
   @IsOptional()
   @IsUrl()
-  targetUrl?: string;
+    targetUrl?: string;
 }
 
 export class SAMLResponseDto {
@@ -25,7 +25,7 @@ export class SAMLResponseDto {
     example: 'PHNhbWxwOlJlc3BvbnNlIHhtbG5zOnNhbWxwPSJ1cm46b2FzaXM6bmFtZXM6dGM6U0FNTDoyLjA6cHJvdG9jb2wiLi4u',
   })
   @IsString()
-  SAMLResponse: string;
+    SAMLResponse: string;
 
   @ApiPropertyOptional({
     description: 'Optional relay state returned from Identity Provider',
@@ -33,7 +33,7 @@ export class SAMLResponseDto {
   })
   @IsOptional()
   @IsString()
-  RelayState?: string;
+    RelayState?: string;
 }
 
 export class SSOMetadataDto {
@@ -41,5 +41,5 @@ export class SSOMetadataDto {
     description: 'Service Provider metadata in XML format',
     example: '<md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata">...</md:EntityDescriptor>',
   })
-  metadata: string;
+    metadata: string;
 }

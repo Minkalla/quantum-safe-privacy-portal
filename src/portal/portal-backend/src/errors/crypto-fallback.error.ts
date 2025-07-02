@@ -19,7 +19,7 @@ export class CryptoFallbackError extends Error {
       fallbackReason?: string;
       pqcAlgorithm?: string;
       classicalAlgorithm?: string;
-    } = {}
+    } = {},
   ) {
     super(message);
     this.timestamp = new Date();
@@ -49,7 +49,7 @@ export class CryptoFallbackError extends Error {
           timestamp: this.timestamp.toISOString(),
           fallbackUsed: this.fallbackUsed,
         },
-        'WARNING'
+        'WARNING',
       );
     } catch (auditError) {
       console.error('Failed to log crypto fallback to audit trail:', auditError);
@@ -68,7 +68,7 @@ export class CryptoFallbackError extends Error {
         fallbackReason: 'Key generation failure',
         pqcAlgorithm,
         classicalAlgorithm: 'RSA-2048',
-      }
+      },
     );
   }
 
@@ -84,7 +84,7 @@ export class CryptoFallbackError extends Error {
         fallbackReason: 'Signature operation failure',
         pqcAlgorithm,
         classicalAlgorithm: 'RSA-2048',
-      }
+      },
     );
   }
 
@@ -100,7 +100,7 @@ export class CryptoFallbackError extends Error {
         fallbackReason: 'Encryption operation failure',
         pqcAlgorithm,
         classicalAlgorithm: 'RSA-2048',
-      }
+      },
     );
   }
 
@@ -116,7 +116,7 @@ export class CryptoFallbackError extends Error {
         fallbackReason: 'PQC service unavailable',
         pqcAlgorithm: 'ML-DSA-65/ML-KEM-768',
         classicalAlgorithm: 'RSA-2048',
-      }
+      },
     );
   }
 

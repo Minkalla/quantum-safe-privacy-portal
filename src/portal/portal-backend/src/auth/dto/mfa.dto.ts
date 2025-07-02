@@ -8,7 +8,7 @@ export class MFASetupDto {
   })
   @IsString({ message: 'User ID must be a string.' })
   @IsNotEmpty({ message: 'User ID is required.' })
-  userId!: string;
+    userId!: string;
 }
 
 export class MFAVerifyDto {
@@ -18,7 +18,7 @@ export class MFAVerifyDto {
   })
   @IsString({ message: 'User ID must be a string.' })
   @IsNotEmpty({ message: 'User ID is required.' })
-  userId!: string;
+    userId!: string;
 
   @ApiProperty({
     description: 'TOTP token or backup code',
@@ -26,7 +26,7 @@ export class MFAVerifyDto {
   })
   @IsString({ message: 'Token must be a string.' })
   @IsNotEmpty({ message: 'Token is required.' })
-  token!: string;
+    token!: string;
 
   @ApiProperty({
     description: 'Whether to enable MFA after successful verification',
@@ -35,7 +35,7 @@ export class MFAVerifyDto {
   })
   @IsOptional()
   @IsBoolean({ message: 'enableMFA must be a boolean.' })
-  enableMFA?: boolean;
+    enableMFA?: boolean;
 }
 
 export class MFAStatusDto {
@@ -45,5 +45,5 @@ export class MFAStatusDto {
   })
   @IsString({ message: 'User ID must be a string.' })
   @IsNotEmpty({ message: 'User ID is required.' })
-  userId!: string;
+    userId!: string;
 }

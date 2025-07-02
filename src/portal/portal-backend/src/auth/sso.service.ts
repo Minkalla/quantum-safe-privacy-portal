@@ -24,7 +24,6 @@ export interface SamlUser {
   attributes?: Record<string, any>;
 }
 
-
 export interface SamlValidationResult {
   isValid: boolean;
   user?: SamlUser;
@@ -50,7 +49,7 @@ export class SsoService {
   async initializeSamlStrategy(): Promise<void> {
     try {
       const config = await this.getSamlConfig();
-      
+
       this.samlStrategy = new SamlStrategy(
         {
           entryPoint: config.entryPoint,
@@ -63,9 +62,9 @@ export class SsoService {
           privateKey: config.privateKey || undefined,
           decryptionPvk: config.privateKey || undefined,
           validateInResponseTo: false,
-          requestIdExpirationPeriodMs: this.REQUEST_TIMEOUT
+          requestIdExpirationPeriodMs: this.REQUEST_TIMEOUT,
         },
-        this.verifyCallback.bind(this)
+        this.verifyCallback.bind(this),
       );
 
       this.logger.log('SAML strategy initialized successfully');
@@ -102,12 +101,12 @@ export class SsoService {
 
   private async verifyCallback(
     profile: Profile,
-    done: VerifiedCallback
+    done: VerifiedCallback,
   ): Promise<void> {
     try {
-      this.logger.debug('SAML verification callback triggered', { 
+      this.logger.debug('SAML verification callback triggered', {
         nameID: profile.nameID,
-        issuer: profile.issuer 
+        issuer: profile.issuer,
       });
 
       const user = this.extractUserFromProfile(profile);
@@ -149,7 +148,7 @@ export class SsoService {
 
   private extractUserFromProfile(profile: Profile): SamlUser {
     const attributes = (profile.attributes as Record<string, any>) || {};
-    
+
     return {
       nameID: profile.nameID || '',
       email: profile.email || attributes.email || attributes['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] || '',
@@ -172,8 +171,8 @@ export class SsoService {
 
     for (const field of roleFields) {
       if (attributes[field]) {
-        const roles = Array.isArray(attributes[field]) 
-          ? attributes[field] 
+        const roles = Array.isArray(attributes[field])
+          ? attributes[field]
           : [attributes[field]];
         return roles.map((role: any) => String(role).toLowerCase());
       }
@@ -198,7 +197,6 @@ export class SsoService {
       };
     }
 
-
     return { isValid: true, user };
   }
 
@@ -209,14 +207,14 @@ export class SsoService {
 
     return new Promise((resolve, reject) => {
       const requestId = this.generateRequestId();
-      
+
       this.pendingRequests.set(requestId, {
         timestamp: Date.now(),
         relayState,
       });
 
       try {
-        const mockReq = { 
+        const mockReq = {
           query: { RelayState: relayState },
           body: {},
           method: 'GET',
@@ -249,7 +247,7 @@ export class SsoService {
 
       try {
         this.samlStrategy.authenticate(req as any, {});
-        
+
         resolve({
           isValid: true,
           user: undefined,
@@ -278,7 +276,7 @@ export class SsoService {
       try {
         const metadata = this.samlStrategy.generateServiceProviderMetadata(
           null, // No decryption cert
-          null  // No signing cert
+          null,  // No signing cert
         );
         resolve(metadata);
       } catch (error) {
