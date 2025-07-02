@@ -232,14 +232,14 @@ export class MFAService {
 
   private sanitizeUserId(userId: string): string {
     if (!userId || typeof userId !== 'string') {
-      throw new Error('Invalid user ID');
+      throw new BadRequestException('Invalid user ID');
     }
-    
-    const sanitized = userId.replace(/[^a-zA-Z0-9]/g, '');
-    if (sanitized.length < 12 || sanitized.length > 24) {
-      throw new Error('User ID format invalid');
+  
+    // Validate MongoDB ObjectId format (24 hex characters)
+    if (!/^[a-f\d]{24}$/i.test(userId)) {
+      throw new BadRequestException('User ID format invalid');
     }
-    
-    return sanitized;
+  
+    return userId;
   }
 }
