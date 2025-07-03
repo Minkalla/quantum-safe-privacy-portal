@@ -23,7 +23,7 @@ describe('Auth Integration (e2e)', () => {
   let authToken: string;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
+    const moduleFixture: TestingModule = await createTestModule({
       imports: [
         ConfigModule.forRoot({
           isGlobal: true,
@@ -40,7 +40,15 @@ describe('Auth Integration (e2e)', () => {
         AuthModule,
         UserModule,
       ],
-    }).compile();
+      configOverrides: {
+        'SKIP_SECRETS_MANAGER': 'true',
+        'AWS_REGION': 'us-east-1',
+        'MongoDB1': process.env.MongoDB1 || 'mongodb://localhost:27017/test',
+        'JWT_SECRET': 'test-jwt-secret',
+        'JWT_ACCESS_SECRET': 'test-access-secret',
+        'JWT_REFRESH_SECRET': 'test-refresh-secret',
+      },
+    });
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('portal');

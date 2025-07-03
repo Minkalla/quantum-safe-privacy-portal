@@ -59,6 +59,17 @@ describe('SsoService', () => {
   };
 
   beforeEach(async () => {
+    const mockSamlStrategy = {
+      authenticate: jest.fn((req, options) => {
+        const mockProfile = {
+          nameID: 'test@example.com',
+          attributes: { email: 'test@example.com' }
+        };
+        return Promise.resolve({ user: mockProfile });
+      }),
+      error: jest.fn()
+    };
+
     module = await createTestModule({
       providers: [
         SsoService,
@@ -66,6 +77,10 @@ describe('SsoService', () => {
         CustomJwtService,
         PQCFeatureFlagsService,
         PQCMonitoringService,
+        {
+          provide: 'SamlStrategy',
+          useValue: mockSamlStrategy,
+        },
       ],
       configOverrides: {
         'JWT_ACCESS_SECRET_ID': 'test-access-secret-id',

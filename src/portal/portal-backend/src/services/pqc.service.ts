@@ -1,11 +1,11 @@
-import { Injectable, Logger, forwardRef, Inject } from '@nestjs/common';
-import { AuthService } from '../auth/auth.service';
+import { Injectable, Logger } from '@nestjs/common';
+import { PQCBridgeService } from './pqc-bridge.service';
 
 @Injectable()
 export class PQCService {
   private readonly logger = new Logger(PQCService.name);
 
-  constructor(@Inject(forwardRef(() => AuthService)) private readonly authService: AuthService) {}
+  constructor(private readonly pqcBridgeService: PQCBridgeService) {}
 
   async triggerPQCHandshake(userId: string) {
     const payload = {
@@ -16,7 +16,7 @@ export class PQCService {
     };
 
     try {
-      const response = await this.authService.executePQCServiceCall('handshake', payload);
+      const response = await this.pqcBridgeService.executePQCOperation('handshake', payload);
 
       this.logger.log(`✅ PQC handshake successful for user ${userId}:`, {
         handshake_id: response.handshake_metadata?.handshake_id,
