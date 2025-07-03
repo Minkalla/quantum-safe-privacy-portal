@@ -54,6 +54,20 @@ export class JwtService {
 
   // Asynchronous initialization for fetching secrets
   private async initializeSecrets() {
+    const skipSecretsManager = this.configService.get<string>('SKIP_SECRETS_MANAGER') === 'true';
+    
+    if (skipSecretsManager) {
+      this.jwtAccessSecret = this.configService.get<string>('JWT_ACCESS_SECRET') || 
+                            this.configService.get<string>('JWT_SECRET') || 
+                            'test-access-secret-fallback';
+      this.jwtRefreshSecret = this.configService.get<string>('JWT_REFRESH_SECRET') || 
+                             this.configService.get<string>('JWT_SECRET') || 
+                             'test-refresh-secret-fallback';
+      this.logger.log('JWT secrets initialized from direct environment variables (SKIP_SECRETS_MANAGER=true).');
+      return;
+    }
+
+    // Production mode: use Secrets Manager
     const jwtAccessSecretId = this.configService.get<string>('JWT_ACCESS_SECRET_ID');
     const jwtRefreshSecretId = this.configService.get<string>('JWT_REFRESH_SECRET_ID');
 
