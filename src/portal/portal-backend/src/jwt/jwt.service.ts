@@ -302,7 +302,8 @@ export class JwtService implements OnModuleInit {
       return decoded;
     } catch (err: any) { // CHANGED: Explicitly type 'err' as 'any'
       this.logger.error(`Token verification FAILED for type '${secretType}': ${err.message}`);
-      this.logger.error(`Error name: ${err.name}, Error stack: ${err.stack}`);
+      this.logger.error(`Error name: ${err.name}`);
+      this.logger.debug('Token verification error stack:', err.stack);
       this.logger.debug(`Failed token: ${token.substring(0, 50)}...`);
       this.logger.debug(`Secret used: ${secret.substring(0, 10)}...`);
       return null;

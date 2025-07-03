@@ -59,7 +59,8 @@ export class JwtAuthGuard implements CanActivate {
       request.user = payload;
       return true;
     } catch (error) {
-      this.logger.error(`JWT Auth Guard - Token verification failed: ${error.message}`, error.stack);
+      this.logger.error(`JWT Auth Guard - Token verification failed: ${error.message}`);
+      this.logger.debug('JWT Auth Guard error stack:', error.stack);
       throw new UnauthorizedException('Invalid or expired JWT token');
     }
   }

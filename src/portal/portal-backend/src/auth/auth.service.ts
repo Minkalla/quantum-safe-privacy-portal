@@ -509,7 +509,8 @@ export class AuthService {
         },
       };
     } catch (error) {
-      this.logger.error(`Token refresh failed: ${error.message}`, error.stack);
+      this.logger.error(`Token refresh failed: ${error.message}`);
+      this.logger.debug('Token refresh error stack:', error.stack);
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
   }

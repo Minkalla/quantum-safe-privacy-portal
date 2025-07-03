@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { spawn } from 'child_process';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import { HybridCryptoService } from './hybrid-crypto.service';
 
 export interface PQCOperationParams {
@@ -172,11 +173,7 @@ export class PQCBridgeService {
   }
 
   private generateUUID(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c == 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
+    return crypto.randomUUID();
   }
 
   private async performFallbackOperation(
