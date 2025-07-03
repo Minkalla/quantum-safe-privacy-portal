@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import * as crypto from 'crypto';
 import { PQCFeatureFlagsService } from './pqc-feature-flags.service';
 import { PQCMonitoringService } from './pqc-monitoring.service';
 
@@ -141,7 +142,7 @@ export class PQCRollbackTestService {
         const startTime = Date.now();
 
         promises.push(
-          this.pqcMonitoring.recordPQCKeyGeneration(userId, startTime, Math.random() > 0.1), // 90% success rate
+          this.pqcMonitoring.recordPQCKeyGeneration(userId, startTime, crypto.randomBytes(1)[0] > 25), // 90% success rate (25/255 ≈ 10%)
         );
       }
 

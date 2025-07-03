@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import * as crypto from 'crypto';
 import { BaselineManagerService } from './baseline-manager.service';
 import { AlertingService } from './alerting.service';
 
@@ -60,42 +61,42 @@ export class AnomalyDetectorService {
   }
 
   private async getCurrentAuthLatency(): Promise<number> {
-    return Math.random() * 100 + 50;
+    return crypto.randomBytes(1)[0] / 255 * 100 + 50;
   }
 
   private async getCurrentKeyGenTime(): Promise<number> {
-    return Math.random() * 10 + 1;
+    return crypto.randomBytes(1)[0] / 255 * 10 + 1;
   }
 
   private async getCurrentErrorRate(): Promise<number> {
-    return Math.random() * 0.01;
+    return crypto.randomBytes(1)[0] / 255 * 0.01;
   }
 
   private async getCurrentThroughput(): Promise<number> {
-    return Math.random() * 200 + 800;
+    return crypto.randomBytes(1)[0] / 255 * 200 + 800;
   }
 
   private async getCurrentMLKEMKeyGeneration(): Promise<number> {
-    return Math.random() * 20 + 45;
+    return crypto.randomBytes(1)[0] / 255 * 20 + 45;
   }
 
   private async getCurrentMLKEMEncapsulation(): Promise<number> {
-    return Math.random() * 10 + 20;
+    return crypto.randomBytes(1)[0] / 255 * 10 + 20;
   }
 
   private async getCurrentMLKEMDecapsulation(): Promise<number> {
-    return Math.random() * 10 + 25;
+    return crypto.randomBytes(1)[0] / 255 * 10 + 25;
   }
 
   private async getCurrentMLDSAKeyGeneration(): Promise<number> {
-    return Math.random() * 30 + 65;
+    return crypto.randomBytes(1)[0] / 255 * 30 + 65;
   }
 
   private async getCurrentMLDSASigning(): Promise<number> {
-    return Math.random() * 15 + 30;
+    return crypto.randomBytes(1)[0] / 255 * 15 + 30;
   }
 
   private async getCurrentMLDSAVerification(): Promise<number> {
-    return Math.random() * 8 + 12;
+    return crypto.randomBytes(1)[0] / 255 * 8 + 12;
   }
 }
