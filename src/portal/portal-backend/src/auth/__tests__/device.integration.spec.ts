@@ -20,13 +20,7 @@ describe('Device Trust Integration Tests', () => {
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
-        MongooseModule.forRoot((() => {
-          const uri = process.env.MONGO_URI || process.env.MONGODB_URI || process.env.MONGO_TEST_URI;
-          if (!uri) {
-            throw new Error('MongoDB URI is required for tests. Set MONGO_URI, MONGODB_URI, or MONGO_TEST_URI environment variable.');
-          }
-          return uri;
-        })()),
+        MongooseModule.forRoot(process.env.MongoDB1 || 'mongodb://localhost:27017/test'),
         MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]),
         JwtModule.register({
           secret: 'test-secret',

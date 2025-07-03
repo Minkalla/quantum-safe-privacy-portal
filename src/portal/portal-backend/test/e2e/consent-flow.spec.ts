@@ -16,14 +16,16 @@ import { QuantumSafeJWTService } from '../../src/services/quantum-safe-jwt.servi
 import { QuantumSafeCryptoIdentityService } from '../../src/services/quantum-safe-crypto-identity.service';
 import { PQCBridgeService } from '../../src/services/pqc-bridge.service';
 import { PQCService } from '../../src/services/pqc.service';
+import { SecretsService } from '../../src/secrets/secrets.service';
 
 describe('E2E Consent Flow Tests', () => {
   let app: INestApplication;
   let testUserId: string;
   let validAccessToken: string;
+  let jwtService: JwtService;
 
   beforeAll(async () => {
-    const mongoUri = (global as any).__MONGO_URI__;
+    const mongoUri = process.env.MongoDB1 || (global as any).__MONGO_URI__;
 
     process.env['AWS_REGION'] = 'us-east-1';
     process.env['SKIP_SECRETS_MANAGER'] = 'true';
@@ -42,59 +44,20 @@ describe('E2E Consent Flow Tests', () => {
         JwtModule,
       ],
     })
-      .overrideProvider(JwtService)
-      .useValue({
-        verifyToken: jest.fn().mockImplementation((token: string) => {
-          if (token === validAccessToken) {
-            return { userId: testUserId, email: 'e2e-test@example.com' };
-          }
-          return null;
-        }),
-        generateTokens: jest.fn().mockReturnValue({
-          accessToken: 'e2e-access-token',
-          refreshToken: 'e2e-refresh-token',
-        }),
-      })
-      .overrideProvider(PQCFeatureFlagsService)
-      .useValue({
-        isEnabled: jest.fn().mockReturnValue(false),
-      })
-      .overrideProvider(PQCMonitoringService)
-      .useValue({
-        recordPQCKeyGeneration: jest.fn().mockResolvedValue(undefined),
-      })
-      .overrideProvider('HybridCryptoService')
-      .useValue({
-        encryptWithFallback: jest.fn(),
-        decryptWithFallback: jest.fn(),
-        generateKeyPairWithFallback: jest.fn(),
-      })
-      .overrideProvider('QuantumSafeJWTService')
-      .useValue({
-        signPQCToken: jest.fn(),
-        verifyPQCToken: jest.fn(),
-      })
-      .overrideProvider('QuantumSafeCryptoIdentityService')
-      .useValue({
-        generateStandardizedCryptoUserId: jest.fn(),
-      })
-      .overrideProvider('PQCBridgeService')
-      .useValue({
-        executePQCOperation: jest.fn(),
-      })
-      .overrideProvider('PQCService')
-      .useValue({
-        performPQCHandshake: jest.fn(),
-        triggerPQCHandshake: jest.fn(),
-      })
       .compile();
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('portal');
     app.useGlobalPipes(new ValidationPipe());
 
+    jwtService = moduleFixture.get<JwtService>(JwtService);
     testUserId = '60d5ec49f1a23c001c8a4d7d';
-    validAccessToken = 'e2e-access-token';
+    
+    const tokens = await jwtService.generateTokens({
+      userId: testUserId,
+      email: 'e2e-test@example.com'
+    });
+    validAccessToken = tokens.accessToken;
 
     await app.init();
   });
@@ -110,13 +73,19 @@ describe('E2E Consent Flow Tests', () => {
   });
 
   afterEach(async () => {
-    const connection = (global as any).__MONGO_CONNECTION__;
-    if (connection) {
-      const db = connection.db();
-      const collections = await db.collections();
+    const { getConnectionToken } = require('@nestjs/mongoose');
+    const connection = app.get(getConnectionToken());
+    
+    if (connection && connection.readyState === 1) {
+      console.log('DEBUG: Cleaning database after test...');
+      const collections = await connection.db.collections();
+      console.log(`DEBUG: Found ${collections.length} collections to clean`);
       for (const collection of collections) {
-        await collection.deleteMany({});
+        const result = await collection.deleteMany({});
+        console.log(`DEBUG: Cleaned collection ${collection.collectionName}, deleted ${result.deletedCount} documents`);
       }
+    } else {
+      console.log(`DEBUG: Connection state: ${connection ? connection.readyState : 'no connection'}`);
     }
   });
 

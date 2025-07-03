@@ -42,10 +42,10 @@ import { CryptoServicesModule } from './services/crypto-services.module';
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (appConfigService: AppConfigService) => {
-        const mongoUri = appConfigService.get<string>('MONGO_URI');
+        const mongoUri = process.env.MongoDB1 || appConfigService.get<string>('MONGO_URI');
         if (!mongoUri) {
           throw new Error(
-            'MONGO_URI environment variable is not defined or invalid. Check .env and AppConfigService validation.',
+            'MongoDB1 secret or MONGO_URI environment variable is not defined or invalid. Check Atlas configuration.',
           );
         }
 

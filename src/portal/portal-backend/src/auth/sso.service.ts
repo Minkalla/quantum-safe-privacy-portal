@@ -1,4 +1,4 @@
-import { Injectable, Logger, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException, BadRequestException, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Strategy as SamlStrategy, Profile, VerifyWithoutRequest, VerifiedCallback } from 'passport-saml';
 import { SecretsService } from '../secrets/secrets.service';
 import { JwtService, SSOTokenPayload } from '../jwt/jwt.service';
@@ -35,11 +35,12 @@ export interface SamlValidationResult {
 }
 
 @Injectable()
-export class SsoService {
+export class SsoService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(SsoService.name);
   private samlStrategy: SamlStrategy;
   private pendingRequests = new Map<string, { timestamp: number; relayState?: string }>();
   private readonly REQUEST_TIMEOUT = 10 * 60 * 1000; // 10 minutes
+  private cleanupInterval: NodeJS.Timeout;
 
   constructor(
     private readonly secretsService: SecretsService,
@@ -49,6 +50,13 @@ export class SsoService {
   async initializeSamlStrategy(): Promise<void> {
     try {
       const config = await this.getSamlConfig();
+
+      const verifyCallback = (profile: Profile, done: VerifiedCallback) => {
+        this.verifyCallback(profile, done).catch((error) => {
+          this.logger.error('SAML verification callback error', error);
+          done(new Error('SAML verification failed'), undefined);
+        });
+      };
 
       this.samlStrategy = new SamlStrategy(
         {
@@ -64,7 +72,7 @@ export class SsoService {
           validateInResponseTo: false,
           requestIdExpirationPeriodMs: this.REQUEST_TIMEOUT,
         },
-        this.verifyCallback.bind(this),
+        verifyCallback,
       );
 
       this.logger.log('SAML strategy initialized successfully');
@@ -297,6 +305,12 @@ export class SsoService {
   }
 
   onModuleInit(): void {
-    setInterval(() => this.cleanupExpiredRequests(), 5 * 60 * 1000); // Every 5 minutes
+    this.cleanupInterval = setInterval(() => this.cleanupExpiredRequests(), 5 * 60 * 1000); // Every 5 minutes
+  }
+
+  onModuleDestroy(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+    }
   }
 }

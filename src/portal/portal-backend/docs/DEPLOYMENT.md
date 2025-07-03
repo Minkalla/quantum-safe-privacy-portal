@@ -154,7 +154,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=8080
-      - MONGO_URI=mongodb+srv://minkalla-backend-user:HaZWbH2fWBRheV8t@minkallaportalcluster.gqfxskp.mongodb.net/portal_dev?retryWrites=true&w=majority&appName=MinkallaPortalCluster
+      - MONGO_URI=${MongoDB1} # MongoDB Atlas connection string from secret
       - JWT_ACCESS_SECRET=local_dev_jwt_secret
       - JWT_REFRESH_SECRET=local_dev_refresh_secret
       - ENABLE_SWAGGER_DOCS=true
