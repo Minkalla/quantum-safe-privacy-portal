@@ -29,8 +29,9 @@ class EnvironmentVariables {
   @IsNumber()
     PORT!: number;
 
+  @IsOptional()
   @IsString()
-    MONGO_URI!: string;
+    MONGO_URI?: string;
 
   @IsString()
     JWT_ACCESS_SECRET_ID!: string;
@@ -105,7 +106,7 @@ export class AppConfigService { // CHANGED: Renamed class to AppConfigService
     const configValues = {
       NODE_ENV: this.nestConfigService.get<string>('NODE_ENV'),
       PORT: this.nestConfigService.get<number>('PORT'),
-      MONGO_URI: this.nestConfigService.get<string>('MONGO_URI'),
+      MONGO_URI: this.nestConfigService.get<string>('MONGO_URI') || process.env.MongoDB1,
       JWT_ACCESS_SECRET_ID: this.nestConfigService.get<string>('JWT_ACCESS_SECRET_ID'),
       JWT_REFRESH_SECRET_ID: this.nestConfigService.get<string>('JWT_REFRESH_SECRET_ID'),
       AWS_REGION: this.nestConfigService.get<string>('AWS_REGION'),

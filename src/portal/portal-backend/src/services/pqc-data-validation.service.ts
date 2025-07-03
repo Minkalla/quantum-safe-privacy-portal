@@ -313,7 +313,7 @@ export class PQCDataValidationService {
   private async signWithClassical(dataHash: string): Promise<string> {
     const signature = crypto
       .createHash('sha256')
-      .update(`classical-${dataHash}-${Date.now()}`)
+      .update(`classical-${dataHash}-verification`)
       .digest('hex');
     return `classical:${signature}`;
   }

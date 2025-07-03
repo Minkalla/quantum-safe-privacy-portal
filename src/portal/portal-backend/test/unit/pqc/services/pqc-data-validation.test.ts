@@ -6,10 +6,16 @@ import { EnhancedErrorBoundaryService } from '../../../../src/services/enhanced-
 import { JwtService } from '../../../../src/jwt/jwt.service';
 import { PQCFeatureFlagsService } from '../../../../src/pqc/pqc-feature-flags.service';
 import { PQCMonitoringService } from '../../../../src/pqc/pqc-monitoring.service';
+import { SecretsService } from '../../../../src/secrets/secrets.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { IUser } from '../../../../src/models/User';
 import { PQCAlgorithmType } from '../../../../src/models/interfaces/pqc-data.interface';
+import { HybridCryptoService } from '../../../../src/services/hybrid-crypto.service';
+import { QuantumSafeJWTService } from '../../../../src/services/quantum-safe-jwt.service';
+import { PQCBridgeService } from '../../../../src/services/pqc-bridge.service';
+import { QuantumSafeCryptoIdentityService } from '../../../../src/services/quantum-safe-crypto-identity.service';
+import { PQCService } from '../../../../src/services/pqc.service';
 
 describe('PQCDataValidationService', () => {
   let service: PQCDataValidationService;
@@ -17,191 +23,48 @@ describe('PQCDataValidationService', () => {
   let configService: ConfigService;
 
   beforeEach(async () => {
-    const signatureStore = new Map<string, string>();
-
-    const mockAuthService = {
-      callPQCService: jest.fn().mockImplementation((operation: string, params: any) => {
-        if (operation === 'generate_keys') {
-          return Promise.resolve({
-            success: true,
-            public_key: 'mock_public_key',
-            private_key: 'mock_private_key',
-          });
-        } else if (operation === 'verify_token') {
-          const token = params.token;
-          const dataHash = params.payload?.dataHash;
-
-          if (token && dataHash) {
-            const storedDataHash = signatureStore.get(token);
-            const isValid = storedDataHash === dataHash;
-
-            return Promise.resolve({
-              success: true,
-              verified: isValid,
-            });
-          }
-
-          return Promise.resolve({
-            success: true,
-            verified: false,
-          });
-        } else if (operation === 'sign_token') {
-          const token = `ml-dsa-65-signature-${Math.random().toString(36).substring(7)}-${Date.now()}`;
-          const dataHash = params.payload?.dataHash || params.payload?.hash;
-
-          if (dataHash) {
-            signatureStore.set(token, dataHash);
-          }
-
-          return Promise.resolve({
-            success: true,
-            token: token,
-            algorithm: 'ML-DSA-65',
-          });
-        }
-        return Promise.resolve({ success: false, error_message: 'Unknown operation' });
-      }),
-      callPythonPQCService: jest.fn().mockImplementation((operation: string, params: any) => {
-        if (operation === 'generate_keys') {
-          return Promise.resolve({
-            success: true,
-            public_key: 'mock_public_key',
-            private_key: 'mock_private_key',
-          });
-        } else if (operation === 'verify_token') {
-          const token = params.token;
-          const dataHash = params.payload?.dataHash;
-
-          if (token && dataHash) {
-            const storedDataHash = signatureStore.get(token);
-            const isValid = storedDataHash === dataHash;
-
-            return Promise.resolve({
-              success: true,
-              verified: isValid,
-            });
-          }
-
-          return Promise.resolve({
-            success: true,
-            verified: false,
-          });
-        } else if (operation === 'sign_token') {
-          const token = `ml-dsa-65-signature-${Math.random().toString(36).substring(7)}-${Date.now()}`;
-          const dataHash = params.payload?.dataHash || params.payload?.hash;
-
-          if (dataHash) {
-            signatureStore.set(token, dataHash);
-          }
-
-          return Promise.resolve({
-            success: true,
-            token: token,
-            algorithm: 'ML-DSA-65',
-          });
-        }
-        return Promise.resolve({ success: false, error_message: 'Unknown operation' });
-      }),
-    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PQCDataValidationService,
-        {
-          provide: AuthService,
-          useValue: {
-            ...mockAuthService,
-            executePQCServiceCall: jest.fn().mockResolvedValue({
-              success: true,
-              token: 'mock-pqc-token',
-              algorithm: 'ML-DSA-65',
-              verified: true,
-            }),
-          },
-        },
-        {
-          provide: JwtService,
-          useValue: {
-            generateTokens: jest.fn().mockReturnValue({
-              accessToken: 'mock-access-token',
-              refreshToken: 'mock-refresh-token',
-            }),
-          },
-        },
-        {
-          provide: PQCFeatureFlagsService,
-          useValue: {
-            isEnabled: jest.fn().mockReturnValue(true),
-          },
-        },
-        {
-          provide: PQCMonitoringService,
-          useValue: {
-            recordPQCKeyGeneration: jest.fn().mockResolvedValue(undefined),
-          },
-        },
+        AuthService,
+        JwtService,
+        PQCFeatureFlagsService,
+        PQCMonitoringService,
+        SecretsService,
+        EnhancedErrorBoundaryService,
+        HybridCryptoService,
+        QuantumSafeJWTService,
+        PQCBridgeService,
+        QuantumSafeCryptoIdentityService,
+        PQCService,
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn((key: string) => {
+            get: (key: string) => {
               const config = {
                 'pqc.enabled': true,
                 'pqc.fallback_enabled': true,
                 'validation.default_algorithm': 'Dilithium-3',
                 'validation.signature_ttl': 3600000,
                 'performance.monitoring_enabled': true,
+                'JWT_ACCESS_SECRET_ID': 'test-access-secret-id',
+                'JWT_REFRESH_SECRET_ID': 'test-refresh-secret-id',
+                'AWS_REGION': 'us-east-1',
+                'SKIP_SECRETS_MANAGER': 'true',
+                'MongoDB1': process.env.MongoDB1 || 'mongodb://localhost:27017/test',
               };
-              return config[key];
-            }),
+              return config[key] || process.env[key] || 'test-value';
+            },
           },
         },
         {
           provide: getModelToken('User'),
           useValue: {
-            findOne: jest.fn(),
-            findByIdAndUpdate: jest.fn(),
-            create: jest.fn(),
-            save: jest.fn(),
-          },
-        },
-        {
-          provide: EnhancedErrorBoundaryService,
-          useValue: {
-            executeWithErrorBoundary: jest.fn().mockImplementation(async (fn) => await fn()),
-          },
-        },
-        {
-          provide: 'QuantumSafeCryptoIdentityService',
-          useValue: {
-            generateStandardizedCryptoUserId: jest.fn(),
-          },
-        },
-        {
-          provide: 'HybridCryptoService',
-          useValue: {
-            encryptWithFallback: jest.fn(),
-            decryptWithFallback: jest.fn(),
-            generateKeyPairWithFallback: jest.fn(),
-          },
-        },
-        {
-          provide: 'QuantumSafeJWTService',
-          useValue: {
-            signPQCToken: jest.fn(),
-            verifyPQCToken: jest.fn(),
-          },
-        },
-        {
-          provide: 'PQCBridgeService',
-          useValue: {
-            executePQCOperation: jest.fn(),
-          },
-        },
-        {
-          provide: 'PQCService',
-          useValue: {
-            performPQCHandshake: jest.fn(),
-            triggerPQCHandshake: jest.fn(),
+            findOne: () => Promise.resolve(null),
+            findByIdAndUpdate: () => Promise.resolve({}),
+            create: () => Promise.resolve({}),
+            save: () => Promise.resolve({}),
           },
         },
       ],

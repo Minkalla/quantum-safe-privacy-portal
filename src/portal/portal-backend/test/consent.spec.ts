@@ -24,14 +24,16 @@ import { PQCFeatureFlagsService } from '../src/pqc/pqc-feature-flags.service';
 import { PQCMonitoringService } from '../src/pqc/pqc-monitoring.service';
 import { ConsentType } from '../src/consent/dto/create-consent.dto';
 import { ConfigModule } from '@nestjs/config';
+import { SecretsService } from '../src/secrets/secrets.service';
 
 describe('POST /portal/consent (Integration Tests)', () => {
   let app: INestApplication;
   let validJwtToken: string;
   let testUserId: string;
+  let jwtService: JwtService;
 
   beforeAll(async () => {
-    const mongoUri = (global as any).__MONGO_URI__;
+    const mongoUri = process.env.MongoDB1 || (global as any).__MONGO_URI__;
 
     process.env['AWS_REGION'] = 'us-east-1';
     process.env['SKIP_SECRETS_MANAGER'] = 'true';
@@ -48,35 +50,20 @@ describe('POST /portal/consent (Integration Tests)', () => {
         ConsentModule,
       ],
     })
-      .overrideProvider(JwtService)
-      .useValue({
-        verifyToken: jest.fn().mockImplementation((token: string) => {
-          if (token === 'valid-jwt-token') {
-            return { userId: testUserId, email: 'test@example.com' };
-          }
-          return null;
-        }),
-        generateTokens: jest.fn().mockReturnValue({
-          accessToken: 'valid-jwt-token',
-          refreshToken: 'valid-refresh-token',
-        }),
-      })
-      .overrideProvider(PQCFeatureFlagsService)
-      .useValue({
-        isEnabled: jest.fn().mockReturnValue(false),
-      })
-      .overrideProvider(PQCMonitoringService)
-      .useValue({
-        recordPQCKeyGeneration: jest.fn().mockResolvedValue(undefined),
-      })
       .compile();
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('portal');
     app.useGlobalPipes(new ValidationPipe());
 
+    jwtService = moduleFixture.get<JwtService>(JwtService);
     testUserId = '60d5ec49f1a23c001c8a4d7d';
-    validJwtToken = 'valid-jwt-token';
+    
+    const tokens = await jwtService.generateTokens({
+      userId: testUserId,
+      email: 'test@example.com'
+    });
+    validJwtToken = tokens.accessToken;
 
     await app.init();
   });
@@ -92,20 +79,27 @@ describe('POST /portal/consent (Integration Tests)', () => {
   });
 
   afterEach(async () => {
-    const connection = (global as any).__MONGO_CONNECTION__;
-    if (connection) {
-      const db = connection.db();
-      const collections = await db.collections();
+    const { getConnectionToken } = require('@nestjs/mongoose');
+    const connection = app.get(getConnectionToken());
+    
+    if (connection && connection.readyState === 1) {
+      console.log('DEBUG: Cleaning database after test...');
+      const collections = await connection.db.collections();
+      console.log(`DEBUG: Found ${collections.length} collections to clean`);
       for (const collection of collections) {
-        await collection.deleteMany({});
+        const result = await collection.deleteMany({});
+        console.log(`DEBUG: Cleaned collection ${collection.collectionName}, deleted ${result.deletedCount} documents`);
       }
+    } else {
+      console.log(`DEBUG: Connection state: ${connection ? connection.readyState : 'no connection'}`);
     }
   });
 
   describe('Success Cases', () => {
     it('should create consent successfully with valid payload and return 200 OK', async () => {
+      const uniqueTestUserId = '60d5ec49f1a23c001c8a4d8a';
       const createConsentDto = {
-        userId: testUserId,
+        userId: uniqueTestUserId,
         consentType: ConsentType.MARKETING,
         granted: true,
         ipAddress: '192.168.1.1',
@@ -119,14 +113,15 @@ describe('POST /portal/consent (Integration Tests)', () => {
         .expect(200);
 
       expect(response.body).toHaveProperty('consentId');
-      expect(response.body).toHaveProperty('userId', testUserId);
+      expect(response.body).toHaveProperty('userId', uniqueTestUserId);
       expect(response.body).toHaveProperty('consentType', ConsentType.MARKETING);
       expect(response.body).toHaveProperty('granted', true);
     });
 
     it('should update existing consent when granted status changes', async () => {
+      const uniqueTestUserId = '60d5ec49f1a23c001c8a4d8b';
       const createConsentDto = {
-        userId: testUserId,
+        userId: uniqueTestUserId,
         consentType: ConsentType.ANALYTICS,
         granted: true,
       };
@@ -138,7 +133,7 @@ describe('POST /portal/consent (Integration Tests)', () => {
         .expect(200);
 
       const updateConsentDto = {
-        userId: testUserId,
+        userId: uniqueTestUserId,
         consentType: ConsentType.ANALYTICS,
         granted: false,
       };
@@ -225,8 +220,9 @@ describe('POST /portal/consent (Integration Tests)', () => {
 
   describe('Duplicate Consent Cases', () => {
     it('should return 409 Conflict when creating duplicate consent with same granted status', async () => {
+      const uniqueTestUserId = '60d5ec49f1a23c001c8a4d8c';
       const createConsentDto = {
-        userId: testUserId,
+        userId: uniqueTestUserId,
         consentType: ConsentType.COOKIES,
         granted: true,
       };
@@ -381,8 +377,9 @@ describe('POST /portal/consent (Integration Tests)', () => {
 
   describe('GET /portal/consent/:userId', () => {
     it('should retrieve consent records successfully', async () => {
+      const uniqueTestUserId = '60d5ec49f1a23c001c8a4d7f';
       const createConsentDto = {
-        userId: testUserId,
+        userId: uniqueTestUserId,
         consentType: ConsentType.MARKETING,
         granted: true,
       };
@@ -394,13 +391,13 @@ describe('POST /portal/consent (Integration Tests)', () => {
         .expect(200);
 
       const response = await request(app.getHttpServer())
-        .get(`/portal/consent/${testUserId}`)
+        .get(`/portal/consent/${uniqueTestUserId}`)
         .set('Authorization', `Bearer ${validJwtToken}`)
         .expect(200);
 
       expect(Array.isArray(response.body)).toBe(true);
       expect(response.body.length).toBeGreaterThan(0);
-      expect(response.body[0]).toHaveProperty('userId', testUserId);
+      expect(response.body[0]).toHaveProperty('userId', uniqueTestUserId);
       expect(response.body[0]).toHaveProperty('consentType', ConsentType.MARKETING);
     });
 

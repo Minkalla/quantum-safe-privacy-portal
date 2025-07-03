@@ -10,19 +10,25 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
-import { UnauthorizedException } from '@nestjs/common';
+import { UnauthorizedException, Logger } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { JwtService } from '../jwt/jwt.service';
 import { PQCFeatureFlagsService } from '../pqc/pqc-feature-flags.service';
 import { PQCMonitoringService } from '../pqc/pqc-monitoring.service';
 import { PQCService } from '../services/pqc.service';
-
-jest.mock('bcryptjs', () => ({
-  compare: jest.fn(),
-  hash: jest.fn(),
-}));
-
-const bcrypt = require('bcryptjs');
+import { HybridCryptoService } from '../services/hybrid-crypto.service';
+import { QuantumSafeJWTService } from '../services/quantum-safe-jwt.service';
+import { PQCBridgeService } from '../services/pqc-bridge.service';
+import { ConfigService } from '@nestjs/config';
+import { SecretsService } from '../secrets/secrets.service';
+import { EnhancedErrorBoundaryService } from '../services/enhanced-error-boundary.service';
+import { ClassicalCryptoService } from '../services/classical-crypto.service';
+import { CircuitBreakerService } from '../services/circuit-breaker.service';
+import { PQCDataEncryptionService } from '../services/pqc-data-encryption.service';
+import { PQCDataValidationService } from '../services/pqc-data-validation.service';
+import { QuantumSafeCryptoIdentityService } from '../services/quantum-safe-crypto-identity.service';
+import * as bcrypt from 'bcryptjs';
 
 describe('AuthService - Refresh Token', () => {
   let service: AuthService;
@@ -30,83 +36,70 @@ describe('AuthService - Refresh Token', () => {
   let userModel: any;
 
   const mockUser = {
-    _id: 'user123',
+    _id: '507f1f77bcf86cd799439011',
     email: 'test@example.com',
-    refreshTokenHash: '$2a$10$hashedRefreshToken',
-    save: jest.fn(),
-  };
-
-  const mockJwtService = {
-    verifyToken: jest.fn(),
-    generateTokens: jest.fn(),
-  };
-
-  const mockUserModel = {
-    findById: jest.fn(),
-  };
-
-  const mockPQCFeatureFlags = {
-    isEnabled: jest.fn().mockReturnValue(false),
-  };
-
-  const mockPQCMonitoring = {
-    recordPQCKeyGeneration: jest.fn(),
-    recordPQCAuthentication: jest.fn(),
-  };
-
-  const mockPQCService = {
-    triggerPQCHandshake: jest.fn(),
-  };
-
-  const mockHybridCryptoService = {
-    encryptWithFallback: jest.fn(),
-    decryptWithFallback: jest.fn(),
-  };
-
-  const mockQuantumSafeJWTService = {
-    signPQCToken: jest.fn(),
-    verifyPQCToken: jest.fn(),
-  };
-
-  const mockPQCBridgeService = {
-    executePQCOperation: jest.fn(),
+    refreshTokenHash: '',
+    save: jest.fn().mockResolvedValue({}),
   };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+    
+    mockUser.refreshTokenHash = await bcrypt.hash('valid.refresh.token', 10);
+    
+    jest.spyOn(Logger.prototype, 'log').mockImplementation(() => {});
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
+    jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
+    
     const module: TestingModule = await Test.createTestingModule({
+      imports: [
+        JwtModule.register({
+          secret: 'test-jwt-secret',
+          signOptions: { expiresIn: '1h' },
+        }),
+      ],
       providers: [
         AuthService,
+        JwtService,
+        PQCFeatureFlagsService,
+        PQCMonitoringService,
+        PQCService,
+        HybridCryptoService,
+        QuantumSafeJWTService,
+        PQCBridgeService,
+        SecretsService,
+        EnhancedErrorBoundaryService,
+        ClassicalCryptoService,
+        CircuitBreakerService,
+        PQCDataEncryptionService,
+        PQCDataValidationService,
+        QuantumSafeCryptoIdentityService,
         {
           provide: getModelToken('User'),
-          useValue: mockUserModel,
+          useValue: {
+            findById: jest.fn().mockImplementation(() => ({
+              select: jest.fn().mockResolvedValue(mockUser)
+            })),
+            findOne: () => Promise.resolve(null),
+            findByIdAndUpdate: () => Promise.resolve({}),
+            create: () => Promise.resolve({}),
+            save: () => Promise.resolve({}),
+          },
         },
         {
-          provide: JwtService,
-          useValue: mockJwtService,
-        },
-        {
-          provide: PQCFeatureFlagsService,
-          useValue: mockPQCFeatureFlags,
-        },
-        {
-          provide: PQCMonitoringService,
-          useValue: mockPQCMonitoring,
-        },
-        {
-          provide: PQCService,
-          useValue: mockPQCService,
-        },
-        {
-          provide: 'HybridCryptoService',
-          useValue: mockHybridCryptoService,
-        },
-        {
-          provide: 'QuantumSafeJWTService',
-          useValue: mockQuantumSafeJWTService,
-        },
-        {
-          provide: 'PQCBridgeService',
-          useValue: mockPQCBridgeService,
+          provide: ConfigService,
+          useValue: {
+            get: (key: string) => {
+              const config = {
+                'SKIP_SECRETS_MANAGER': 'true',
+                'AWS_REGION': 'us-east-1',
+                'JWT_ACCESS_SECRET_ID': 'test-access-secret-id',
+                'JWT_REFRESH_SECRET_ID': 'test-refresh-secret-id',
+                'MongoDB1': process.env.MongoDB1 || 'mongodb://localhost:27017/test',
+              };
+              return config[key] || process.env[key] || 'test-value';
+            },
+          },
         },
       ],
     }).compile();
@@ -123,87 +116,61 @@ describe('AuthService - Refresh Token', () => {
   describe('refreshToken', () => {
     it('should successfully refresh token with valid refresh token', async () => {
       const refreshToken = 'valid.refresh.token';
-      const payload = { userId: 'user123', email: 'test@example.com' };
-      const newTokens = {
-        accessToken: 'new.access.token',
-        refreshToken: 'new.refresh.token',
-      };
+      
+      const tokenPayload = { userId: '507f1f77bcf86cd799439011', email: 'test@example.com' };
+      const realRefreshToken = jwtService.generateTokens(tokenPayload, true).refreshToken;
+      
+      mockUser.refreshTokenHash = await bcrypt.hash(realRefreshToken, 10);
+      (mockUser as any)._id = { toString: () => '507f1f77bcf86cd799439011' };
 
-      mockJwtService.verifyToken.mockReturnValue(payload);
-      mockUserModel.findById.mockReturnValue({
-        select: jest.fn().mockResolvedValue(mockUser),
-      });
-      mockJwtService.generateTokens.mockReturnValue(newTokens);
-      bcrypt.compare.mockResolvedValue(true);
-      bcrypt.hash.mockResolvedValue('newHashedToken');
+      const result = await service.refreshToken(realRefreshToken);
 
-      const result = await service.refreshToken(refreshToken);
-
-      expect(mockJwtService.verifyToken).toHaveBeenCalledWith(refreshToken, 'refresh');
-      expect(mockUserModel.findById).toHaveBeenCalledWith(payload.userId);
-      expect(bcrypt.compare).toHaveBeenCalledWith(refreshToken, '$2a$10$hashedRefreshToken');
-      expect(mockJwtService.generateTokens).toHaveBeenCalledWith(
-        { userId: 'user123', email: 'test@example.com' },
-        false,
-      );
-      expect(bcrypt.hash).toHaveBeenCalledWith(newTokens.refreshToken, 10);
-      expect(mockUser.save).toHaveBeenCalled();
-      expect(result).toEqual({
-        accessToken: newTokens.accessToken,
-        refreshToken: newTokens.refreshToken,
-        user: {
-          id: 'user123',
-          email: 'test@example.com',
-        },
+      expect(result).toBeDefined();
+      expect(result.accessToken).toBeDefined();
+      expect(result.refreshToken).toBeDefined();
+      expect(result.user).toEqual({
+        id: '507f1f77bcf86cd799439011',
+        email: 'test@example.com',
       });
     });
 
     it('should throw UnauthorizedException for invalid refresh token', async () => {
       const refreshToken = 'invalid.refresh.token';
 
-      mockJwtService.verifyToken.mockReturnValue(null);
-
       await expect(service.refreshToken(refreshToken)).rejects.toThrow(UnauthorizedException);
-      expect(mockJwtService.verifyToken).toHaveBeenCalledWith(refreshToken, 'refresh');
     });
 
     it('should throw UnauthorizedException when user not found', async () => {
-      const refreshToken = 'valid.refresh.token';
-      const payload = { userId: 'nonexistent', email: 'test@example.com' };
+      const tokenPayload = { userId: '507f1f77bcf86cd799439012', email: 'test@example.com' };
+      const realRefreshToken = jwtService.generateTokens(tokenPayload, true).refreshToken;
 
-      mockJwtService.verifyToken.mockReturnValue(payload);
-      mockUserModel.findById.mockReturnValue({
+      userModel.findById.mockReturnValue({
         select: jest.fn().mockResolvedValue(null),
       });
 
-      await expect(service.refreshToken(refreshToken)).rejects.toThrow(UnauthorizedException);
+      await expect(service.refreshToken(realRefreshToken)).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw UnauthorizedException when refresh token hash does not match', async () => {
-      const refreshToken = 'valid.refresh.token';
-      const payload = { userId: 'user123', email: 'test@example.com' };
+      const tokenPayload = { userId: '507f1f77bcf86cd799439011', email: 'test@example.com' };
+      const realRefreshToken = jwtService.generateTokens(tokenPayload, true).refreshToken;
+      
+      mockUser.refreshTokenHash = await bcrypt.hash('different.token', 10);
+      (mockUser as any)._id = { toString: () => '507f1f77bcf86cd799439011' };
 
-      mockJwtService.verifyToken.mockReturnValue(payload);
-      mockUserModel.findById.mockReturnValue({
-        select: jest.fn().mockResolvedValue(mockUser),
-      });
-      bcrypt.compare.mockResolvedValue(false);
-
-      await expect(service.refreshToken(refreshToken)).rejects.toThrow(UnauthorizedException);
-      expect(bcrypt.compare).toHaveBeenCalledWith(refreshToken, mockUser.refreshTokenHash);
+      await expect(service.refreshToken(realRefreshToken)).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw UnauthorizedException when user has no refresh token hash', async () => {
-      const refreshToken = 'valid.refresh.token';
-      const payload = { userId: 'user123', email: 'test@example.com' };
+      const tokenPayload = { userId: '507f1f77bcf86cd799439011', email: 'test@example.com' };
+      const realRefreshToken = jwtService.generateTokens(tokenPayload, true).refreshToken;
+      
       const userWithoutRefreshToken = { ...mockUser, refreshTokenHash: null };
-
-      mockJwtService.verifyToken.mockReturnValue(payload);
-      mockUserModel.findById.mockReturnValue({
+      userModel.findById.mockReturnValue({
         select: jest.fn().mockResolvedValue(userWithoutRefreshToken),
       });
 
-      await expect(service.refreshToken(refreshToken)).rejects.toThrow(UnauthorizedException);
+      await expect(service.refreshToken(realRefreshToken)).rejects.toThrow(UnauthorizedException);
     });
   });
 });

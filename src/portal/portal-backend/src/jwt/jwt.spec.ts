@@ -12,28 +12,26 @@ describe('JwtService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         JwtService,
+        SecretsService,
+        PQCFeatureFlagsService,
+        PQCMonitoringService,
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn().mockReturnValue('mock-value'),
-          },
-        },
-        {
-          provide: SecretsService,
-          useValue: {
-            getSecret: jest.fn().mockResolvedValue('mock-secret'),
-          },
-        },
-        {
-          provide: PQCFeatureFlagsService,
-          useValue: {
-            isEnabled: jest.fn().mockReturnValue(false),
-          },
-        },
-        {
-          provide: PQCMonitoringService,
-          useValue: {
-            recordPQCJWTSigning: jest.fn().mockResolvedValue(undefined),
+            get: (key: string) => {
+              const config = {
+                'JWT_ACCESS_SECRET_ID': 'test-access-secret-id',
+                'JWT_REFRESH_SECRET_ID': 'test-refresh-secret-id',
+                'AWS_REGION': 'us-east-1',
+                'SKIP_SECRETS_MANAGER': 'true',
+                'MongoDB1': process.env.MongoDB1 || 'mongodb://localhost:27017/test',
+                'jwt.secret': 'test-secret',
+                'jwt.expiresIn': '1h',
+                'pqc.enabled': true,
+                'pqc.fallback_enabled': true,
+              };
+              return config[key] || process.env[key] || 'test-value';
+            },
           },
         },
       ],
