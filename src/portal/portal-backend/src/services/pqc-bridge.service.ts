@@ -190,7 +190,7 @@ export class PQCBridgeService {
     };
 
     switch (operation) {
-      case 'generate_session_key':
+      case 'generate_session_key': {
         fallbackResult.session_data = {
           algorithm: 'RSA-2048',
           shared_secret: 'fallback_shared_secret_placeholder',
@@ -198,16 +198,20 @@ export class PQCBridgeService {
           session_id: this.generateUUID()
         };
         break;
-      case 'sign_token':
+      }
+      case 'sign_token': {
         fallbackResult.token = 'fallback_rsa_token_placeholder';
         fallbackResult.data = params;
         break;
-      case 'verify_token':
+      }
+      case 'verify_token': {
         fallbackResult.verified = true;
         fallbackResult.payload = params.payload || params;
         break;
-      default:
+      }
+      default: {
         fallbackResult.data = params;
+      }
     }
 
     return fallbackResult;
