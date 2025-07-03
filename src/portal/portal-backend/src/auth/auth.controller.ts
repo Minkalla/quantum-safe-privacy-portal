@@ -14,13 +14,14 @@
  * for API documentation.
  */
 
-import { Controller, Post, Body, Res, HttpCode, HttpStatus, UnauthorizedException, Get, Req, Param, Delete, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, Res, HttpCode, HttpStatus, UnauthorizedException, Get, Req, Param, Delete, BadRequestException, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { EnhancedAuthService } from './enhanced-auth.service';
 import { MFAService } from './mfa.service';
 import { SsoService } from './sso.service';
 import { DeviceService } from './device.service';
+import { JwtAuthGuard } from './jwt-auth.guard';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { PQCLoginDto, PQCRegisterDto, PQCTokenVerificationDto } from './dto/pqc-auth.dto';
@@ -554,6 +555,7 @@ export class AuthController {
   }
 
   @Post('device/register')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Register a trusted device' })
   @ApiBody({ type: DeviceRegisterDto })
@@ -572,14 +574,22 @@ export class AuthController {
       deviceType: deviceDto.deviceType,
     };
 
-    const isSpoofing = await this.deviceService.detectSpoofingAttempt(deviceInfo, req.user.userId);
+    const providedFingerprint = req.headers['x-device-fingerprint'];
+    const deviceFingerprint = providedFingerprint || this.deviceService.generateDeviceFingerprint(deviceInfo);
+
+    const isSpoofing = await this.deviceService.detectSpoofingAttemptWithFingerprint(
+      deviceInfo, 
+      deviceFingerprint, 
+      req.user.userId
+    );
     if (isSpoofing) {
       throw new BadRequestException('Suspicious device activity detected');
     }
 
-    const trustedDevice = await this.deviceService.registerTrustedDevice(
+    const trustedDevice = await this.deviceService.registerTrustedDeviceWithFingerprint(
       req.user.userId,
       deviceInfo,
+      deviceFingerprint,
     );
 
     return {
@@ -595,6 +605,7 @@ export class AuthController {
   }
 
   @Post('device/verify')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify device trust status' })
   @ApiBody({ type: DeviceVerifyDto })
@@ -616,6 +627,7 @@ export class AuthController {
   }
 
   @Post('device/check-trust')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Check device trust status' })
   @ApiBody({ type: DeviceTrustCheckDto })

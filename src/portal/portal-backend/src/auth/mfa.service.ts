@@ -91,7 +91,16 @@ export class MFAService {
       }
 
       const secretKey = `mfa_secret_${userId}`;
-      const secret = await this.secretsService.getSecret(secretKey);
+      let secret: string;
+      
+      try {
+        secret = await this.secretsService.getSecret(secretKey);
+      } catch (error) {
+        if (error.message.includes('Secret not found')) {
+          throw new UnauthorizedException('MFA not set up for this user');
+        }
+        throw error;
+      }
 
       if (!secret) {
         throw new UnauthorizedException('MFA not set up for this user');
@@ -107,7 +116,18 @@ export class MFAService {
 
       if (!verified) {
         const backupCodesKey = `mfa_backup_codes_${userId}`;
-        const backupCodesJson = await this.secretsService.getSecret(backupCodesKey);
+        let backupCodesJson: string;
+        
+        try {
+          backupCodesJson = await this.secretsService.getSecret(backupCodesKey);
+        } catch (error) {
+          await this.auditTrailService.logSecurityEvent(
+            'MFA_VERIFICATION_FAILED',
+            { userId, tokenLength: token.length, reason: 'No backup codes available' },
+            'FAILURE',
+          );
+          return { verified: false, message: 'Invalid TOTP code or backup code' };
+        }
 
         if (backupCodesJson) {
           const backupCodes = JSON.parse(backupCodesJson);
@@ -127,6 +147,7 @@ export class MFAService {
               await this.enableMFAForUser(userId);
             }
 
+            this.logger.log(`Backup code verified successfully for user ${userId}`);
             return { verified: true, message: 'Backup code verified successfully' };
           }
         }
@@ -154,6 +175,10 @@ export class MFAService {
       return { verified: true, message: 'TOTP code verified successfully' };
 
     } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      
       await this.auditTrailService.logSecurityEvent(
         'MFA_VERIFICATION_ERROR',
         { userId, error: error.message },

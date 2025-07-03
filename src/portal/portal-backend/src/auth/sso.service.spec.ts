@@ -17,8 +17,26 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PQCFeatureFlagsService } from '../pqc/pqc-feature-flags.service';
 import { PQCMonitoringService } from '../pqc/pqc-monitoring.service';
-import { Strategy as SamlStrategy, Profile } from 'passport-saml';
+import { Profile } from 'passport-saml';
 import { createTestModule } from '../test-utils/createTestModule';
+
+jest.mock('passport-saml', () => ({
+  Strategy: jest.fn().mockImplementation((config, verify) => ({
+    authenticate: jest.fn((req, options) => {
+      const mockProfile = {
+        nameID: 'test@example.com',
+        attributes: { email: 'test@example.com' }
+      };
+      return Promise.resolve({ user: mockProfile });
+    }),
+    error: jest.fn().mockReturnValue(undefined),
+    generateServiceProviderMetadata: jest.fn().mockReturnValue('<xml>mock metadata</xml>'),
+    success: jest.fn(),
+    fail: jest.fn(),
+    redirect: jest.fn()
+  })),
+  Profile: {}
+}));
 
 describe('SsoService', () => {
   let service: SsoService;
@@ -32,7 +50,31 @@ describe('SsoService', () => {
     issuer: 'quantum-safe-portal',
     callbackUrl: 'https://app.example.com/portal/auth/sso/callback',
     entityId: 'quantum-safe-portal-sp',
-    privateKey: 'mock-private-key',
+    privateKey: `-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7VJTUt9Us8cKB
+wEiOfH3nzor9cwHXLbkiG+cy6vJ3oVFNxddcPEXr3R+gzVBFxXfg5ycV11Hl+jYs
+qpXzqBdksceE+Lc/BjXqVVl05lYdcgluVorvzB5MmEXZyp
+-----END PRIVATE KEY-----`,
+    decryptionCert: `-----BEGIN CERTIFICATE-----
+MIIDXTCCAkWgAwIBAgIJAJC1HiIAZAiIMA0GCSqGSIb3DQEBBQUAMEUxCzAJBgNV
+BAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX
+aWRnaXRzIFB0eSBMdGQwHhcNMTExMjMxMDg1OTQ0WhcNMTIxMjMwMDg1OTQ0WjBF
+MQswCQYDVQQGEwJBVTETMBEGA1UECAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50
+ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIB
+CgKCAQEAwUdHPiQnlDCtdkJ8CqzOhC4HHGRw6dMfHdZcHDZJ8aJExLOyOwUdU+2h
+cPiCe7WP6fBSFjS2O0kn6XxrYdBzpxrI5gM1g27Q4fYP7tzeNiHlpAHj6sLrmsjO
+VG2CuHiLIyuJq4Q4suB6qhHAnyEoOEcxtDxvTA5zJNfLOvH5d8vUqt4YgJ7DgHyb
+DxGBaLTLHuqMSMxF6awHps/wNMnyQ2Q5OTNl+IIznw0RWNFladVHPe6Q5be1hlCH
+XK6fBV5gYEiYHXfQy+OtUNhx4NI+CN9lqtdqgtdwd+AkwpAzi+M1q9Ij+wpFoYlL
+YgtlxSGLQgOH77Qk4QAgwdHyOs5+lQIDAQABo1AwTjAdBgNVHQ4EFgQUhqR2dWBb
+UGlHqHIq/r5rLFbEDoEwHwYDVR0jBBgwFoAUhqR2dWBbUGlHqHIq/r5rLFbEDoEw
+DAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQUFAAOCAQEAcMbsMh8qFqBaebqxnw2y
+YFBYmEEuSdVqm4EEXw4m0i3gQvBU8XvDjXwNPn0sCNqbOLqkiEjHXaFcJ3slVcgs
++V9L929kAS7vk9qXeSlFeHQWMQOBgU2fmlBN2pLQbeNqYBnbvCd5VB0+HVBQ6ot4
+NiNlL9+hCv1k6Ak4+xJMLsiu+IoH2Nc5vTiKlbshs2hHrFzK+BP2XhcGBqrOBTEP
+4MlIrBwDKejrEeHd6TlxeVoHBBNlOKx3nxbYoTtF5gLETVJyWMRBaUZ62aQmuLmN
+rail3c0LKx++Uy5ZBuNbdUagUe2VzI6bc77+g1czABQmNdih4ha5bd6+SrXMIhWc
+-----END CERTIFICATE-----`,
   };
 
   const mockProfile: Profile = {
@@ -59,17 +101,6 @@ describe('SsoService', () => {
   };
 
   beforeEach(async () => {
-    const mockSamlStrategy = {
-      authenticate: jest.fn((req, options) => {
-        const mockProfile = {
-          nameID: 'test@example.com',
-          attributes: { email: 'test@example.com' }
-        };
-        return Promise.resolve({ user: mockProfile });
-      }),
-      error: jest.fn()
-    };
-
     module = await createTestModule({
       providers: [
         SsoService,
@@ -77,10 +108,6 @@ describe('SsoService', () => {
         CustomJwtService,
         PQCFeatureFlagsService,
         PQCMonitoringService,
-        {
-          provide: 'SamlStrategy',
-          useValue: mockSamlStrategy,
-        },
       ],
       configOverrides: {
         'JWT_ACCESS_SECRET_ID': 'test-access-secret-id',
@@ -94,6 +121,7 @@ describe('SsoService', () => {
         'SSO_CALLBACK_URL': mockSamlConfig.callbackUrl,
         'SSO_ENTITY_ID': mockSamlConfig.entityId,
         'SSO_PRIVATE_KEY': mockSamlConfig.privateKey,
+        'SSO_DECRYPTION_CERT': mockSamlConfig.decryptionCert,
         'jwt.secret': 'test-secret',
         'jwt.expiresIn': '1h',
         'pqc.enabled': true,

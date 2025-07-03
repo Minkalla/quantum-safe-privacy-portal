@@ -14,7 +14,7 @@
  * It adheres to the "no regrets" quality by ensuring secure and robust token management.
  */
 
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger, OnModuleInit } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
 import { ConfigService } from '@nestjs/config';
 import { SecretsService } from '../secrets/secrets.service';
@@ -36,25 +36,31 @@ export interface SSOTokenPayload extends TokenPayload {
 }
 
 @Injectable()
-export class JwtService {
+export class JwtService implements OnModuleInit {
   private readonly logger = new Logger(JwtService.name);
-  private jwtAccessSecret!: string; // CHANGED: Added definite assignment assertion
-  private jwtRefreshSecret!: string; // CHANGED: Added definite assignment assertion
+  private jwtAccessSecret!: string;
+  private jwtRefreshSecret!: string;
+  private isInitialized = false;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly secretsService: SecretsService,
     private readonly pqcFeatureFlags: PQCFeatureFlagsService,
     private readonly pqcMonitoring: PQCMonitoringService,
-  ) {
-    // Call async initialization immediately after constructor,
-    // NestJS will wait for this during application bootstrap.
-    this.initializeSecrets();
+  ) {}
+
+  async onModuleInit() {
+    this.logger.debug('Initializing JWT service secrets...');
+    await this.initializeSecrets();
+    this.isInitialized = true;
+    this.logger.log('JWT service initialization completed successfully');
   }
 
-  // Asynchronous initialization for fetching secrets
-  private async initializeSecrets() {
+  private async initializeSecrets(): Promise<void> {
     const skipSecretsManager = this.configService.get<string>('SKIP_SECRETS_MANAGER') === 'true';
+    
+    this.logger.debug(`SKIP_SECRETS_MANAGER value: ${this.configService.get<string>('SKIP_SECRETS_MANAGER')}`);
+    this.logger.debug(`skipSecretsManager boolean: ${skipSecretsManager}`);
     
     if (skipSecretsManager) {
       this.jwtAccessSecret = this.configService.get<string>('JWT_ACCESS_SECRET') || 
@@ -63,6 +69,10 @@ export class JwtService {
       this.jwtRefreshSecret = this.configService.get<string>('JWT_REFRESH_SECRET') || 
                              this.configService.get<string>('JWT_SECRET') || 
                              'test-refresh-secret-fallback';
+      this.logger.debug(`JWT_ACCESS_SECRET: ${this.configService.get<string>('JWT_ACCESS_SECRET')}`);
+      this.logger.debug(`JWT_REFRESH_SECRET: ${this.configService.get<string>('JWT_REFRESH_SECRET')}`);
+      this.logger.debug(`Final jwtAccessSecret: ${this.jwtAccessSecret}`);
+      this.logger.debug(`Final jwtRefreshSecret: ${this.jwtRefreshSecret}`);
       this.logger.log('JWT secrets initialized from direct environment variables (SKIP_SECRETS_MANAGER=true).');
       return;
     }
@@ -98,7 +108,7 @@ export class JwtService {
     payload: TokenPayload,
     rememberMe: boolean = false,
   ): { accessToken: string; refreshToken: string } {
-    if (!this.jwtAccessSecret || !this.jwtRefreshSecret) {
+    if (!this.isInitialized || !this.jwtAccessSecret || !this.jwtRefreshSecret) {
       this.logger.error('JWT secrets are not initialized. Cannot generate tokens.');
       throw new InternalServerErrorException('JWT service not fully initialized.');
     }
@@ -126,7 +136,7 @@ export class JwtService {
     ssoPayload: SSOTokenPayload,
     rememberMe: boolean = false,
   ): { accessToken: string; refreshToken: string } {
-    if (!this.jwtAccessSecret || !this.jwtRefreshSecret) {
+    if (!this.isInitialized || !this.jwtAccessSecret || !this.jwtRefreshSecret) {
       this.logger.error('JWT secrets are not initialized. Cannot generate SSO tokens.');
       throw new InternalServerErrorException('JWT service not fully initialized.');
     }
@@ -159,6 +169,10 @@ export class JwtService {
     payload: TokenPayload,
     rememberMe: boolean = false,
   ): { accessToken: string; refreshToken: string } {
+    if (!this.isInitialized || !this.jwtAccessSecret || !this.jwtRefreshSecret) {
+      this.logger.error('JWT secrets are not initialized. Cannot generate PQC tokens.');
+      throw new InternalServerErrorException('JWT service not fully initialized.');
+    }
     const startTime = Date.now();
     let success = false;
 
@@ -211,6 +225,10 @@ export class JwtService {
     ssoPayload: SSOTokenPayload,
     rememberMe: boolean = false,
   ): { accessToken: string; refreshToken: string } {
+    if (!this.isInitialized || !this.jwtAccessSecret || !this.jwtRefreshSecret) {
+      this.logger.error('JWT secrets are not initialized. Cannot generate SSO PQC tokens.');
+      throw new InternalServerErrorException('JWT service not fully initialized.');
+    }
     const startTime = Date.now();
     let success = false;
 
@@ -255,17 +273,21 @@ export class JwtService {
    * @throws {InternalServerErrorException} If JWT secrets are not initialized.
    */
   verifyToken(token: string, secretType: 'access' | 'refresh'): TokenPayload | SSOTokenPayload | null {
-    let secret: string | undefined;
-
-    if (!this.jwtAccessSecret || !this.jwtRefreshSecret) {
+    this.logger.debug(`Starting token verification for type '${secretType}', token: ${token.substring(0, 30)}...`);
+    
+    if (!this.isInitialized || !this.jwtAccessSecret || !this.jwtRefreshSecret) {
       this.logger.error('JWT secrets are not initialized. Cannot verify tokens.');
       throw new InternalServerErrorException('JWT service not fully initialized.');
     }
 
+    let secret: string | undefined;
+
     if (secretType === 'access') {
       secret = this.jwtAccessSecret;
+      this.logger.debug(`Using access secret: ${this.jwtAccessSecret.substring(0, 10)}...`);
     } else if (secretType === 'refresh') {
       secret = this.jwtRefreshSecret;
+      this.logger.debug(`Using refresh secret: ${this.jwtRefreshSecret.substring(0, 10)}...`);
     }
 
     if (!secret) {
@@ -274,11 +296,15 @@ export class JwtService {
     }
 
     try {
+      this.logger.debug(`Attempting JWT verification with jsonwebtoken.verify()`);
       const decoded = jwt.verify(token, secret) as TokenPayload | SSOTokenPayload;
       this.logger.debug(`Token of type '${secretType}' verified successfully for user: ${decoded.email}`);
       return decoded;
     } catch (err: any) { // CHANGED: Explicitly type 'err' as 'any'
-      this.logger.warn(`Token verification failed for type '${secretType}': ${err.message}`);
+      this.logger.error(`Token verification FAILED for type '${secretType}': ${err.message}`);
+      this.logger.error(`Error name: ${err.name}, Error stack: ${err.stack}`);
+      this.logger.debug(`Failed token: ${token.substring(0, 50)}...`);
+      this.logger.debug(`Secret used: ${secret.substring(0, 10)}...`);
       return null;
     }
   }

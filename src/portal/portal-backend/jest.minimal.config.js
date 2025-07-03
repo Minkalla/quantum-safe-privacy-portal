@@ -26,4 +26,9 @@ module.exports = {
   
   preset: undefined,
   extensionsToTreatAsEsm: [],
+  
+  moduleNameMapper: {
+    "^#apps/backend/package.json$": "<rootDir>/apps/backend/package.json",
+    "^#src/portal/portal-backend/package.json$": "<rootDir>/src/portal/portal-backend/package.json"
+  },
 };
