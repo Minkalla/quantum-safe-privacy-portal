@@ -10,33 +10,45 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from './auth.module';
 import { UserModule } from '../user/user.module';
 import { JwtModule } from '../jwt/jwt.module';
-import { ConfigModule } from '../config/config.module';
+import { ConfigModule } from '@nestjs/config';
+import { createTestModule } from '../test-utils/createTestModule';
 
 describe('Auth Integration (e2e)', () => {
   let app: INestApplication;
   let authToken: string;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
+    const moduleFixture: TestingModule = await createTestModule({
       imports: [
-        ConfigModule,
-        MongooseModule.forRoot((() => {
-          const uri = process.env.MONGO_URI || process.env.MONGODB_URI || process.env.MONGO_TEST_URI;
-          if (!uri) {
-            throw new Error('MongoDB URI is required for tests. Set MONGO_URI, MONGODB_URI, or MONGO_TEST_URI environment variable.');
-          }
-          return uri;
-        })()),
+        ConfigModule.forRoot({
+          isGlobal: true,
+          load: [() => ({
+            'SKIP_SECRETS_MANAGER': 'true',
+            'AWS_REGION': 'us-east-1',
+            'MongoDB1': process.env.MongoDB1 || 'mongodb://localhost:27017/test',
+            'JWT_SECRET': 'test-jwt-secret',
+            'JWT_ACCESS_SECRET': 'test-access-secret',
+            'JWT_REFRESH_SECRET': 'test-refresh-secret',
+          })],
+        }),
+        MongooseModule.forRoot(process.env.MongoDB1 || 'mongodb://localhost:27017/test'),
         AuthModule,
         UserModule,
-        JwtModule,
       ],
-    }).compile();
+      configOverrides: {
+        'SKIP_SECRETS_MANAGER': 'true',
+        'AWS_REGION': 'us-east-1',
+        'MongoDB1': process.env.MongoDB1 || 'mongodb://localhost:27017/test',
+        'JWT_SECRET': 'test-jwt-secret',
+        'JWT_ACCESS_SECRET': 'test-access-secret',
+        'JWT_REFRESH_SECRET': 'test-refresh-secret',
+      },
+    });
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('portal');

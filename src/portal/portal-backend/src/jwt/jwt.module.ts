@@ -17,6 +17,7 @@
 
 import { Module } from '@nestjs/common';
 import { JwtService } from './jwt.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { SecretsModule } from '../secrets/secrets.module';
 import { ConfigModule } from '../config/config.module';
 import { PQCFeatureFlagsModule } from '../pqc/pqc-feature-flags.module';
@@ -27,7 +28,7 @@ import { PQCFeatureFlagsModule } from '../pqc/pqc-feature-flags.module';
     SecretsModule,
     PQCFeatureFlagsModule,
   ],
-  providers: [JwtService],
-  exports: [JwtService],
+  providers: [JwtService, JwtAuthGuard],
+  exports: [JwtService, JwtAuthGuard],
 })
 export class JwtModule {}
