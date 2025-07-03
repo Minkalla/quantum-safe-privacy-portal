@@ -15,9 +15,10 @@
  * with the User and Jwt modules.
  */
 
-import { Module, NestModule, MiddlewareConsumer, forwardRef } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthController } from './auth.controller';
+import { DeviceController } from './device.controller';
 import { AuthService } from './auth.service';
 import { EnhancedAuthService } from './enhanced-auth.service';
 import { AuthMiddleware } from './auth.middleware';
@@ -39,11 +40,11 @@ import { SecretsModule } from '../secrets/secrets.module';
     MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]),
     JwtModule,
     PQCFeatureFlagsModule,
-    forwardRef(() => CryptoServicesModule),
+    CryptoServicesModule,
     MonitoringModule,
     SecretsModule,
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, DeviceController],
   providers: [AuthService, EnhancedAuthService, AuthMiddleware, MFAService, SsoService, DeviceService, QuantumSafeJWTService, QuantumSafeCryptoIdentityService, PQCBridgeService],
   exports: [AuthService, EnhancedAuthService, AuthMiddleware, MFAService, SsoService, DeviceService, QuantumSafeJWTService, QuantumSafeCryptoIdentityService, PQCBridgeService],
 })
