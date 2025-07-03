@@ -18,6 +18,10 @@ import { PQCErrorTaxonomyService } from '../../../src/services/pqc-error-taxonom
 import { CircuitBreakerService } from '../../../src/services/circuit-breaker.service';
 import { HybridCryptoService } from '../../../src/services/hybrid-crypto.service';
 import { ClassicalCryptoService } from '../../../src/services/classical-crypto.service';
+import { QuantumSafeJWTService } from '../../../src/services/quantum-safe-jwt.service';
+import { QuantumSafeCryptoIdentityService } from '../../../src/services/quantum-safe-crypto-identity.service';
+import { PQCBridgeService } from '../../../src/services/pqc-bridge.service';
+import { SecretsService } from '../../../src/secrets/secrets.service';
 
 describe('PQC Database Integration', () => {
   let encryptionService: PQCDataEncryptionService;
@@ -49,31 +53,17 @@ describe('PQC Database Integration', () => {
         CircuitBreakerService,
         HybridCryptoService,
         ClassicalCryptoService,
-        {
-          provide: JwtService,
-          useValue: {
-            generateTokens: jest.fn().mockReturnValue({
-              accessToken: 'mock-access-token',
-              refreshToken: 'mock-refresh-token',
-            }),
-          },
-        },
-        {
-          provide: PQCFeatureFlagsService,
-          useValue: {
-            isEnabled: jest.fn().mockReturnValue(true),
-          },
-        },
-        {
-          provide: PQCMonitoringService,
-          useValue: {
-            recordPQCKeyGeneration: jest.fn().mockResolvedValue(undefined),
-          },
-        },
+        JwtService,
+        PQCFeatureFlagsService,
+        PQCMonitoringService,
+        QuantumSafeJWTService,
+        QuantumSafeCryptoIdentityService,
+        PQCBridgeService,
+        SecretsService,
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn((key: string) => {
+            get: (key: string) => {
               const config = {
                 'pqc.enabled': true,
                 'pqc.fallback_enabled': true,
@@ -82,49 +72,14 @@ describe('PQC Database Integration', () => {
                 'performance.monitoring_enabled': true,
                 'jwt.secret': 'test-secret',
                 'jwt.expiresIn': '1h',
+                'JWT_ACCESS_SECRET_ID': 'test-access-secret-id',
+                'JWT_REFRESH_SECRET_ID': 'test-refresh-secret-id',
+                'AWS_REGION': 'us-east-1',
+                'SKIP_SECRETS_MANAGER': 'true',
+                'MongoDB1': process.env.MongoDB1 || 'mongodb://localhost:27017/test',
               };
-              return config[key];
-            }),
-          },
-        },
-        {
-          provide: AuthService,
-          useValue: {
-            callPQCService: jest.fn(),
-            callPythonPQCService: jest.fn(),
-            executePQCServiceCall: jest.fn().mockResolvedValue({
-              success: true,
-              token: 'mock-pqc-token',
-              algorithm: 'ML-DSA-65',
-              verified: true,
-            }),
-          },
-        },
-        {
-          provide: 'HybridCryptoService',
-          useValue: {
-            encryptWithFallback: jest.fn(),
-            decryptWithFallback: jest.fn(),
-            generateKeyPairWithFallback: jest.fn(),
-          },
-        },
-        {
-          provide: 'QuantumSafeJWTService',
-          useValue: {
-            signPQCToken: jest.fn(),
-            verifyPQCToken: jest.fn(),
-          },
-        },
-        {
-          provide: 'QuantumSafeCryptoIdentityService',
-          useValue: {
-            generateStandardizedCryptoUserId: jest.fn(),
-          },
-        },
-        {
-          provide: 'PQCBridgeService',
-          useValue: {
-            executePQCOperation: jest.fn(),
+              return config[key] || process.env[key] || 'test-value';
+            },
           },
         },
       ],

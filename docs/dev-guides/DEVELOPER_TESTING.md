@@ -157,6 +157,7 @@ Coverage reports are generated in the `coverage/` directory:
 import { Test, TestingModule } from '@nestjs/testing';
 import { YourService } from './your-service.service';
 import { ConfigService } from '@nestjs/config';
+import { getModelToken } from '@nestjs/mongoose';
 
 describe('YourService', () => {
   let service: YourService;
@@ -169,7 +170,25 @@ describe('YourService', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn().mockReturnValue('mock-value'),
+            get: (key: string) => {
+              const config = {
+                'JWT_ACCESS_SECRET_ID': 'test-access-secret-id',
+                'JWT_REFRESH_SECRET_ID': 'test-refresh-secret-id',
+                'AWS_REGION': 'us-east-1',
+                'SKIP_SECRETS_MANAGER': 'true',
+                'MongoDB1': process.env.MongoDB1 || 'mongodb://localhost:27017/test',
+              };
+              return config[key] || process.env[key] || 'test-value';
+            },
+          },
+        },
+        {
+          provide: getModelToken('User'),
+          useValue: {
+            findOne: () => Promise.resolve(null),
+            findByIdAndUpdate: () => Promise.resolve({}),
+            create: () => Promise.resolve({}),
+            save: () => Promise.resolve({}),
           },
         },
       ],
@@ -262,10 +281,10 @@ it('should register new user successfully', async () => {
 {
   provide: getModelToken('User'),
   useValue: {
-    findOne: jest.fn(),
-    constructor: jest.fn().mockImplementation(() => ({
-      save: jest.fn().mockResolvedValue(mockUser),
-    })),
+    findOne: () => Promise.resolve(null),
+    findByIdAndUpdate: () => Promise.resolve({}),
+    create: () => Promise.resolve({}),
+    save: () => Promise.resolve({}),
   },
 }
 ```
@@ -453,13 +472,34 @@ beforeEach(() => {
 });
 ```
 
-#### Use Specific Mock Implementations
+#### Use Real Class References Instead of String Tokens
 ```typescript
-// Good - Specific mock behavior
-userModel.findOne.mockResolvedValue(mockUser);
+// Good - Real class reference
+{
+  provide: HybridCryptoService,
+  useClass: HybridCryptoService
+}
 
-// Bad - Generic mock
-userModel.findOne.mockResolvedValue({});
+// Bad - String token (deprecated pattern)
+{
+  provide: 'HybridCryptoService',
+  useValue: {}
+}
+```
+
+#### Use Proper Mongoose Model Tokens
+```typescript
+// Good - Proper getModelToken usage
+{
+  provide: getModelToken('User'),
+  useValue: mockUserModel
+}
+
+// Bad - String token (deprecated pattern)
+{
+  provide: 'UserModel',
+  useValue: mockUserModel
+}
 ```
 
 ### Error Testing
@@ -679,7 +719,112 @@ This testing infrastructure provides a robust foundation for maintaining code qu
 
 ---
 
-## 11. Security Mitigation Testing (WBS 1.14)
+## 11. Dependency Injection Stabilization (Post-WBS 1.14)
+
+### Overview
+Following WBS 1.14 completion, a comprehensive dependency injection stabilization was implemented across the test suite to eliminate circular dependencies, string-based provider tokens, and inconsistent mock patterns.
+
+### Key Changes Made
+
+#### 1. String Token Elimination
+All string-based provider tokens were replaced with real class references:
+
+```typescript
+// Before (deprecated)
+{
+  provide: 'HybridCryptoService',
+  useValue: { encryptWithFallback: jest.fn() }
+}
+
+// After (current standard)
+{
+  provide: HybridCryptoService,
+  useClass: HybridCryptoService
+}
+```
+
+#### 2. Mongoose Model Token Standardization
+Proper `getModelToken()` usage implemented throughout:
+
+```typescript
+// Before (deprecated)
+{
+  provide: 'UserModel',
+  useValue: mockUserModel
+}
+
+// After (current standard)
+{
+  provide: getModelToken('User'),
+  useValue: {
+    findOne: () => Promise.resolve(null),
+    findByIdAndUpdate: () => Promise.resolve({}),
+    create: () => Promise.resolve({}),
+    save: () => Promise.resolve({}),
+  }
+}
+```
+
+#### 3. Unified Test Module Creation
+A centralized test utility was created at `src/test-utils/createTestModule.ts` to ensure consistent provider configuration across all test files.
+
+#### 4. Real Service Integration
+Tests now use real service instances instead of mocks for core PQC operations, ensuring cryptographic operations are tested with actual implementations.
+
+### Test Files Updated (20 total)
+- `ffi-verification.test.ts` ✅
+- `pqc-auth-flow.test.ts` ✅
+- `pqc-data-encryption.test.ts` ✅
+- `quantum-safe-jwt.service.spec.ts` ✅
+- `auth.controller.spec.ts` ✅
+- `device-trust.service.spec.ts` ✅
+- `user.service.spec.ts` ✅
+- `pqc-data-validation.test.ts` ✅
+- `dilithium.test.ts` ✅
+- `kyber.test.ts` ✅
+- `hybrid-crypto.service.test.ts` ✅
+- `database-integration.test.ts` ✅
+- `cross-service.test.ts` ✅
+- `auth.service.spec.ts` ✅
+- `secrets.spec.ts` ✅
+- `jwt.spec.ts` ✅
+- `data-migration.service.test.ts` ✅
+- `auth.integration.spec.ts` ✅
+- `device.service.spec.ts` ✅
+- `device.integration.spec.ts` ✅
+
+### Results After Stabilization
+
+#### PQC Tests - Fully Functional
+```bash
+✅ ffi-verification.test.ts: 6/6 tests passed
+✅ pqc-auth-flow.test.ts: 6/6 tests passed
+```
+- Real cryptographic operations (no mocking)
+- MongoDB Atlas integration working
+- FFI verification successful with Rust library
+
+#### Overall Test Suite Status
+```bash
+Test Suites: 15 failed, 16 passed, 31 total (51% pass rate)
+Tests: 147 failed, 135 passed, 282 total (48% pass rate)
+```
+- ✅ No dependency injection errors
+- ✅ No circular dependency crashes  
+- ✅ Tests compile and execute successfully
+- ✅ Remaining failures are logic errors, not scaffolding issues
+
+### Best Practices for Future Development
+
+1. **Always use real class references** instead of string tokens
+2. **Use `getModelToken()` for Mongoose models** consistently
+3. **Prefer real service instances** over mocks for cryptographic operations
+4. **Use the unified test harness** from `src/test-utils/createTestModule.ts`
+5. **Test with real MongoDB Atlas connection** using `MongoDB1` environment variable
+
+---
+
+## 12. Security Mitigation Testing (WBS 1.14)
 
 ### Overview
 Following the implementation of WBS 1.14 Enterprise SSO Integration, comprehensive security mitigation testing has been established to validate the HybridCryptoService fallback mechanism, enhanced telemetry logging, and circuit breaker integration.

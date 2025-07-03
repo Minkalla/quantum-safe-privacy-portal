@@ -7,6 +7,13 @@ import { getModelToken } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { IUser } from '../../../../src/models/User';
 import { ConfigService } from '@nestjs/config';
+import { HybridCryptoService } from '../../../../src/services/hybrid-crypto.service';
+import { QuantumSafeJWTService } from '../../../../src/services/quantum-safe-jwt.service';
+import { QuantumSafeCryptoIdentityService } from '../../../../src/services/quantum-safe-crypto-identity.service';
+import { PQCBridgeService } from '../../../../src/services/pqc-bridge.service';
+import { PQCService } from '../../../../src/services/pqc.service';
+import { SecretsService } from '../../../../src/secrets/secrets.service';
+import { ClassicalCryptoService } from '../../../../src/services/classical-crypto.service';
 
 describe('Dilithium ML-DSA-65 Algorithm Tests', () => {
   let authService: AuthService;
@@ -15,128 +22,41 @@ describe('Dilithium ML-DSA-65 Algorithm Tests', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        {
-          provide: AuthService,
-          useValue: {
-            callPQCService: jest.fn(),
-            callPythonPQCService: jest.fn(),
-            executePQCServiceCall: jest.fn().mockResolvedValue({
-              success: true,
-              token: 'mock-pqc-token',
-              algorithm: 'ML-DSA-65',
-              verified: true,
-            }),
-          },
-        },
-        {
-          provide: JwtService,
-          useValue: {
-            generateTokens: jest.fn().mockReturnValue({
-              accessToken: 'mock-access-token',
-              refreshToken: 'mock-refresh-token',
-            }),
-          },
-        },
-        {
-          provide: PQCFeatureFlagsService,
-          useValue: {
-            isEnabled: jest.fn().mockReturnValue(true),
-          },
-        },
-        {
-          provide: PQCMonitoringService,
-          useValue: {
-            recordPQCKeyGeneration: jest.fn().mockResolvedValue(undefined),
-          },
-        },
+        AuthService,
+        JwtService,
+        PQCFeatureFlagsService,
+        PQCMonitoringService,
+        HybridCryptoService,
+        QuantumSafeJWTService,
+        QuantumSafeCryptoIdentityService,
+        PQCBridgeService,
+        PQCService,
+        SecretsService,
+        ClassicalCryptoService,
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn().mockReturnValue('test-value'),
+            get: (key: string) => {
+              const config = {
+                'JWT_ACCESS_SECRET_ID': 'test-access-secret-id',
+                'JWT_REFRESH_SECRET_ID': 'test-refresh-secret-id',
+                'AWS_REGION': 'us-east-1',
+                'pqc.enabled': true,
+                'pqc.fallback_enabled': true,
+                'SKIP_SECRETS_MANAGER': 'true',
+                'MongoDB1': process.env.MongoDB1 || 'mongodb://localhost:27017/test',
+              };
+              return config[key] || process.env[key] || 'test-value';
+            },
           },
         },
         {
           provide: getModelToken('User'),
           useValue: {
-            findOne: jest.fn(),
-            findByIdAndUpdate: jest.fn(),
-            create: jest.fn(),
-            save: jest.fn(),
-          },
-        },
-        {
-          provide: 'HybridCryptoService',
-          useValue: {
-            encryptWithFallback: jest.fn(),
-            decryptWithFallback: jest.fn(),
-            generateKeyPairWithFallback: jest.fn(),
-          },
-        },
-        {
-          provide: 'QuantumSafeJWTService',
-          useValue: {
-            signPQCToken: jest.fn(),
-            verifyPQCToken: jest.fn(),
-          },
-        },
-        {
-          provide: 'QuantumSafeCryptoIdentityService',
-          useValue: {
-            generateStandardizedCryptoUserId: jest.fn(),
-          },
-        },
-        {
-          provide: 'PQCBridgeService',
-          useValue: {
-            executePQCOperation: jest.fn(),
-          },
-        },
-        {
-          provide: 'PQCService',
-          useValue: {
-            performPQCHandshake: jest.fn(),
-            triggerPQCHandshake: jest.fn(),
-            create: jest.fn(),
-            save: jest.fn(),
-          },
-        },
-        {
-          provide: 'HybridCryptoService',
-          useValue: {
-            encryptWithFallback: jest.fn(),
-            decryptWithFallback: jest.fn(),
-            generateKeyPairWithFallback: jest.fn(),
-          },
-        },
-        {
-          provide: 'QuantumSafeJWTService',
-          useValue: {
-            signPQCToken: jest.fn(),
-            verifyPQCToken: jest.fn(),
-          },
-        },
-        {
-          provide: 'QuantumSafeCryptoIdentityService',
-          useValue: {
-            generateStandardizedCryptoUserId: jest.fn(),
-          },
-        },
-        {
-          provide: 'PQCBridgeService',
-          useValue: {
-            executePQCOperation: jest.fn().mockResolvedValue({
-              success: true,
-              token: 'mock-pqc-token',
-              algorithm: 'ML-DSA-65',
-              verified: true,
-            }),
-          },
-        },
-        {
-          provide: 'PQCService',
-          useValue: {
-            performPQCHandshake: jest.fn(),
-            triggerPQCHandshake: jest.fn(),
+            findOne: () => Promise.resolve(null),
+            findByIdAndUpdate: () => Promise.resolve({}),
+            create: () => Promise.resolve({}),
+            save: () => Promise.resolve({}),
           },
         },
       ],

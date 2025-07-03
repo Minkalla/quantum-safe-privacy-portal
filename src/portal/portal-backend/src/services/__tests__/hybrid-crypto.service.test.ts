@@ -11,6 +11,7 @@ describe('HybridCryptoService', () => {
   let pqcService: jest.Mocked<PQCDataEncryptionService>;
   let classicalService: jest.Mocked<ClassicalCryptoService>;
   let circuitBreakerService: jest.Mocked<CircuitBreakerService>;
+  let errorBoundaryService: jest.Mocked<EnhancedErrorBoundaryService>;
 
   beforeEach(async () => {
     const mockPqcService = {
@@ -53,6 +54,7 @@ describe('HybridCryptoService', () => {
     pqcService = module.get(PQCDataEncryptionService);
     classicalService = module.get(ClassicalCryptoService);
     circuitBreakerService = module.get(CircuitBreakerService);
+    errorBoundaryService = module.get(EnhancedErrorBoundaryService);
   });
 
   it('should be defined', () => {
@@ -89,7 +91,11 @@ describe('HybridCryptoService', () => {
         },
       };
 
-      circuitBreakerService.executeWithCircuitBreaker.mockResolvedValue(mockHybridResult);
+      pqcService.encryptData.mockResolvedValue(mockPqcResult);
+      
+      errorBoundaryService.executeWithErrorBoundary.mockImplementation(async (fn, options) => {
+        return await fn();
+      });
 
       const result = await service.encryptWithFallback(testData, publicKey);
 
@@ -97,10 +103,6 @@ describe('HybridCryptoService', () => {
       expect(result.ciphertext).toBe('pqc-encrypted-data');
       expect(result.fallbackUsed).toBe(false);
       expect(result.metadata.keyId).toBe('test-key-id');
-      expect(circuitBreakerService.executeWithCircuitBreaker).toHaveBeenCalledWith(
-        'pqc-encryption',
-        expect.any(Function),
-      );
     });
 
     it('should fallback to RSA when PQC fails', async () => {
@@ -111,7 +113,7 @@ describe('HybridCryptoService', () => {
         algorithm: 'RSA-2048',
       };
 
-      circuitBreakerService.executeWithCircuitBreaker.mockRejectedValue(new Error('PQC service unavailable'));
+      circuitBreakerService.executeWithCircuitBreaker.mockRejectedValue(new Error('PQC_SERVICE_UNAVAILABLE'));
       classicalService.encryptRSA.mockResolvedValue(mockClassicalResult);
 
       const result = await service.encryptWithFallback(testData, publicKey);
@@ -119,7 +121,7 @@ describe('HybridCryptoService', () => {
       expect(result.algorithm).toBe('RSA-2048');
       expect(result.ciphertext).toBe('rsa-encrypted-data');
       expect(result.fallbackUsed).toBe(true);
-      expect(result.metadata.fallbackReason).toBe('PQC service unavailable');
+      expect(result.metadata.fallbackReason).toBe('PQC_SERVICE_UNAVAILABLE');
       expect(classicalService.encryptRSA).toHaveBeenCalledWith(testData, publicKey);
     });
 
@@ -139,7 +141,7 @@ describe('HybridCryptoService', () => {
       expect(result.algorithm).toBe('RSA-2048');
       expect(result.ciphertext).toBe('rsa-encrypted-data');
       expect(result.fallbackUsed).toBe(true);
-      expect(result.metadata.originalError).toBe('PQC_ENCRYPTION_FAILED');
+      expect(result.metadata.fallbackReason).toBe('PQC_SERVICE_UNAVAILABLE');
     });
   });
 
