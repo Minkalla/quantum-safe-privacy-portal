@@ -27,6 +27,7 @@ import { DeviceService } from './device.service';
 import { QuantumSafeJWTService } from '../services/quantum-safe-jwt.service';
 import { QuantumSafeCryptoIdentityService } from '../services/quantum-safe-crypto-identity.service';
 import { PQCBridgeService } from '../services/pqc-bridge.service';
+import { BrandingService } from '../branding/branding.service';
 import { UserSchema } from '../models/User';
 import { JwtModule } from '../jwt/jwt.module';
 import { PQCFeatureFlagsModule } from '../pqc/pqc-feature-flags.module';
@@ -44,8 +45,8 @@ import { SecretsModule } from '../secrets/secrets.module';
     SecretsModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, EnhancedAuthService, AuthMiddleware, MFAService, SsoService, DeviceService, QuantumSafeJWTService, QuantumSafeCryptoIdentityService, PQCBridgeService],
-  exports: [AuthService, EnhancedAuthService, AuthMiddleware, MFAService, SsoService, DeviceService, QuantumSafeJWTService, QuantumSafeCryptoIdentityService, PQCBridgeService],
+  providers: [AuthService, EnhancedAuthService, AuthMiddleware, MFAService, SsoService, DeviceService, QuantumSafeJWTService, QuantumSafeCryptoIdentityService, PQCBridgeService, BrandingService],
+  exports: [AuthService, EnhancedAuthService, AuthMiddleware, MFAService, SsoService, DeviceService, QuantumSafeJWTService, QuantumSafeCryptoIdentityService, PQCBridgeService, BrandingService],
 })
 export class AuthModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

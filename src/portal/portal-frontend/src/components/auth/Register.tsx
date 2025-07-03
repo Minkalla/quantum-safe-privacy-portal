@@ -3,6 +3,7 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useBranding } from '../../contexts/BrandingContext';
 import { Shield, Eye, EyeOff, Copy, Check } from 'lucide-react';
 import QRCode from 'qrcode.react';
 import ErrorMessage from '../ui/ErrorMessage';
@@ -11,6 +12,7 @@ import LoadingSpinner from '../ui/LoadingSpinner';
 const Register: React.FC = () => {
   const navigate = useNavigate();
   const { register, isLoading, error } = useAuth();
+  const { branding } = useBranding();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showMFASetup, setShowMFASetup] = useState(false);
@@ -140,13 +142,21 @@ const Register: React.FC = () => {
       <div className="max-w-md w-full space-y-8">
         <div>
           <div className="flex justify-center">
-            <Shield className="h-12 w-12 text-primary-600" />
+            {branding?.logoUrl ? (
+              <img 
+                src={branding.logoUrl} 
+                alt={`${branding.companyName || 'Company'} Logo`}
+                className="h-12 max-w-48"
+              />
+            ) : (
+              <Shield className="h-12 w-12 text-primary-600" />
+            )}
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
+            {branding?.companyName ? `Create your ${branding.companyName} account` : 'Create your account'}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Join the Quantum-Safe Privacy Portal
+            {branding?.companyName ? `Join ${branding.companyName}` : 'Join the Quantum-Safe Privacy Portal'}
           </p>
         </div>
         

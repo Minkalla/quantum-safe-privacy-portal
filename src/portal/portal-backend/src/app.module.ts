@@ -26,6 +26,7 @@ import { UserModule } from './user/user.module';
 import { JwtModule } from './jwt/jwt.module';
 import { SecretsModule } from './secrets/secrets.module';
 import { ConsentModule } from './consent/consent.module';
+import { BrandingModule } from './branding/branding.module';
 import { ConfigModule } from './config/config.module';
 import { PQCFeatureFlagsModule } from './pqc/pqc-feature-flags.module';
 import { ABTestingModule } from './pqc/ab-testing.module';
@@ -73,6 +74,7 @@ import { CryptoServicesModule } from './services/crypto-services.module';
     JwtModule,
     SecretsModule,
     ConsentModule,
+    BrandingModule,
     PQCFeatureFlagsModule,
     ABTestingModule,
     MonitoringModule,

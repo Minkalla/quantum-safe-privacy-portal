@@ -29,6 +29,7 @@ import { PQCService } from '../services/pqc.service';
 import { HybridCryptoService } from '../services/hybrid-crypto.service';
 import { QuantumSafeJWTService } from '../services/quantum-safe-jwt.service';
 import { PQCBridgeService } from '../services/pqc-bridge.service';
+import { BrandingService } from '../branding/branding.service';
 import { ObjectId } from 'mongodb';
 
 // Brute-force protection settings
@@ -48,6 +49,7 @@ export class AuthService {
     private readonly hybridCryptoService: HybridCryptoService,
     private readonly quantumSafeJWTService: QuantumSafeJWTService,
     private readonly pqcBridgeService: PQCBridgeService,
+    private readonly brandingService: BrandingService,
   ) {}
 
   /**
@@ -432,12 +434,20 @@ export class AuthService {
       this.logger.warn(`PQC handshake failed for user ${user._id}, continuing with login:`, handshakeError);
     }
 
+    let brandingConfig = null;
+    try {
+      brandingConfig = await this.brandingService.getBrandingConfig((user._id as ObjectId).toString());
+    } catch (error) {
+      this.logger.warn(`Failed to fetch branding config for user ${user._id}:`, error);
+    }
+
     const response: any = {
       accessToken,
       user: {
-        id: (user._id as ObjectId).toString(), // CHANGED: Explicitly cast user._id to ObjectId for .toString() method
+        id: (user._id as ObjectId).toString(),
         email: user.email,
       },
+      branding: brandingConfig,
     };
 
     if (rememberMe) {
@@ -485,6 +495,13 @@ export class AuthService {
 
       this.logger.log(`Token refreshed successfully for user ${user.email}`);
 
+      let brandingConfig = null;
+      try {
+        brandingConfig = await this.brandingService.getBrandingConfig((user._id as ObjectId).toString());
+      } catch (error) {
+        this.logger.warn(`Failed to fetch branding config for user ${user._id}:`, error);
+      }
+
       return {
         accessToken,
         refreshToken: newRefreshToken,
@@ -492,7 +509,8 @@ export class AuthService {
           id: (user._id as ObjectId).toString(),
           email: user.email,
         },
-      };
+        branding: brandingConfig,
+      } as any;
     } catch (error) {
       this.logger.warn(`Token refresh failed: ${error.message}`);
       throw new UnauthorizedException('Invalid or expired refresh token');

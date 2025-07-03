@@ -17,6 +17,7 @@ import {
   Divider
 } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
+import { useBranding } from '../contexts/BrandingContext';
 
 interface LoginFormValues {
   email: string;
@@ -56,6 +57,7 @@ const mfaValidationSchema = Yup.object({
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const { login, error, isLoading, clearError } = useAuth();
+  const { branding } = useBranding();
   const [showMFA, setShowMFA] = useState(false);
   const [userId, setUserId] = useState<string>('');
   const [mfaError, setMfaError] = useState<string>('');
@@ -268,8 +270,17 @@ const Login: React.FC = () => {
         }}
       >
         <Paper elevation={3} sx={{ padding: 4, width: '100%' }}>
+          {branding?.logoUrl && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+              <img 
+                src={branding.logoUrl} 
+                alt={`${branding.companyName || 'Company'} Logo`}
+                style={{ maxHeight: '60px', maxWidth: '200px' }}
+              />
+            </Box>
+          )}
           <Typography component="h1" variant="h4" align="center" gutterBottom>
-            Sign In
+            {branding?.companyName ? `Sign In to ${branding.companyName}` : 'Sign In'}
           </Typography>
 
           <Stepper activeStep={showDeviceVerification ? 2 : showMFA ? 1 : 0} sx={{ mb: 3 }}>

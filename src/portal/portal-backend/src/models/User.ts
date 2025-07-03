@@ -74,6 +74,13 @@ export interface IUser extends Document {
     lastUsed: Date;
     createdAt: Date;
   }[];
+  brandingConfig?: {
+    logoUrl?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    companyName?: string;
+    customCss?: string;
+  };
 }
 
 /**
@@ -232,6 +239,13 @@ export const UserSchema = new Schema<IUser>( // MODIFIED: Added 'export' here
       lastUsed: { type: Date, required: true },
       createdAt: { type: Date, required: true },
     }],
+    brandingConfig: {
+      logoUrl: { type: String },
+      primaryColor: { type: String, default: '#1976d2' },
+      secondaryColor: { type: String, default: '#dc004e' },
+      companyName: { type: String, default: 'Quantum-Safe Privacy Portal' },
+      customCss: { type: String },
+    },
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt fields

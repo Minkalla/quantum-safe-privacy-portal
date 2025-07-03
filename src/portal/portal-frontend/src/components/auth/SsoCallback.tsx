@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import { setAuthToken } from '../../utils/api';
 import { extractUserFromToken } from '../../utils/jwt';
+import { useBranding } from '../../contexts/BrandingContext';
 
 interface SsoCallbackState {
   loading: boolean;
@@ -21,6 +22,7 @@ interface SsoCallbackState {
 const SsoCallback: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { branding } = useBranding();
   const [state, setState] = useState<SsoCallbackState>({
     loading: true,
     error: null,
@@ -108,6 +110,15 @@ const SsoCallback: React.FC = () => {
         }}
       >
         <Paper elevation={3} sx={{ padding: 4, width: '100%', textAlign: 'center' }}>
+          {branding?.logoUrl && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+              <img 
+                src={branding.logoUrl} 
+                alt={`${branding.companyName || 'Company'} Logo`}
+                style={{ maxHeight: '60px', maxWidth: '200px' }}
+              />
+            </Box>
+          )}
           {state.loading && (
             <Box
               sx={{
@@ -122,7 +133,7 @@ const SsoCallback: React.FC = () => {
             >
               <CircularProgress size={48} />
               <Typography variant="h6" component="h1">
-                Processing SSO Authentication
+                {branding?.companyName ? `Processing ${branding.companyName} SSO Authentication` : 'Processing SSO Authentication'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Please wait while we verify your credentials...
