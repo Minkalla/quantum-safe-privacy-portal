@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { spawn } from 'child_process';
 import * as path from 'path';
+import { HybridCryptoService } from './hybrid-crypto.service';
 
 export interface PQCOperationParams {
   user_id?: string;
@@ -27,6 +28,12 @@ export interface PQCOperationResult {
   verified?: boolean;
   payload?: any;
   error_message?: string;
+  metadata?: {
+    fallbackReason?: string;
+    timestamp?: string;
+    operationId?: string;
+    originalAlgorithm?: string;
+  };
   handshake_metadata?: {
     handshake_id?: string;
     user_id?: string;
@@ -64,7 +71,9 @@ export class PQCBridgeService {
   );
   private readonly pythonExecutable = 'python3';
 
-  constructor() {
+  constructor(
+    private readonly hybridCryptoService: HybridCryptoService,
+  ) {
     this.logger.log(`PQCBridgeService initialized. Python script: ${this.pythonScriptPath}`);
   }
 
@@ -174,46 +183,144 @@ export class PQCBridgeService {
     operation: string,
     params: PQCOperationParams,
   ): Promise<PQCOperationResult> {
-    this.logger.warn(`Executing fallback for operation: ${operation}`);
-    
-    
-    const fallbackResult: PQCOperationResult = {
-      success: true,
-      algorithm: 'RSA-2048',
-      fallback: true,
-      error_message: "PQC service unavailable, fell back to RSA.",
-      performance_metrics: {
-        duration_ms: 1,
-        operation: operation,
-        fallback_used: true
-      }
-    };
+    this.logger.warn(`Executing fallback for operation: ${operation}. Delegating to real RSA.`);
 
-    switch (operation) {
-      case 'generate_session_key': {
-        fallbackResult.session_data = {
-          algorithm: 'RSA-2048',
-          shared_secret: 'fallback_shared_secret_placeholder',
-          ciphertext: 'fallback_ciphertext_placeholder',
-          session_id: this.generateUUID()
-        };
-        break;
+    const startTime = Date.now();
+    let fallbackResult: any;
+    let algorithmUsed = 'RSA-2048';
+
+    try {
+      switch (operation) {
+        case 'generate_session_key': {
+          const keyPair = await this.hybridCryptoService.generateKeyPairWithFallback();
+          
+          const sessionPayload = JSON.stringify({
+            user_id: params.user_id,
+            timestamp: Date.now(),
+            session_id: this.generateUUID(),
+          });
+          
+          const encryptionResult = await this.hybridCryptoService.encryptWithFallback(
+            sessionPayload,
+            keyPair.publicKey
+          );
+          
+          algorithmUsed = encryptionResult.algorithm;
+          
+          return {
+            success: true,
+            algorithm: algorithmUsed,
+            fallback: true,
+            session_data: {
+              algorithm: algorithmUsed,
+              shared_secret: keyPair.privateKey, // Private key acts as shared secret in RSA fallback
+              ciphertext: encryptionResult.ciphertext,
+              session_id: this.generateUUID(),
+            },
+            performance_metrics: {
+              duration_ms: Date.now() - startTime,
+              operation: operation,
+              fallback_used: true,
+            },
+            metadata: {
+              fallbackReason: 'PQC service unavailable',
+              timestamp: new Date().toISOString(),
+              operationId: params.operation_id,
+              originalAlgorithm: 'ML-KEM-768',
+            },
+          };
+        }
+        
+        case 'sign_token': {
+          const keyPair = await this.hybridCryptoService.generateKeyPairWithFallback();
+          
+          const messageToSign = params.data_hash || params.message || JSON.stringify(params.payload || {});
+          
+          const signatureResult = await this.hybridCryptoService.signWithFallback(
+            messageToSign,
+            keyPair.privateKey
+          );
+          
+          algorithmUsed = signatureResult.algorithm;
+          
+          return {
+            success: true,
+            algorithm: algorithmUsed,
+            fallback: true,
+            token: signatureResult.signature,
+            data: {
+              signature: signatureResult.signature,
+              publicKey: keyPair.publicKey,
+              message: messageToSign,
+            },
+            performance_metrics: {
+              duration_ms: Date.now() - startTime,
+              operation: operation,
+              fallback_used: true,
+            },
+            metadata: {
+              fallbackReason: 'PQC service unavailable',
+              timestamp: new Date().toISOString(),
+              operationId: params.operation_id,
+              originalAlgorithm: 'ML-DSA-65',
+            },
+          };
+        }
+        
+        case 'verify_token': {
+          const messageToVerify = params.data_hash || params.message || JSON.stringify(params.original_payload || {});
+          const publicKey = params.public_key_hex || '';
+          const signatureHex = params.signature_hex || params.token || '';
+          
+          if (!publicKey || !signatureHex) {
+            throw new Error('Missing required parameters for signature verification: public_key_hex and signature_hex');
+          }
+          
+          const signatureResult = {
+            algorithm: (params.algorithm || 'RSA-2048') as 'ML-DSA-65' | 'RSA-2048',
+            signature: signatureHex,
+            fallbackUsed: true,
+            isPQCDegraded: true,
+            metadata: {
+              timestamp: new Date().toISOString(),
+              fallbackReason: 'PQC service unavailable',
+            },
+          };
+          
+          const isValid = await this.hybridCryptoService.verifyWithFallback(
+            signatureResult,
+            messageToVerify,
+            publicKey
+          );
+          
+          return {
+            success: true,
+            algorithm: algorithmUsed,
+            fallback: true,
+            verified: isValid,
+            payload: params.original_payload || params.payload || params,
+            performance_metrics: {
+              duration_ms: Date.now() - startTime,
+              operation: operation,
+              fallback_used: true,
+            },
+            metadata: {
+              fallbackReason: 'PQC service unavailable',
+              timestamp: new Date().toISOString(),
+              operationId: params.operation_id,
+              originalAlgorithm: 'ML-DSA-65',
+            },
+          };
+        }
+        
+        default: {
+          this.logger.error(`Unsupported fallback operation: ${operation}`);
+          throw new Error(`Unsupported fallback operation: ${operation}`);
+        }
       }
-      case 'sign_token': {
-        fallbackResult.token = 'fallback_rsa_token_placeholder';
-        fallbackResult.data = params;
-        break;
-      }
-      case 'verify_token': {
-        fallbackResult.verified = true;
-        fallbackResult.payload = params.payload || params;
-        break;
-      }
-      default: {
-        fallbackResult.data = params;
-      }
+    } catch (error) {
+      this.logger.error(`Real RSA fallback failed for operation ${operation}: ${error.message}`);
+      throw new Error(`Critical cryptographic fallback failure: ${error.message}`);
     }
-
-    return fallbackResult;
   }
 }
