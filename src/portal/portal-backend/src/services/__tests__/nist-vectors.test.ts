@@ -23,7 +23,7 @@ describe('NIST Test Vector Compliance', () => {
           return Promise.resolve({
             success: true,
             session_data: {
-              ciphertext: `ml-kem-768-encrypted-${params.user_id}-${Math.random().toString(36).substring(7)}`,
+              ciphertext: `ml-kem-768-encrypted-${params.user_id}-${crypto.randomBytes(4).toString('hex').substring(0, 7)}`,
               shared_secret: crypto.randomBytes(32).toString('hex') + crypto.randomBytes(32).toString('hex'),
             },
           });
@@ -46,7 +46,7 @@ describe('NIST Test Vector Compliance', () => {
             verified: false,
           });
         } else if (operation === 'sign_token') {
-          const token = `ml-dsa-65-signature-${Math.random().toString(36).substring(7)}-${Date.now()}`;
+          const token = `ml-dsa-65-signature-${crypto.randomBytes(4).toString('hex').substring(0, 7)}-${Date.now()}`;
           const dataHash = params.payload?.dataHash;
 
           if (dataHash) {

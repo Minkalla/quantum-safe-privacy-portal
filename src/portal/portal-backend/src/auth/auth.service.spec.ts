@@ -107,6 +107,8 @@ describe('AuthService - Refresh Token', () => {
     service = module.get<AuthService>(AuthService);
     jwtService = module.get<JwtService>(JwtService);
     userModel = module.get(getModelToken('User'));
+    
+    await module.init();
   });
 
   afterEach(() => {

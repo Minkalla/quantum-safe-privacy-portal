@@ -1,18 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { JwtModule } from '@nestjs/jwt';
 import request from 'supertest';
-import { AuthController } from '../auth.controller';
-import { DeviceController } from '../device.controller';
-import { DeviceService } from '../device.service';
-import { AuthService } from '../auth.service';
-import { EnhancedAuthService } from '../enhanced-auth.service';
-import { MFAService } from '../mfa.service';
-import { SsoService } from '../sso.service';
-import { UserSchema } from '../../models/User';
-import { JwtService as CustomJwtService } from '../../jwt/jwt.service';
-import { createTestModule } from '../../test-utils/createTestModule';
+import { ConfigModule } from '@nestjs/config';
+import { AuthModule } from '../auth.module';
+import { UserModule } from '../../user/user.module';
+import { JwtModule } from '../../jwt/jwt.module';
+import cookieParser from 'cookie-parser';
 
 describe('Device Trust Integration Tests', () => {
   let app: INestApplication;
@@ -21,27 +15,81 @@ describe('Device Trust Integration Tests', () => {
   let userId: string;
 
   beforeAll(async () => {
-    module = await createTestModule({
-      controllers: [AuthController, DeviceController],
-      providers: [
-        DeviceService,
-        AuthService,
-        EnhancedAuthService,
-        MFAService,
-        SsoService,
-        CustomJwtService,
+    process.env.SKIP_SECRETS_MANAGER = 'true';
+    process.env.JWT_ACCESS_SECRET = 'test-access-secret';
+    process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
+    process.env.JWT_SECRET = 'test-jwt-secret';
+    process.env.AWS_REGION = 'us-east-1';
+    process.env.APP_VERSION = '1.0.0-test';
+
+    module = await Test.createTestingModule({
+      imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+          load: [() => ({
+            'SKIP_SECRETS_MANAGER': 'true',
+            'AWS_REGION': 'us-east-1',
+            'MongoDB1': process.env.MongoDB1 || 'mongodb://localhost:27017/test',
+            'JWT_SECRET': 'test-jwt-secret',
+            'JWT_ACCESS_SECRET': 'test-access-secret',
+            'JWT_REFRESH_SECRET': 'test-refresh-secret',
+            'JWT_ACCESS_SECRET_ID': 'test-access-secret-id',
+            'JWT_REFRESH_SECRET_ID': 'test-refresh-secret-id',
+            'APP_VERSION': '1.0.0-test',
+            'device.trust.enabled': true,
+            'device.trust.expiry_days': 30,
+          })],
+        }),
+        MongooseModule.forRoot(process.env.MongoDB1 || 'mongodb://localhost:27017/test'),
+        AuthModule,
+        UserModule,
+        JwtModule,
       ],
-      configOverrides: {
-        'device.trust.enabled': true,
-        'device.trust.expiry_days': 30,
-      },
-    });
+    }).compile();
 
     app = module.createNestApplication();
+    app.setGlobalPrefix('portal');
+    app.use(cookieParser());
+    app.useGlobalPipes(new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }));
+    
     await app.init();
+    await new Promise(resolve => setTimeout(resolve, 100));
 
-    userId = 'test-user-id';
-    authToken = 'mock-jwt-token';
+    const registerResponse = await request(app.getHttpServer())
+      .post('/portal/auth/register')
+      .send({
+        email: 'devicetest@example.com',
+        password: 'password123',
+      });
+
+    console.log('Register response status:', registerResponse.status);
+    console.log('Register response body:', JSON.stringify(registerResponse.body, null, 2));
+
+    const loginResponse = await request(app.getHttpServer())
+      .post('/portal/auth/login')
+      .send({
+        email: 'devicetest@example.com',
+        password: 'password123',
+        rememberMe: false,
+      });
+
+    console.log('Login response status:', loginResponse.status);
+    console.log('Login response body:', JSON.stringify(loginResponse.body, null, 2));
+
+    if (!loginResponse.body.accessToken) {
+      throw new Error(`Login failed: ${JSON.stringify(loginResponse.body)}`);
+    }
+
+    if (!loginResponse.body.user || !loginResponse.body.user.id) {
+      throw new Error(`Login response missing user.id: ${JSON.stringify(loginResponse.body)}`);
+    }
+
+    authToken = loginResponse.body.accessToken;
+    userId = loginResponse.body.user.id;
   });
 
   afterAll(async () => {
@@ -62,7 +110,7 @@ describe('Device Trust Integration Tests', () => {
       };
 
       const response = await request(app.getHttpServer())
-        .post('/auth/device/register')
+        .post('/portal/auth/device/register')
         .set('Authorization', `Bearer ${authToken}`)
         .set('X-Device-Fingerprint', 'test-fingerprint-123')
         .send(deviceData)
@@ -84,7 +132,7 @@ describe('Device Trust Integration Tests', () => {
       };
 
       await request(app.getHttpServer())
-        .post('/auth/device/register')
+        .post('/portal/auth/device/register')
         .send(deviceData)
         .expect(401);
     });
@@ -95,7 +143,7 @@ describe('Device Trust Integration Tests', () => {
       };
 
       await request(app.getHttpServer())
-        .post('/auth/device/register')
+        .post('/portal/auth/device/register')
         .set('Authorization', `Bearer ${authToken}`)
         .send(invalidDeviceData)
         .expect(400);
@@ -108,20 +156,22 @@ describe('Device Trust Integration Tests', () => {
         deviceType: 'desktop',
       };
 
+      const sameFingerprint = 'duplicate-fingerprint-test';
+
       await request(app.getHttpServer())
-        .post('/auth/device/register')
+        .post('/portal/auth/device/register')
         .set('Authorization', `Bearer ${authToken}`)
-        .set('X-Device-Fingerprint', 'legitimate-fingerprint')
+        .set('X-Device-Fingerprint', sameFingerprint)
         .send({
           userAgent: 'Mozilla/5.0 Spoofed Browser',
-          deviceName: 'Legitimate Device',
+          deviceName: 'First Device',
           deviceType: 'desktop',
         });
 
       const response = await request(app.getHttpServer())
-        .post('/auth/device/register')
+        .post('/portal/auth/device/register')
         .set('Authorization', `Bearer ${authToken}`)
-        .set('X-Device-Fingerprint', 'spoofed-fingerprint')
+        .set('X-Device-Fingerprint', sameFingerprint)
         .send(deviceData)
         .expect(400);
 
@@ -137,7 +187,7 @@ describe('Device Trust Integration Tests', () => {
       };
 
       const response = await request(app.getHttpServer())
-        .post('/auth/device/verify')
+        .post('/portal/auth/device/verify')
         .set('Authorization', `Bearer ${authToken}`)
         .send(verifyData)
         .expect(200);
@@ -154,7 +204,7 @@ describe('Device Trust Integration Tests', () => {
       };
 
       const response = await request(app.getHttpServer())
-        .post('/auth/device/verify')
+        .post('/portal/auth/device/verify')
         .set('Authorization', `Bearer ${authToken}`)
         .send(verifyData)
         .expect(200);
@@ -171,7 +221,7 @@ describe('Device Trust Integration Tests', () => {
       };
 
       await request(app.getHttpServer())
-        .post('/auth/device/verify')
+        .post('/portal/auth/device/verify')
         .send(verifyData)
         .expect(401);
     });
@@ -184,7 +234,7 @@ describe('Device Trust Integration Tests', () => {
       };
 
       const response = await request(app.getHttpServer())
-        .post('/auth/device/check-trust')
+        .post('/portal/auth/device/check-trust')
         .set('Authorization', `Bearer ${authToken}`)
         .send(trustData)
         .expect(200);
@@ -202,7 +252,7 @@ describe('Device Trust Integration Tests', () => {
       };
 
       await request(app.getHttpServer())
-        .post('/auth/device/check-trust')
+        .post('/portal/auth/device/check-trust')
         .send(trustData)
         .expect(401);
     });
@@ -212,7 +262,7 @@ describe('Device Trust Integration Tests', () => {
       };
 
       await request(app.getHttpServer())
-        .post('/auth/device/check-trust')
+        .post('/portal/auth/device/check-trust')
         .set('Authorization', `Bearer ${authToken}`)
         .send(invalidTrustData)
         .expect(400);
@@ -229,7 +279,7 @@ describe('Device Trust Integration Tests', () => {
 
       const promises = Array(5).fill(null).map((_, index) =>
         request(app.getHttpServer())
-          .post('/auth/device/register')
+          .post('/portal/auth/device/register')
           .set('Authorization', `Bearer ${authToken}`)
           .set('X-Device-Fingerprint', `concurrent-fingerprint-${index}`)
           .send(deviceData),
@@ -258,7 +308,7 @@ describe('Device Trust Integration Tests', () => {
       const sensitiveFingerprint = 'very-sensitive-fingerprint-data-12345678901234567890';
 
       await request(app.getHttpServer())
-        .post('/auth/device/register')
+        .post('/portal/auth/device/register')
         .set('Authorization', `Bearer ${authToken}`)
         .set('X-Device-Fingerprint', sensitiveFingerprint)
         .send(deviceData)

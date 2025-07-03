@@ -13,9 +13,11 @@ export class QuantumSafeJWTService {
 
   async signPQCToken(payload: any): Promise<string> {
     try {
+      const keyPair = await this.hybridCryptoService.generateKeyPairWithFallback();
+      
       // Attempt PQC-enhanced JWT signing using HybridCryptoService
       const message = JSON.stringify(payload);
-      const pqcResult = await this.hybridCryptoService.signWithFallback(message, '');
+      const pqcResult = await this.hybridCryptoService.signWithFallback(message, keyPair.privateKey);
       
       if (pqcResult && pqcResult.signature) {
         const header = { alg: pqcResult.algorithm === 'ML-DSA-65' ? 'ML-DSA-65' : 'RS256', typ: 'JWT' };
@@ -55,7 +57,8 @@ export class QuantumSafeJWTService {
             isPQCDegraded: header.alg === 'RS256',
           };
           
-          const isValid = await this.hybridCryptoService.verifyWithFallback(hybridSignature, message, '');
+          const keyPair = await this.hybridCryptoService.generateKeyPairWithFallback();
+          const isValid = await this.hybridCryptoService.verifyWithFallback(hybridSignature, message, keyPair.publicKey);
           
           if (isValid) {
             return payload;

@@ -53,7 +53,8 @@ export class DeviceController {
         device: trustedDevice,
       };
     } catch (error) {
-      this.logger.error(`Device registration failed: ${error.message}`, error.stack);
+      this.logger.error(`Device registration failed: ${error.message}`);
+      this.logger.debug('Device registration error stack:', error.stack);
       throw error;
     }
   }
@@ -88,7 +89,8 @@ export class DeviceController {
         };
       }
     } catch (error) {
-      this.logger.error(`Device verification failed: ${error.message}`, error.stack);
+      this.logger.error(`Device verification failed: ${error.message}`);
+      this.logger.debug('Device verification error stack:', error.stack);
       throw error;
     }
   }
@@ -122,7 +124,8 @@ export class DeviceController {
         timestamp: trustResult.decision.timestamp,
       };
     } catch (error) {
-      this.logger.error(`Device trust check failed: ${error.message}`, error.stack);
+      this.logger.error(`Device trust check failed: ${error.message}`);
+      this.logger.debug('Device trust check error stack:', error.stack);
       throw error;
     }
   }

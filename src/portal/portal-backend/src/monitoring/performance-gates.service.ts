@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import * as crypto from 'crypto';
 
 interface PerformanceThresholds {
   authenticationLatency: number;
@@ -73,10 +74,10 @@ export class PerformanceGatesService {
 
   async getCurrentMetrics(): Promise<PerformanceMetrics> {
     return {
-      authenticationLatency: Math.random() * 150 + 50,
-      keyGenerationTime: Math.random() * 1000 + 100,
-      memoryUsage: Math.random() * 30 + 10,
-      errorRate: Math.random() * 0.005,
+      authenticationLatency: crypto.randomBytes(1)[0] / 255 * 150 + 50,
+      keyGenerationTime: crypto.randomBytes(2).readUInt16BE(0) / 65535 * 1000 + 100,
+      memoryUsage: crypto.randomBytes(1)[0] / 255 * 30 + 10,
+      errorRate: crypto.randomBytes(1)[0] / 255 * 0.005,
       timestamp: new Date().toISOString(),
     };
   }

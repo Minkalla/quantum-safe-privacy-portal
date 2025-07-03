@@ -102,18 +102,31 @@ describe('MFAService', () => {
       speakeasy.totp.verify = () => false;
       
       const backupCodes = ['ABCD1234', 'EFGH5678'];
-      secretsService.getSecret = async (key: string) => {
-        if (key.includes('mfa_secret')) return mockSecret;
-        if (key.includes('backup_codes')) return JSON.stringify(backupCodes);
-        throw new Error('Secret not found');
+      
+      const mockSecretsService = {
+        getSecret: jest.fn().mockImplementation(async (key: string) => {
+          if (key.includes('mfa_secret')) return mockSecret;
+          if (key.includes('backup_codes')) return JSON.stringify(backupCodes);
+          throw new Error('Secret not found');
+        }),
+        storeSecret: jest.fn().mockResolvedValue(undefined),
+        deleteSecret: jest.fn().mockResolvedValue(undefined),
       };
+      
+      (service as any).secretsService = mockSecretsService;
 
       try {
         const result = await service.verifyMFA('60d5ec49f1a23c001c8a4d7d', 'ABCD1234');
         expect(result.verified).toBe(true);
         expect(result.message).toBe('Backup code verified successfully');
+        
+        expect(mockSecretsService.storeSecret).toHaveBeenCalledWith(
+          'mfa_backup_codes_60d5ec49f1a23c001c8a4d7d',
+          JSON.stringify(['EFGH5678'])
+        );
       } finally {
         speakeasy.totp.verify = originalVerify;
+        (service as any).secretsService = secretsService;
       }
     });
 
@@ -170,13 +183,21 @@ describe('MFAService', () => {
       const userModel = module.get(getModelToken('User'));
       userModel.findById.mockResolvedValue(mockUser);
       
-      secretsService.getSecret = async () => {
-        throw new Error('Secret not found');
+      const mockSecretsService = {
+        getSecret: jest.fn().mockRejectedValue(new Error('Secret not found')),
+        storeSecret: jest.fn().mockResolvedValue(undefined),
+        deleteSecret: jest.fn().mockResolvedValue(undefined),
       };
+      
+      (service as any).secretsService = mockSecretsService;
 
-      await expect(service.verifyMFA('60d5ec49f1a23c001c8a4d7d', '123456')).rejects.toThrow(
-        UnauthorizedException,
-      );
+      try {
+        await expect(service.verifyMFA('60d5ec49f1a23c001c8a4d7d', '123456')).rejects.toThrow(
+          UnauthorizedException,
+        );
+      } finally {
+        (service as any).secretsService = secretsService;
+      }
     });
   });
 

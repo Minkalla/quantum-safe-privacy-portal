@@ -177,18 +177,19 @@ describe('DeviceService', () => {
   });
 
   describe('detectSpoofingAttempt', () => {
-    it('should detect potential spoofing when same userAgent used recently', async () => {
+    it('should detect potential spoofing when same fingerprint used within 5 seconds', async () => {
       const userId = 'user123';
       const deviceInfo = {
         userAgent: 'Mozilla/5.0 Suspicious Browser',
         ipAddress: '192.168.1.100',
       };
 
+      const currentFingerprint = service.generateDeviceFingerprint(deviceInfo);
       const recentDevice = {
         deviceId: 'device123',
-        fingerprint: 'Mozilla/5.0 Suspicious Browser:192.168.1.1',
-        lastUsed: new Date(Date.now() - 30 * 60 * 1000),
-        createdAt: new Date(),
+        fingerprint: currentFingerprint, // Same fingerprint
+        lastUsed: new Date(Date.now() - 2 * 1000), // 2 seconds ago
+        createdAt: new Date(Date.now() - 2 * 1000), // 2 seconds ago (within 5 second window)
       };
 
       const userModel = module.get(getModelToken('User'));

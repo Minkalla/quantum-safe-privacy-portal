@@ -112,6 +112,8 @@ describe('AuthService', () => {
 
     service = module.get<AuthService>(AuthService);
     userModel = module.get(getModelToken('User'));
+    
+    await module.init();
   });
 
   it('should be defined', () => {
@@ -161,7 +163,7 @@ describe('AuthService', () => {
       expect(result.user).toHaveProperty('email', 'test@example.com');
     });
 
-    it('should login user without refreshToken when rememberMe is false', async () => {
+    it('should login user with refreshToken regardless of rememberMe flag', async () => {
       const loginDto = { email: 'test@example.com', password: 'password123', rememberMe: false };
 
       const userWithValidPassword = { 
@@ -179,7 +181,7 @@ describe('AuthService', () => {
       const result = await service.login(loginDto);
 
       expect(result).toHaveProperty('accessToken');
-      expect(result).not.toHaveProperty('refreshToken');
+      expect(result).toHaveProperty('refreshToken');
       expect(result).toHaveProperty('user');
       expect(result.user).toHaveProperty('email', 'test@example.com');
     });

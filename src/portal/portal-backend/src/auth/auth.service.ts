@@ -142,7 +142,6 @@ export class AuthService {
             kem_algorithm: pqcResult.handshake_metadata?.kem_algorithm,
             dsa_algorithm: pqcResult.handshake_metadata?.dsa_algorithm,
             iat: Math.floor(Date.now() / 1000),
-            exp: Math.floor(Date.now() / 1000) + (60 * 60), // 1 hour
           };
 
           await this.pqcMonitoring.recordPQCKeyGeneration(userId, startTime, true);
@@ -166,7 +165,6 @@ export class AuthService {
           algorithm: 'RSA-2048',
           fallback: true,
           iat: Math.floor(Date.now() / 1000),
-          exp: Math.floor(Date.now() / 1000) + (60 * 60), // 1 hour
         };
 
         const fallbackResult = await this.hybridCryptoService.encryptWithFallback(
@@ -434,15 +432,12 @@ export class AuthService {
 
     const response: any = {
       accessToken,
+      refreshToken,
       user: {
         id: (user._id as ObjectId).toString(), // CHANGED: Explicitly cast user._id to ObjectId for .toString() method
         email: user.email,
       },
     };
-
-    if (rememberMe) {
-      response.refreshToken = refreshToken;
-    }
 
     return response;
   }
@@ -454,28 +449,48 @@ export class AuthService {
    * @throws UnauthorizedException for invalid or expired refresh tokens.
    */
   async refreshToken(refreshToken: string): Promise<{ accessToken: string; refreshToken?: string; user: { id: string; email: string } }> {
+    this.logger.debug(`Starting refresh token validation for token: ${refreshToken.substring(0, 20)}...`);
+    
     try {
+      this.logger.debug('Step 1: Verifying JWT token with JWT service');
       const payload = this.jwtService.verifyToken(refreshToken, 'refresh');
       if (!payload) {
+        this.logger.error('Step 1 FAILED: JWT verification returned null payload');
         this.invalidRefreshTokenHandler(refreshToken, 'Invalid token payload');
         throw new UnauthorizedException('Invalid refresh token');
       }
+      this.logger.debug(`Step 1 SUCCESS: JWT payload extracted, userId: ${payload.userId}`);
 
+      this.logger.debug('Step 2: Finding user in database');
       const user = await this.userModel
         .findById(this.sanitizeUserId(payload.userId))
         .select('+refreshTokenHash');
 
-      if (!user || !user.refreshTokenHash) {
-        this.invalidRefreshTokenHandler(refreshToken, 'User not found or no refresh token hash');
+      if (!user) {
+        this.logger.error(`Step 2 FAILED: User not found for ID: ${payload.userId}`);
+        this.invalidRefreshTokenHandler(refreshToken, 'User not found');
         throw new UnauthorizedException('Invalid refresh token');
       }
+      
+      if (!user.refreshTokenHash) {
+        this.logger.error(`Step 2 FAILED: User ${user.email} has no refresh token hash stored`);
+        this.invalidRefreshTokenHandler(refreshToken, 'No refresh token hash');
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+      this.logger.debug(`Step 2 SUCCESS: User found: ${user.email}, has refresh token hash`);
 
+      this.logger.debug('Step 3: Comparing refresh token with stored hash');
       const isRefreshTokenValid = await bcrypt.compare(refreshToken, user.refreshTokenHash);
       if (!isRefreshTokenValid) {
+        this.logger.error(`Step 3 FAILED: Token hash mismatch for user ${user.email}`);
+        this.logger.debug(`Provided token: ${refreshToken.substring(0, 20)}...`);
+        this.logger.debug(`Stored hash: ${user.refreshTokenHash.substring(0, 20)}...`);
         this.invalidRefreshTokenHandler(refreshToken, 'Token hash mismatch');
         throw new UnauthorizedException('Invalid refresh token');
       }
+      this.logger.debug(`Step 3 SUCCESS: Token hash validation passed for user ${user.email}`);
 
+      this.logger.debug('Step 4: Generating new tokens');
       const tokenPayload = { userId: (user._id as ObjectId).toString(), email: user.email };
       const { accessToken, refreshToken: newRefreshToken } = this.jwtService.generateTokens(tokenPayload, false);
 
@@ -494,7 +509,8 @@ export class AuthService {
         },
       };
     } catch (error) {
-      this.logger.warn(`Token refresh failed: ${error.message}`);
+      this.logger.error(`Token refresh failed: ${error.message}`);
+      this.logger.debug('Token refresh error stack:', error.stack);
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
   }

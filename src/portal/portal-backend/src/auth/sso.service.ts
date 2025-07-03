@@ -82,15 +82,16 @@ export class SsoService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async getSamlConfig(): Promise<SamlConfig> {
+  private async getSamlConfig(): Promise<SamlConfig & { decryptionCert?: string }> {
     try {
-      const [entryPoint, cert, issuer, callbackUrl, entityId, privateKey] = await Promise.all([
+      const [entryPoint, cert, issuer, callbackUrl, entityId, privateKey, decryptionCert] = await Promise.all([
         this.secretsService.getSecret('SSO_IDP_ENTRY_POINT'),
         this.secretsService.getSecret('SSO_IDP_CERTIFICATE'),
         this.secretsService.getSecret('SSO_ISSUER'),
         this.secretsService.getSecret('SSO_CALLBACK_URL'),
         this.secretsService.getSecret('SSO_ENTITY_ID'),
         this.secretsService.getSecret('SSO_PRIVATE_KEY').catch(() => null), // Optional
+        this.secretsService.getSecret('SSO_DECRYPTION_CERT').catch(() => null), // Optional
       ]);
 
       return {
@@ -100,6 +101,7 @@ export class SsoService implements OnModuleInit, OnModuleDestroy {
         callbackUrl,
         entityId,
         privateKey: privateKey || undefined,
+        decryptionCert: decryptionCert || undefined,
       };
     } catch (error) {
       this.logger.error('Failed to retrieve SAML configuration from secrets', error);
@@ -280,11 +282,12 @@ export class SsoService implements OnModuleInit, OnModuleDestroy {
       await this.initializeSamlStrategy();
     }
 
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       try {
+        const config = await this.getSamlConfig();
         const metadata = this.samlStrategy.generateServiceProviderMetadata(
-          null, // No decryption cert
-          null,  // No signing cert
+          config.decryptionCert || null, // Use decryption cert if available
+          config.decryptionCert || null, // Use same cert for signing if available
         );
         resolve(metadata);
       } catch (error) {
