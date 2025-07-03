@@ -11,64 +11,32 @@ import { MFAService } from '../mfa.service';
 import { SsoService } from '../sso.service';
 import { UserSchema } from '../../models/User';
 import { JwtService as CustomJwtService } from '../../jwt/jwt.service';
+import { createTestModule } from '../../test-utils/createTestModule';
 
 describe('Device Trust Integration Tests', () => {
   let app: INestApplication;
+  let module: TestingModule;
   let authToken: string;
   let userId: string;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [
-        MongooseModule.forRoot(process.env.MongoDB1 || 'mongodb://localhost:27017/test'),
-        MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]),
-        JwtModule.register({
-          secret: 'test-secret',
-          signOptions: { expiresIn: '1h' },
-        }),
-      ],
-      controllers: [AuthController],
+    module = await createTestModule({
       providers: [
         DeviceService,
-        {
-          provide: AuthService,
-          useValue: {
-            validateUser: jest.fn(),
-            login: jest.fn(),
-          },
-        },
-        {
-          provide: EnhancedAuthService,
-          useValue: {
-            register: jest.fn(),
-            login: jest.fn(),
-          },
-        },
-        {
-          provide: MFAService,
-          useValue: {
-            setupMFA: jest.fn(),
-            verifyMFA: jest.fn(),
-          },
-        },
-        {
-          provide: SsoService,
-          useValue: {
-            initiateLogin: jest.fn(),
-            getMetadata: jest.fn(),
-          },
-        },
-        {
-          provide: CustomJwtService,
-          useValue: {
-            generateTokens: jest.fn(),
-            verifyToken: jest.fn().mockReturnValue({ userId: 'test-user-id', email: 'test@example.com' }),
-          },
-        },
+        AuthService,
+        EnhancedAuthService,
+        MFAService,
+        SsoService,
+        CustomJwtService,
+        AuthController,
       ],
-    }).compile();
+      configOverrides: {
+        'device.trust.enabled': true,
+        'device.trust.expiry_days': 30,
+      },
+    });
 
-    app = moduleFixture.createNestApplication();
+    app = module.createNestApplication();
     await app.init();
 
     userId = 'test-user-id';
@@ -79,9 +47,8 @@ describe('Device Trust Integration Tests', () => {
     if (app) {
       await app.close();
     }
-    const mongoose = require('mongoose');
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
+    if (module) {
+      await module.close();
     }
   });
 

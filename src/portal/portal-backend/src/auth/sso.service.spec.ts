@@ -18,6 +18,7 @@ import { ConfigService } from '@nestjs/config';
 import { PQCFeatureFlagsService } from '../pqc/pqc-feature-flags.service';
 import { PQCMonitoringService } from '../pqc/pqc-monitoring.service';
 import { Strategy as SamlStrategy, Profile } from 'passport-saml';
+import { createTestModule } from '../test-utils/createTestModule';
 
 describe('SsoService', () => {
   let service: SsoService;
@@ -58,41 +59,32 @@ describe('SsoService', () => {
   };
 
   beforeEach(async () => {
-    module = await Test.createTestingModule({
+    module = await createTestModule({
       providers: [
         SsoService,
         SecretsService,
         CustomJwtService,
-        JwtService,
         PQCFeatureFlagsService,
         PQCMonitoringService,
-        {
-          provide: ConfigService,
-          useValue: {
-            get: (key: string) => {
-              const config = {
-                'JWT_ACCESS_SECRET_ID': 'test-access-secret-id',
-                'JWT_REFRESH_SECRET_ID': 'test-refresh-secret-id',
-                'AWS_REGION': 'us-east-1',
-                'SKIP_SECRETS_MANAGER': 'true',
-                'MongoDB1': process.env.MongoDB1 || 'mongodb://localhost:27017/test',
-                'SSO_IDP_ENTRY_POINT': mockSamlConfig.entryPoint,
-                'SSO_IDP_CERTIFICATE': mockSamlConfig.cert,
-                'SSO_ISSUER': mockSamlConfig.issuer,
-                'SSO_CALLBACK_URL': mockSamlConfig.callbackUrl,
-                'SSO_ENTITY_ID': mockSamlConfig.entityId,
-                'SSO_PRIVATE_KEY': mockSamlConfig.privateKey,
-                'jwt.secret': 'test-secret',
-                'jwt.expiresIn': '1h',
-                'pqc.enabled': true,
-                'pqc.fallback_enabled': true,
-              };
-              return config[key] || process.env[key] || 'test-value';
-            },
-          },
-        },
       ],
-    }).compile();
+      configOverrides: {
+        'JWT_ACCESS_SECRET_ID': 'test-access-secret-id',
+        'JWT_REFRESH_SECRET_ID': 'test-refresh-secret-id',
+        'AWS_REGION': 'us-east-1',
+        'SKIP_SECRETS_MANAGER': 'true',
+        'MongoDB1': process.env.MongoDB1 || 'mongodb://localhost:27017/test',
+        'SSO_IDP_ENTRY_POINT': mockSamlConfig.entryPoint,
+        'SSO_IDP_CERTIFICATE': mockSamlConfig.cert,
+        'SSO_ISSUER': mockSamlConfig.issuer,
+        'SSO_CALLBACK_URL': mockSamlConfig.callbackUrl,
+        'SSO_ENTITY_ID': mockSamlConfig.entityId,
+        'SSO_PRIVATE_KEY': mockSamlConfig.privateKey,
+        'jwt.secret': 'test-secret',
+        'jwt.expiresIn': '1h',
+        'pqc.enabled': true,
+        'pqc.fallback_enabled': true,
+      },
+    });
 
     service = module.get<SsoService>(SsoService);
     secretsService = module.get<SecretsService>(SecretsService);
