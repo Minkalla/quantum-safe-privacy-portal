@@ -1,65 +1,28 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { DeviceService } from '../device.service';
-import { Model } from 'mongoose';
-import { IUser } from '../../models/User';
+import { createTestModule } from '../../test-utils/createTestModule';
 
 describe('DeviceService', () => {
   let service: DeviceService;
-  let userModel: Model<IUser>;
-
-  const mockUser = {
-    _id: 'user123',
-    email: 'test@example.com',
-    trustedDevices: [],
-    save: () => Promise.resolve(true),
-  };
+  let module: TestingModule;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        DeviceService,
-        {
-          provide: getModelToken('User'),
-          useValue: (() => {
-            function MockUserModel(userData) {
-              Object.assign(this, { ...mockUser, ...userData });
-              
-              this.save = function() {
-                const result = { 
-                  ...this, 
-                  _id: '507f1f77bcf86cd799439011'
-                };
-                return Promise.resolve(result);
-              };
-            }
-            
-            MockUserModel.findById = function(id) {
-              if (id === 'user123') {
-                return Promise.resolve(mockUser);
-              }
-              return Promise.resolve(null);
-            };
-            
-            MockUserModel.findByIdAndUpdate = function(id, update) {
-              if (id === 'user123') {
-                const updatedUser = { ...mockUser };
-                if (update.$push && update.$push.trustedDevices) {
-                  updatedUser.trustedDevices = [...mockUser.trustedDevices, update.$push.trustedDevices];
-                }
-                return Promise.resolve(updatedUser);
-              }
-              return Promise.resolve(null);
-            };
-            
-            return MockUserModel;
-          })(),
-        },
-      ],
-    }).compile();
+    module = await createTestModule({
+      providers: [DeviceService],
+      configOverrides: {
+        'device.trust.enabled': true,
+        'device.trust.expiry_days': 30,
+      },
+    });
 
     service = module.get<DeviceService>(DeviceService);
-    userModel = module.get(getModelToken('User'));
+  });
+
+  afterEach(async () => {
+    if (module) {
+      await module.close();
+    }
   });
 
   describe('generateDeviceFingerprint', () => {
@@ -116,6 +79,19 @@ describe('DeviceService', () => {
         deviceType: 'desktop' as const,
       };
 
+      const userModel = module.get(getModelToken('User'));
+      const mockUser = {
+        _id: userId,
+        email: 'test@example.com',
+        trustedDevices: [],
+        save: () => Promise.resolve(true),
+      };
+      userModel.findById.mockResolvedValue(mockUser);
+      userModel.findByIdAndUpdate.mockResolvedValue({
+        ...mockUser,
+        trustedDevices: [expect.any(Object)],
+      });
+
       const result = await service.registerTrustedDevice(userId, deviceInfo);
 
       expect(result).toHaveProperty('deviceId');
@@ -138,13 +114,15 @@ describe('DeviceService', () => {
         createdAt: new Date(),
       };
 
+      const userModel = module.get(getModelToken('User'));
       const userWithTrustedDevices = {
-        ...mockUser,
+        _id: userId,
+        email: 'test@example.com',
         trustedDevices: [trustedDevice],
       };
 
-      (userModel as any).findById = () => Promise.resolve(userWithTrustedDevices);
-      (userModel as any).findByIdAndUpdate = () => Promise.resolve(userWithTrustedDevices);
+      userModel.findById.mockResolvedValue(userWithTrustedDevices);
+      userModel.findByIdAndUpdate.mockResolvedValue(userWithTrustedDevices);
 
       const result = await service.validateDeviceTrust(userId, deviceFingerprint);
 
@@ -157,7 +135,13 @@ describe('DeviceService', () => {
       const userId = 'user123';
       const deviceFingerprint = 'unknown-fingerprint';
 
-      userModel.findById = () => Promise.resolve(mockUser);
+      const userModel = module.get(getModelToken('User'));
+      const mockUser = {
+        _id: userId,
+        email: 'test@example.com',
+        trustedDevices: [],
+      };
+      userModel.findById.mockResolvedValue(mockUser);
 
       const result = await service.validateDeviceTrust(userId, deviceFingerprint);
 
@@ -172,16 +156,18 @@ describe('DeviceService', () => {
       const expiredDevice = {
         deviceId: 'device123',
         fingerprint: deviceFingerprint,
-        lastUsed: new Date(Date.now() - 31 * 24 * 60 * 60 * 1000), // 31 days ago
+        lastUsed: new Date(Date.now() - 31 * 24 * 60 * 60 * 1000),
         createdAt: new Date(),
       };
 
+      const userModel = module.get(getModelToken('User'));
       const userWithExpiredDevice = {
-        ...mockUser,
+        _id: userId,
+        email: 'test@example.com',
         trustedDevices: [expiredDevice],
       };
 
-      (userModel as any).findById = () => Promise.resolve(userWithExpiredDevice);
+      userModel.findById.mockResolvedValue(userWithExpiredDevice);
 
       const result = await service.validateDeviceTrust(userId, deviceFingerprint);
 
@@ -201,16 +187,18 @@ describe('DeviceService', () => {
       const recentDevice = {
         deviceId: 'device123',
         fingerprint: 'Mozilla/5.0 Suspicious Browser:192.168.1.1',
-        lastUsed: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+        lastUsed: new Date(Date.now() - 30 * 60 * 1000),
         createdAt: new Date(),
       };
 
+      const userModel = module.get(getModelToken('User'));
       const userWithRecentDevices = {
-        ...mockUser,
+        _id: userId,
+        email: 'test@example.com',
         trustedDevices: [recentDevice],
       };
 
-      userModel.findById = () => Promise.resolve(userWithRecentDevices);
+      userModel.findById.mockResolvedValue(userWithRecentDevices);
 
       const result = await service.detectSpoofingAttempt(deviceInfo, userId);
 
@@ -231,12 +219,14 @@ describe('DeviceService', () => {
         createdAt: new Date(),
       };
 
+      const userModel = module.get(getModelToken('User'));
       const userWithRecentDevices = {
-        ...mockUser,
+        _id: userId,
+        email: 'test@example.com',
         trustedDevices: [recentDevice],
       };
 
-      userModel.findById = () => Promise.resolve(userWithRecentDevices);
+      userModel.findById.mockResolvedValue(userWithRecentDevices);
 
       const result = await service.detectSpoofingAttempt(deviceInfo, userId);
 
@@ -250,7 +240,14 @@ describe('DeviceService', () => {
         ipAddress: '192.168.1.1',
       };
 
-      userModel.findById = () => Promise.resolve(mockUser);
+      const userModel = module.get(getModelToken('User'));
+      const mockUser = {
+        _id: userId,
+        email: 'test@example.com',
+        trustedDevices: [],
+      };
+
+      userModel.findById.mockResolvedValue(mockUser);
 
       const result = await service.detectSpoofingAttempt(deviceInfo, userId);
 

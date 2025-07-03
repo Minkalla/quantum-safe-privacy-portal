@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Pre-commit hook for PQC Health Check
+# This hook runs live PQC operations to ensure cryptographic integrity
+
+echo "🔐 Running PQC Health Check (Pre-commit)..."
+
+# Navigate to the backend directory
+cd "$(dirname "$0")/../"
+
+# Run the PQC health check with pre-commit flag
+node scripts/pqc-health-check.js --pre-commit
+
+# Exit with the same code as the health check
+exit $?

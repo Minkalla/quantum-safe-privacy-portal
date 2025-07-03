@@ -45,15 +45,7 @@ describe('PQC Authentication Flow Integration', () => {
         PQCBridgeService,
         PQCService,
         SecretsService,
-        {
-          provide: NestJwtService,
-          useValue: {
-            sign: jest.fn().mockReturnValue('mock-jwt-token'),
-            verify: jest.fn().mockReturnValue({ userId: 'test-user' }),
-            signAsync: jest.fn().mockResolvedValue('mock-jwt-token'),
-            verifyAsync: jest.fn().mockResolvedValue({ userId: 'test-user' }),
-          },
-        },
+        NestJwtService,
         {
           provide: getModelToken('User'),
           useValue: {

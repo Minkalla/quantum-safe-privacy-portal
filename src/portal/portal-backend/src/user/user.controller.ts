@@ -37,7 +37,7 @@ interface UserProfileDto {
 }
 
 @ApiTags('user')
-@Controller('portal/user')
+@Controller('user')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class UserController {
