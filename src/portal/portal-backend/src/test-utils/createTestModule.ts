@@ -78,6 +78,7 @@ export interface TestModuleOverrides {
   tenantModel?: any;
   deviceTrustModel?: any;
   providers?: any[];
+  controllers?: any[];
   configOverrides?: Record<string, any>;
   imports?: any[];
 }
@@ -118,6 +119,9 @@ export async function createTestModule(overrides: TestModuleOverrides = {}): Pro
       SecretsModule,
       PQCFeatureFlagsModule,
       ...(overrides.imports || []),
+    ],
+    controllers: [
+      ...(overrides.controllers || []),
     ],
     providers: [
       QuantumSafeCryptoIdentityService,
@@ -172,6 +176,18 @@ export async function createTestModule(overrides: TestModuleOverrides = {}): Pro
         },
       },
       PQCDataValidationService,
+      {
+        provide: PQCBridgeService,
+        useValue: {
+          executePQCOperation: jest.fn().mockResolvedValue({
+            success: true,
+            token: 'mock-pqc-token',
+            algorithm: 'ML-DSA-65',
+            verified: true,
+            payload: { test: 'data' },
+          }),
+        },
+      },
       AuditTrailService,
       {
         provide: EnhancedErrorBoundaryService,

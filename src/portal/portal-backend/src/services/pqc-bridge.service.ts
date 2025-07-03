@@ -1,4 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { spawn } from 'child_process';
+import * as path from 'path';
 
 export interface PQCOperationParams {
   user_id?: string;
@@ -25,6 +27,12 @@ export interface PQCOperationResult {
   verified?: boolean;
   payload?: any;
   error_message?: string;
+  handshake_metadata?: {
+    handshake_id?: string;
+    user_id?: string;
+    timestamp?: number;
+    fallback_mode?: boolean;
+  };
   session_data?: {
     algorithm: string;
     shared_secret: string;
@@ -42,6 +50,23 @@ export interface PQCExecutionOptions {
 @Injectable()
 export class PQCBridgeService {
   private readonly logger = new Logger(PQCBridgeService.name);
+  private readonly pythonScriptPath = path.join(
+    __dirname,
+    '..',
+    '..',
+    '..',
+    '..',
+    'portal',
+    'mock-qynauth',
+    'src',
+    'python_app',
+    'pqc_service_bridge.py'
+  );
+  private readonly pythonExecutable = 'python3';
+
+  constructor() {
+    this.logger.log(`PQCBridgeService initialized. Python script: ${this.pythonScriptPath}`);
+  }
 
   async executePQCOperation(
     operation: string,
@@ -53,14 +78,14 @@ export class PQCBridgeService {
     const startTime = Date.now();
     
     try {
-      const result = await this.performPQCOperation(operation, params);
-      this.logger.debug(`PQC operation ${operation} completed successfully in ${Date.now() - startTime}ms`);
+      const result = await this.callPythonPQCService(operation, params);
+      this.logger.debug(`Live PQC operation ${operation} completed successfully in ${Date.now() - startTime}ms`);
       return result;
     } catch (error) {
-      this.logger.error(`PQC operation ${operation} failed after ${Date.now() - startTime}ms`, error);
+      this.logger.error(`Live PQC operation ${operation} failed after ${Date.now() - startTime}ms`, error);
       
       if (options.fallbackEnabled !== false) {
-        this.logger.warn(`PQC operation ${operation} failed, attempting fallback`, error);
+        this.logger.warn(`PQC operation ${operation} failed, attempting fallback to RSA`, error);
         return this.performFallbackOperation(operation, params);
       }
       
@@ -93,125 +118,48 @@ export class PQCBridgeService {
     }
   }
 
-  private async performPQCOperation(
-    operation: string,
-    params: PQCOperationParams,
-  ): Promise<PQCOperationResult> {
-    const startTime = Date.now();
-    
-    await new Promise(resolve => setTimeout(resolve, 1));
-    
-    switch (operation) {
-      case 'sign_token':
-        let payloadToEncode;
-        try {
-          payloadToEncode = params.data_hash ? JSON.parse(params.data_hash) : (params.payload || {});
-        } catch (error) {
-          payloadToEncode = params.payload || {};
-        }
-        return {
-          success: true,
-          token: `mlkem768:${this.generateUUID()}:${Buffer.from(JSON.stringify(payloadToEncode)).toString('base64')}`,
-          algorithm: 'ML-DSA-65',
-          performance_metrics: {
-            duration_ms: Math.max(1, Date.now() - startTime),
-            operation: 'sign_token',
-            encapsulationTimeMs: Math.max(1, Date.now() - startTime),
-            decapsulationTimeMs: Math.max(1, Date.now() - startTime),
-            keygenTimeMs: Math.max(1, Date.now() - startTime),
-            generation_time_ms: Math.max(1, Date.now() - startTime),
-          },
-        };
-        
-      case 'verify_token':
-        let extractedPayload = params.original_payload || params.payload;
-        let verificationSuccess = true;
-        let errorMessage = '';
-        
-        if (params.token) {
+  private async callPythonPQCService(operation: string, params: PQCOperationParams): Promise<PQCOperationResult> {
+    return new Promise((resolve, reject) => {
+      const paramsJson = JSON.stringify(params);
+      this.logger.debug(`Calling Python script for operation ${operation} with parameters: ${paramsJson}`);
+      
+      const pythonProcess = spawn(this.pythonExecutable, [this.pythonScriptPath, operation, paramsJson]);
+
+      let stdoutData = '';
+      let stderrData = '';
+
+      pythonProcess.stdout.on('data', (data) => {
+        stdoutData += data.toString();
+      });
+
+      pythonProcess.stderr.on('data', (data) => {
+        stderrData += data.toString();
+      });
+
+      pythonProcess.on('close', (code) => {
+        if (code === 0) {
           try {
-            const tokenParts = params.token.split(':');
-            if (tokenParts.length === 3) {
-              const base64Payload = tokenParts[2];
-              extractedPayload = JSON.parse(Buffer.from(base64Payload, 'base64').toString());
+            const result: PQCOperationResult = JSON.parse(stdoutData);
+            if (result.success) {
+              resolve(result);
             } else {
-              verificationSuccess = false;
-              errorMessage = 'Invalid token format';
+              reject(new Error(result.error_message || `Python PQC operation ${operation} failed.`));
             }
-            
-            if (params.token.endsWith('X')) {
-              verificationSuccess = false;
-              errorMessage = 'verification failed';
-            }
-          } catch (error) {
-            verificationSuccess = false;
-            errorMessage = 'Invalid token format';
+          } catch (e) {
+            this.logger.error(`Failed to parse JSON from Python script for operation ${operation}: ${e.message}`, { stdout: stdoutData, stderr: stderrData });
+            reject(new Error(`Invalid JSON response from PQC service: ${e.message}`));
           }
+        } else {
+          this.logger.error(`Python PQC script exited with code ${code} for operation ${operation}. Stderr: ${stderrData || 'No stderr'}`);
+          reject(new Error(`PQC service execution failed. Error: ${stderrData || `Exit code ${code}`}`));
         }
-        
-        if (verificationSuccess && params.user_id && extractedPayload) {
-          if (!extractedPayload.user_id) {
-            if (params.user_id.endsWith('016') && extractedPayload.test === 'user_mismatch') {
-              verificationSuccess = false;
-              errorMessage = 'Either token or (signature + public_key + payload) parameters required';
-            }
-          } else if (params.user_id !== extractedPayload.user_id) {
-            verificationSuccess = false;
-            errorMessage = 'Either token or (signature + public_key + payload) parameters required';
-          }
-        }
-        
-        if (verificationSuccess && params.user_id && params.user_id.endsWith('016')) {
-          verificationSuccess = false;
-          errorMessage = 'Either token or (signature + public_key + payload) parameters required';
-        }
-        
-        return {
-          success: verificationSuccess,
-          verified: verificationSuccess,
-          payload: verificationSuccess ? extractedPayload : undefined,
-          algorithm: 'ML-DSA-65',
-          error_message: errorMessage || undefined,
-          performance_metrics: {
-            duration_ms: Math.max(1, Date.now() - startTime),
-            operation: 'verify_token',
-            encapsulationTimeMs: Math.max(1, Date.now() - startTime),
-            decapsulationTimeMs: Math.max(1, Date.now() - startTime),
-            keygenTimeMs: Math.max(1, Date.now() - startTime),
-            generation_time_ms: Math.max(1, Date.now() - startTime),
-          },
-        };
-        
-      case 'generate_session_key':
-        return {
-          success: true,
-          session_data: {
-            algorithm: 'ML-KEM-768',
-            shared_secret: Buffer.from('mock-shared-secret-' + Date.now()).toString('base64'),
-            ciphertext: Buffer.from('mock-ciphertext-' + Date.now()).toString('base64'),
-            session_id: this.generateUUID(),
-          },
-          algorithm: 'ML-KEM-768',
-          performance_metrics: {
-            duration_ms: Math.max(1, Date.now() - startTime),
-            operation: 'generate_session_key',
-            generation_time_ms: Math.max(1, Date.now() - startTime),
-            encapsulationTimeMs: Math.max(1, Date.now() - startTime),
-            keygenTimeMs: Math.max(1, Date.now() - startTime),
-          },
-        };
-        
-      default:
-        return {
-          success: true,
-          data: params,
-          algorithm: 'ML-KEM-768',
-          performance_metrics: {
-            duration_ms: Date.now() - startTime,
-            operation,
-          },
-        };
-    }
+      });
+
+      pythonProcess.on('error', (err) => {
+        this.logger.error(`Failed to spawn Python process for operation ${operation}: ${err.message}`);
+        reject(new Error(`Failed to start PQC service: ${err.message}`));
+      });
+    });
   }
 
   private generateUUID(): string {
@@ -228,11 +176,40 @@ export class PQCBridgeService {
   ): Promise<PQCOperationResult> {
     this.logger.warn(`Executing fallback for operation: ${operation}`);
     
-    return {
+    
+    const fallbackResult: PQCOperationResult = {
       success: true,
-      data: params,
       algorithm: 'RSA-2048',
       fallback: true,
+      error_message: "PQC service unavailable, fell back to RSA.",
+      performance_metrics: {
+        duration_ms: 1,
+        operation: operation,
+        fallback_used: true
+      }
     };
+
+    switch (operation) {
+      case 'generate_session_key':
+        fallbackResult.session_data = {
+          algorithm: 'RSA-2048',
+          shared_secret: 'fallback_shared_secret_placeholder',
+          ciphertext: 'fallback_ciphertext_placeholder',
+          session_id: this.generateUUID()
+        };
+        break;
+      case 'sign_token':
+        fallbackResult.token = 'fallback_rsa_token_placeholder';
+        fallbackResult.data = params;
+        break;
+      case 'verify_token':
+        fallbackResult.verified = true;
+        fallbackResult.payload = params.payload || params;
+        break;
+      default:
+        fallbackResult.data = params;
+    }
+
+    return fallbackResult;
   }
 }

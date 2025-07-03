@@ -2,8 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtModule } from '@nestjs/jwt';
-import * as request from 'supertest';
+import request from 'supertest';
 import { AuthController } from '../auth.controller';
+import { DeviceController } from '../device.controller';
 import { DeviceService } from '../device.service';
 import { AuthService } from '../auth.service';
 import { EnhancedAuthService } from '../enhanced-auth.service';
@@ -21,6 +22,7 @@ describe('Device Trust Integration Tests', () => {
 
   beforeAll(async () => {
     module = await createTestModule({
+      controllers: [AuthController, DeviceController],
       providers: [
         DeviceService,
         AuthService,
@@ -28,7 +30,6 @@ describe('Device Trust Integration Tests', () => {
         MFAService,
         SsoService,
         CustomJwtService,
-        AuthController,
       ],
       configOverrides: {
         'device.trust.enabled': true,
