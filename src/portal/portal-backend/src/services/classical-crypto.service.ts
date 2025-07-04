@@ -32,10 +32,16 @@ export class ClassicalCryptoService {
     try {
       this.logger.debug('Performing RSA-2048 encryption');
 
+      let formattedPublicKey = publicKey;
+      if (!publicKey.startsWith('-----BEGIN')) {
+        this.logger.debug('Public key missing PEM headers, wrapping in PEM format');
+        formattedPublicKey = `-----BEGIN PUBLIC KEY-----\n${publicKey}\n-----END PUBLIC KEY-----`;
+      }
+
       const buffer = Buffer.from(data, 'utf8');
       const encrypted = crypto.publicEncrypt(
         {
-          key: publicKey,
+          key: formattedPublicKey,
           padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
           oaepHash: 'sha256',
         },
@@ -65,10 +71,16 @@ export class ClassicalCryptoService {
     try {
       this.logger.debug('Performing RSA-2048 decryption');
 
+      let formattedPrivateKey = privateKey;
+      if (!privateKey.startsWith('-----BEGIN')) {
+        this.logger.debug('Private key missing PEM headers, wrapping in PEM format');
+        formattedPrivateKey = `-----BEGIN PRIVATE KEY-----\n${privateKey}\n-----END PRIVATE KEY-----`;
+      }
+
       const buffer = Buffer.from(encryptedData, 'base64');
       const decrypted = crypto.privateDecrypt(
         {
-          key: privateKey,
+          key: formattedPrivateKey,
           padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
           oaepHash: 'sha256',
         },
@@ -164,8 +176,19 @@ export class ClassicalCryptoService {
     try {
       this.logger.debug('Performing RSA-PSS signature generation');
 
+      let formattedPrivateKey = privateKey;
+      
+      if (!privateKey || privateKey.trim() === '' || privateKey === 'undefined') {
+        this.logger.debug('No valid private key provided, generating new RSA key pair');
+        const keyPair = await this.generateRSAKeyPair();
+        formattedPrivateKey = keyPair.privateKey;
+      } else if (!privateKey.startsWith('-----BEGIN')) {
+        this.logger.debug('Private key missing PEM headers, wrapping in PEM format');
+        formattedPrivateKey = `-----BEGIN PRIVATE KEY-----\n${privateKey}\n-----END PRIVATE KEY-----`;
+      }
+
       const signature = crypto.sign('sha256', Buffer.from(message, 'utf8'), {
-        key: privateKey,
+        key: formattedPrivateKey,
         padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
         saltLength: crypto.constants.RSA_PSS_SALTLEN_DIGEST,
       });
@@ -193,6 +216,12 @@ export class ClassicalCryptoService {
     try {
       this.logger.debug('Performing RSA-PSS signature verification');
 
+      let formattedPublicKey = publicKey;
+      if (!publicKey.startsWith('-----BEGIN')) {
+        this.logger.debug('Public key missing PEM headers, wrapping in PEM format');
+        formattedPublicKey = `-----BEGIN PUBLIC KEY-----\n${publicKey}\n-----END PUBLIC KEY-----`;
+      }
+
       const signatureBuffer = Buffer.from(signature, 'base64');
       const messageBuffer = Buffer.from(message, 'utf8');
 
@@ -200,7 +229,7 @@ export class ClassicalCryptoService {
         'sha256',
         messageBuffer,
         {
-          key: publicKey,
+          key: formattedPublicKey,
           padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
           saltLength: crypto.constants.RSA_PSS_SALTLEN_DIGEST,
         },

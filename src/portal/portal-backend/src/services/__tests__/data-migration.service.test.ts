@@ -5,6 +5,12 @@ import { DataMigrationService } from '../data-migration.service';
 import { HybridCryptoService } from '../hybrid-crypto.service';
 import { PQCDataEncryptionService } from '../pqc-data-encryption.service';
 import { BulkEncryptionService } from '../bulk-encryption.service';
+import { PQCBridgeService } from '../pqc-bridge.service';
+import { EnhancedErrorBoundaryService } from '../enhanced-error-boundary.service';
+import { QuantumSafeCryptoIdentityService } from '../quantum-safe-crypto-identity.service';
+import { CircuitBreakerService } from '../circuit-breaker.service';
+import { PQCErrorTaxonomyService } from '../pqc-error-taxonomy.service';
+import { ClassicalCryptoService } from '../classical-crypto.service';
 import User, { IUser } from '../../models/User';
 import Consent, { IConsent } from '../../models/Consent';
 
@@ -50,6 +56,12 @@ describe('DataMigrationService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DataMigrationService,
+        PQCBridgeService,
+        EnhancedErrorBoundaryService,
+        QuantumSafeCryptoIdentityService,
+        CircuitBreakerService,
+        PQCErrorTaxonomyService,
+        ClassicalCryptoService,
         { provide: getModelToken(User.name), useValue: mockUserModel },
         { provide: getModelToken(Consent.name), useValue: mockConsentModel },
         { provide: HybridCryptoService, useValue: mockHybridCryptoService },

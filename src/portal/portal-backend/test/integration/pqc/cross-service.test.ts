@@ -42,6 +42,7 @@ describe('PQC Cross-Service Integration', () => {
         QuantumSafeCryptoIdentityService,
         PQCBridgeService,
         PQCService,
+        SecretsService,
         {
           provide: ConfigService,
           useValue: {
@@ -73,6 +74,8 @@ describe('PQC Cross-Service Integration', () => {
         },
       ],
     }).compile();
+
+    await module.init();
 
     encryptionService = module.get<PQCDataEncryptionService>(PQCDataEncryptionService);
     validationService = module.get<PQCDataValidationService>(PQCDataValidationService);

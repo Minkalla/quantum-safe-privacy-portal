@@ -12,6 +12,9 @@ import { Model } from 'mongoose';
 import { IUser } from '../../../../src/models/User';
 import { PQCAlgorithmType } from '../../../../src/models/interfaces/pqc-data.interface';
 import { HybridCryptoService } from '../../../../src/services/hybrid-crypto.service';
+import { ClassicalCryptoService } from '../../../../src/services/classical-crypto.service';
+import { PQCErrorTaxonomyService } from '../../../../src/services/pqc-error-taxonomy.service';
+import { CircuitBreakerService } from '../../../../src/services/circuit-breaker.service';
 import { QuantumSafeJWTService } from '../../../../src/services/quantum-safe-jwt.service';
 import { PQCBridgeService } from '../../../../src/services/pqc-bridge.service';
 import { QuantumSafeCryptoIdentityService } from '../../../../src/services/quantum-safe-crypto-identity.service';
@@ -34,6 +37,9 @@ describe('PQCDataValidationService', () => {
         SecretsService,
         EnhancedErrorBoundaryService,
         HybridCryptoService,
+        ClassicalCryptoService,
+        PQCErrorTaxonomyService,
+        CircuitBreakerService,
         QuantumSafeJWTService,
         PQCBridgeService,
         QuantumSafeCryptoIdentityService,
