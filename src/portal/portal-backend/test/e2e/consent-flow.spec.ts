@@ -54,10 +54,10 @@ describe('E2E Consent Flow Tests', () => {
 
     jwtService = moduleFixture.get<JwtService>(JwtService);
     testUserId = '60d5ec49f1a23c001c8a4d7d';
-    
+
     const tokens = await jwtService.generateTokens({
       userId: testUserId,
-      email: 'e2e-test@example.com'
+      email: 'e2e-test@example.com',
     });
     validAccessToken = tokens.accessToken;
   });
@@ -75,7 +75,7 @@ describe('E2E Consent Flow Tests', () => {
   afterEach(async () => {
     const { getConnectionToken } = require('@nestjs/mongoose');
     const connection = app.get(getConnectionToken());
-    
+
     if (connection && connection.readyState === 1) {
       console.log('DEBUG: Cleaning database after test...');
       const collections = await connection.db.collections();

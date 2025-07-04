@@ -43,7 +43,7 @@ export class SecretsService {
     if (this.skipSecretsManager) {
       this.logger.warn('SKIP_SECRETS_MANAGER is true. Bypassing actual AWS Secrets Manager client initialization.');
     } else {
-      const awsRegion = this.configService.get<string>('AWS_REGION') || 
+      const awsRegion = this.configService.get<string>('AWS_REGION') ||
         (process.env.NODE_ENV === 'development' ? 'us-east-1' : undefined);
 
       if (!awsRegion) {

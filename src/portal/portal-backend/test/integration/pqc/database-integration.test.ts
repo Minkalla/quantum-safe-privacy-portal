@@ -105,7 +105,7 @@ describe('PQC Database Integration', () => {
     } catch (error) {
       console.warn('Error closing database connection:', error?.message || 'Unknown error');
     }
-    
+
     try {
       if (mongod && typeof mongod.stop === 'function') {
         await mongod.stop();

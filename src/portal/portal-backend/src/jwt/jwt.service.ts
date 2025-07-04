@@ -58,16 +58,16 @@ export class JwtService implements OnModuleInit {
 
   private async initializeSecrets(): Promise<void> {
     const skipSecretsManager = this.configService.get<string>('SKIP_SECRETS_MANAGER') === 'true';
-    
+
     this.logger.debug(`SKIP_SECRETS_MANAGER value: ${this.configService.get<string>('SKIP_SECRETS_MANAGER')}`);
     this.logger.debug(`skipSecretsManager boolean: ${skipSecretsManager}`);
-    
+
     if (skipSecretsManager) {
-      this.jwtAccessSecret = this.configService.get<string>('JWT_ACCESS_SECRET') || 
-                            this.configService.get<string>('JWT_SECRET') || 
+      this.jwtAccessSecret = this.configService.get<string>('JWT_ACCESS_SECRET') ||
+                            this.configService.get<string>('JWT_SECRET') ||
                             'test-access-secret-fallback';
-      this.jwtRefreshSecret = this.configService.get<string>('JWT_REFRESH_SECRET') || 
-                             this.configService.get<string>('JWT_SECRET') || 
+      this.jwtRefreshSecret = this.configService.get<string>('JWT_REFRESH_SECRET') ||
+                             this.configService.get<string>('JWT_SECRET') ||
                              'test-refresh-secret-fallback';
       this.logger.debug(`JWT_ACCESS_SECRET: ${this.configService.get<string>('JWT_ACCESS_SECRET')}`);
       this.logger.debug(`JWT_REFRESH_SECRET: ${this.configService.get<string>('JWT_REFRESH_SECRET')}`);
@@ -274,7 +274,7 @@ export class JwtService implements OnModuleInit {
    */
   verifyToken(token: string, secretType: 'access' | 'refresh'): TokenPayload | SSOTokenPayload | null {
     this.logger.debug(`Starting token verification for type '${secretType}', token: ${token.substring(0, 30)}...`);
-    
+
     if (!this.isInitialized || !this.jwtAccessSecret || !this.jwtRefreshSecret) {
       this.logger.error('JWT secrets are not initialized. Cannot verify tokens.');
       throw new InternalServerErrorException('JWT service not fully initialized.');
@@ -296,7 +296,7 @@ export class JwtService implements OnModuleInit {
     }
 
     try {
-      this.logger.debug(`Attempting JWT verification with jsonwebtoken.verify()`);
+      this.logger.debug('Attempting JWT verification with jsonwebtoken.verify()');
       const decoded = jwt.verify(token, secret) as TokenPayload | SSOTokenPayload;
       this.logger.debug(`Token of type '${secretType}' verified successfully for user: ${decoded.email}`);
       return decoded;

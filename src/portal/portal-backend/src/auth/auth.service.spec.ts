@@ -44,13 +44,13 @@ describe('AuthService - Refresh Token', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    
+
     mockUser.refreshTokenHash = await bcrypt.hash('valid.refresh.token', 10);
-    
+
     jest.spyOn(Logger.prototype, 'log').mockImplementation(() => {});
     jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
     jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
-    
+
     const module: TestingModule = await Test.createTestingModule({
       imports: [
         JwtModule.register({
@@ -78,7 +78,7 @@ describe('AuthService - Refresh Token', () => {
           provide: getModelToken('User'),
           useValue: {
             findById: jest.fn().mockImplementation(() => ({
-              select: jest.fn().mockResolvedValue(mockUser)
+              select: jest.fn().mockResolvedValue(mockUser),
             })),
             findOne: () => Promise.resolve(null),
             findByIdAndUpdate: () => Promise.resolve({}),
@@ -107,7 +107,7 @@ describe('AuthService - Refresh Token', () => {
     service = module.get<AuthService>(AuthService);
     jwtService = module.get<JwtService>(JwtService);
     userModel = module.get(getModelToken('User'));
-    
+
     await module.init();
   });
 
@@ -118,10 +118,10 @@ describe('AuthService - Refresh Token', () => {
   describe('refreshToken', () => {
     it('should successfully refresh token with valid refresh token', async () => {
       const refreshToken = 'valid.refresh.token';
-      
+
       const tokenPayload = { userId: '507f1f77bcf86cd799439011', email: 'test@example.com' };
       const realRefreshToken = jwtService.generateTokens(tokenPayload, true).refreshToken;
-      
+
       mockUser.refreshTokenHash = await bcrypt.hash(realRefreshToken, 10);
       (mockUser as any)._id = { toString: () => '507f1f77bcf86cd799439011' };
 
@@ -156,7 +156,7 @@ describe('AuthService - Refresh Token', () => {
     it('should throw UnauthorizedException when refresh token hash does not match', async () => {
       const tokenPayload = { userId: '507f1f77bcf86cd799439011', email: 'test@example.com' };
       const realRefreshToken = jwtService.generateTokens(tokenPayload, true).refreshToken;
-      
+
       mockUser.refreshTokenHash = await bcrypt.hash('different.token', 10);
       (mockUser as any)._id = { toString: () => '507f1f77bcf86cd799439011' };
 
@@ -166,7 +166,7 @@ describe('AuthService - Refresh Token', () => {
     it('should throw UnauthorizedException when user has no refresh token hash', async () => {
       const tokenPayload = { userId: '507f1f77bcf86cd799439011', email: 'test@example.com' };
       const realRefreshToken = jwtService.generateTokens(tokenPayload, true).refreshToken;
-      
+
       const userWithoutRefreshToken = { ...mockUser, refreshTokenHash: null };
       userModel.findById.mockReturnValue({
         select: jest.fn().mockResolvedValue(userWithoutRefreshToken),

@@ -177,7 +177,7 @@ export class ClassicalCryptoService {
       this.logger.debug('Performing RSA-PSS signature generation');
 
       let formattedPrivateKey = privateKey;
-      
+
       if (!privateKey || privateKey.trim() === '' || privateKey === 'undefined') {
         this.logger.debug('No valid private key provided, generating new RSA key pair');
         const keyPair = await this.generateRSAKeyPair();

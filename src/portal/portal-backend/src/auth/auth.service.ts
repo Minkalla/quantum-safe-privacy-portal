@@ -224,8 +224,8 @@ export class AuthService {
     const { spawn } = require('child_process');
     const path = require('path');
     const fs = require('fs');
-    const os = require('os');
-    const crypto = require('crypto');
+    const _os = require('os');
+    const _crypto = require('crypto');
 
     const ALLOWED_OPERATIONS = Object.freeze([
       'generate_session_key',
@@ -450,7 +450,7 @@ export class AuthService {
    */
   async refreshToken(refreshToken: string): Promise<{ accessToken: string; refreshToken?: string; user: { id: string; email: string } }> {
     this.logger.debug(`Starting refresh token validation for token: ${refreshToken.substring(0, 20)}...`);
-    
+
     try {
       this.logger.debug('Step 1: Verifying JWT token with JWT service');
       const payload = this.jwtService.verifyToken(refreshToken, 'refresh');
@@ -471,7 +471,7 @@ export class AuthService {
         this.invalidRefreshTokenHandler(refreshToken, 'User not found');
         throw new UnauthorizedException('Invalid refresh token');
       }
-      
+
       if (!user.refreshTokenHash) {
         this.logger.error(`Step 2 FAILED: User ${user.email} has no refresh token hash stored`);
         this.invalidRefreshTokenHandler(refreshToken, 'No refresh token hash');
@@ -567,7 +567,7 @@ export class AuthService {
     if (!userId || typeof userId !== 'string') {
       throw new BadRequestException('Invalid user ID format');
     }
-  
+
     // Validate MongoDB ObjectId format (24 hex characters)
     if (!/^[a-f\d]{24}$/i.test(userId)) {
       throw new BadRequestException('Invalid user ID format');
@@ -585,12 +585,12 @@ export class AuthService {
     if (!email || typeof email !== 'string') {
       throw new BadRequestException('Invalid email format');
     }
-    
+
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!emailRegex.test(email)) {
       throw new BadRequestException('Invalid email format');
     }
-    
+
     return email.toLowerCase().trim();
   }
 }

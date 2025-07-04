@@ -96,7 +96,7 @@ describe('HybridCryptoService', () => {
       };
 
       pqcService.encryptData.mockResolvedValue(mockPqcResult);
-      
+
       errorBoundaryService.executeWithErrorBoundary.mockImplementation(async (fn, options) => {
         return await fn();
       });

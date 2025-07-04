@@ -1,4 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { DeviceService } from '../device.service';
 import { createTestModule } from '../../test-utils/createTestModule';

@@ -147,23 +147,23 @@ export class DeviceService {
     }
 
     this.logger.debug(`Checking spoofing for fingerprint: ${this.sanitizeFingerprintForLogging(fingerprint)}, userAgent: ${deviceInfo.userAgent}`);
-    
+
     const suspiciousPattern = user.trustedDevices.some(device => {
       if (!device.fingerprint || !deviceInfo.userAgent) {
         return false;
       }
-      
+
       const isExactMatch = device.fingerprint === fingerprint;
       const isVeryRecent = device.createdAt && device.createdAt > new Date(Date.now() - 5 * 1000); // 5 seconds for exact matches only
-      
+
       this.logger.debug(`Comparing with existing device: fingerprint=${this.sanitizeFingerprintForLogging(device.fingerprint)}, exactMatch=${isExactMatch}, veryRecent=${isVeryRecent}`);
-      
+
       return isExactMatch && isVeryRecent;
     });
 
     if (suspiciousPattern) {
       const reason = 'Potential spoofing detected - duplicate fingerprint within 5 seconds';
-        
+
       this.logger.warn(`Spoofing detected for user ${userId}: ${reason}`);
       this.logDeviceDecision(userId, {
         decision: 'blocked',

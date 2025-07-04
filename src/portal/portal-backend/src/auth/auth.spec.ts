@@ -77,33 +77,33 @@ describe('AuthService', () => {
             function MockUserModel(userData) {
               console.log('MockUserModel constructor called with:', userData);
               Object.assign(this, { ...mockUser, ...userData });
-              
+
               this.save = function() {
                 console.log('MockUserModel save() called, this:', this);
-                const result = { 
-                  ...this, 
+                const result = {
+                  ...this,
                   _id: {
-                    toString: () => '507f1f77bcf86cd799439011'
-                  }
+                    toString: () => '507f1f77bcf86cd799439011',
+                  },
                 };
                 console.log('MockUserModel save() returning:', result);
                 return Promise.resolve(result);
               };
             }
-            
+
             MockUserModel.findOne = function() {
               console.log('MockUserModel findOne() called');
               return Promise.resolve(null);
             };
-            
+
             MockUserModel.findByIdAndUpdate = function() {
               return Promise.resolve({});
             };
-            
+
             MockUserModel.create = function(userData) {
               return Promise.resolve(new MockUserModel(userData));
             };
-            
+
             return MockUserModel;
           })(),
         },
@@ -112,7 +112,7 @@ describe('AuthService', () => {
 
     service = module.get<AuthService>(AuthService);
     userModel = module.get(getModelToken('User'));
-    
+
     await module.init();
   });
 
@@ -143,13 +143,13 @@ describe('AuthService', () => {
     it('should login user with correct credentials', async () => {
       const loginDto = { email: 'test@example.com', password: 'password123', rememberMe: true };
 
-      const userWithValidPassword = { 
-        ...mockUser, 
+      const userWithValidPassword = {
+        ...mockUser,
         password: '$2a$10$zxnkjUXnrq9Jn1aB26I2C.1s1tfYO.Np4TxEPddaku3fUSnGuF/Nq',
-        save: () => Promise.resolve({ 
-          ...mockUser, 
-          _id: '507f1f77bcf86cd799439011'
-        })
+        save: () => Promise.resolve({
+          ...mockUser,
+          _id: '507f1f77bcf86cd799439011',
+        }),
       };
       userModel.findOne = () => ({
         select: () => Promise.resolve(userWithValidPassword),
@@ -166,13 +166,13 @@ describe('AuthService', () => {
     it('should login user with refreshToken regardless of rememberMe flag', async () => {
       const loginDto = { email: 'test@example.com', password: 'password123', rememberMe: false };
 
-      const userWithValidPassword = { 
-        ...mockUser, 
+      const userWithValidPassword = {
+        ...mockUser,
         password: '$2a$10$zxnkjUXnrq9Jn1aB26I2C.1s1tfYO.Np4TxEPddaku3fUSnGuF/Nq',
-        save: () => Promise.resolve({ 
-          ...mockUser, 
-          _id: '507f1f77bcf86cd799439011'
-        })
+        save: () => Promise.resolve({
+          ...mockUser,
+          _id: '507f1f77bcf86cd799439011',
+        }),
       };
       userModel.findOne = () => ({
         select: () => Promise.resolve(userWithValidPassword),

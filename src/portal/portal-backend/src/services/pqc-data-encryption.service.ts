@@ -118,7 +118,7 @@ export class PQCDataEncryptionService {
   private async encryptWithKyber(data: any, keyId: string): Promise<{ encryptedData: string; nonce: string }> {
     try {
       this.logger.debug(`ML-KEM-768 encryption requested for keyId: ${keyId}`);
-      
+
       const serializedData = JSON.stringify(data);
       const randomSalt = crypto.randomBytes(16).toString('hex');
       const mockCiphertext = Buffer.from(serializedData + randomSalt + keyId).toString('base64');
@@ -157,7 +157,7 @@ export class PQCDataEncryptionService {
   private async decryptWithKyber(encryptedField: PQCEncryptedField): Promise<any> {
     try {
       this.logger.debug(`ML-KEM-768 decryption requested for keyId: ${encryptedField.keyId}`);
-      
+
       const decryptedWithSalt = Buffer.from(encryptedField.encryptedData, 'base64').toString('utf8');
       const randomSaltLength = 32;
       const keyIdLength = encryptedField.keyId.length;

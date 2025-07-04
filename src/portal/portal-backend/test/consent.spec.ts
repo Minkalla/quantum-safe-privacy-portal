@@ -60,10 +60,10 @@ describe('POST /portal/consent (Integration Tests)', () => {
 
     jwtService = moduleFixture.get<JwtService>(JwtService);
     testUserId = '60d5ec49f1a23c001c8a4d7d';
-    
+
     const tokens = await jwtService.generateTokens({
       userId: testUserId,
-      email: 'test@example.com'
+      email: 'test@example.com',
     });
     validJwtToken = tokens.accessToken;
   });
@@ -81,7 +81,7 @@ describe('POST /portal/consent (Integration Tests)', () => {
   afterEach(async () => {
     const { getConnectionToken } = require('@nestjs/mongoose');
     const connection = app.get(getConnectionToken());
-    
+
     if (connection && connection.readyState === 1) {
       console.log('DEBUG: Cleaning database after test...');
       const collections = await connection.db.collections();

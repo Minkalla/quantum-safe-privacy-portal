@@ -153,25 +153,25 @@ export async function createTestModule(overrides: TestModuleOverrides = {}): Pro
       {
         provide: AuthService,
         useValue: {
-          callPythonPQCService: jest.fn().mockResolvedValue({ 
+          callPythonPQCService: jest.fn().mockResolvedValue({
             success: true,
             signature: 'mock-signature',
-            public_key: 'mock-public-key'
+            public_key: 'mock-public-key',
           }),
           executePQCServiceCall: jest.fn().mockResolvedValue({ success: true }),
           sanitizeUserId: jest.fn().mockImplementation(id => id),
           sanitizeEmail: jest.fn().mockImplementation(email => email),
-          register: jest.fn().mockResolvedValue({ 
+          register: jest.fn().mockResolvedValue({
             success: true,
             accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0LXVzZXItaWQiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJpYXQiOjE2MDk0NTkyMDAsImV4cCI6MTYwOTQ2MjgwMH0.test-signature',
             refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0LXVzZXItaWQiLCJ0eXBlIjoicmVmcmVzaCIsImlhdCI6MTYwOTQ1OTIwMCwiZXhwIjoxNjEwMDY0MDAwfQ.test-refresh-signature',
-            user: { id: 'test-user-id', email: 'test@example.com' }
+            user: { id: 'test-user-id', email: 'test@example.com' },
           }),
-          login: jest.fn().mockResolvedValue({ 
+          login: jest.fn().mockResolvedValue({
             success: true,
             accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0LXVzZXItaWQiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJpYXQiOjE2MDk0NTkyMDAsImV4cCI6MTYwOTQ2MjgwMH0.test-signature',
             refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0LXVzZXItaWQiLCJ0eXBlIjoicmVmcmVzaCIsImlhdCI6MTYwOTQ1OTIwMCwiZXhwIjoxNjEwMDY0MDAwfQ.test-refresh-signature',
-            user: { id: 'test-user-id', email: 'test@example.com' }
+            user: { id: 'test-user-id', email: 'test@example.com' },
           }),
         },
       },
@@ -202,11 +202,11 @@ export async function createTestModule(overrides: TestModuleOverrides = {}): Pro
         useValue: {
           generateTokens: jest.fn().mockReturnValue({
             accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0LXVzZXItaWQiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJpYXQiOjE2MDk0NTkyMDAsImV4cCI6MTYwOTQ2MjgwMH0.test-signature',
-            refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0LXVzZXItaWQiLCJ0eXBlIjoicmVmcmVzaCIsImlhdCI6MTYwOTQ1OTIwMCwiZXhwIjoxNjEwMDY0MDAwfQ.test-refresh-signature'
+            refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0LXVzZXItaWQiLCJ0eXBlIjoicmVmcmVzaCIsImlhdCI6MTYwOTQ1OTIwMCwiZXhwIjoxNjEwMDY0MDAwfQ.test-refresh-signature',
           }),
           generateSSOTokens: jest.fn().mockReturnValue({
             accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0LXVzZXItaWQiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJzc29UeXBlIjoidGVzdCIsImlhdCI6MTYwOTQ1OTIwMCwiZXhwIjoxNjA5NDYyODAwfQ.test-sso-signature',
-            refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0LXVzZXItaWQiLCJ0eXBlIjoicmVmcmVzaCIsImlhdCI6MTYwOTQ1OTIwMCwiZXhwIjoxNjEwMDY0MDAwfQ.test-sso-refresh-signature'
+            refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0LXVzZXItaWQiLCJ0eXBlIjoicmVmcmVzaCIsImlhdCI6MTYwOTQ1OTIwMCwiZXhwIjoxNjEwMDY0MDAwfQ.test-sso-refresh-signature',
           }),
           verifyToken: jest.fn().mockImplementation((token) => {
             if (token && token.includes('test-signature')) {
@@ -214,7 +214,7 @@ export async function createTestModule(overrides: TestModuleOverrides = {}): Pro
                 userId: 'test-user-id',
                 email: 'test@example.com',
                 iat: 1609459200,
-                exp: 1609462800
+                exp: 1609462800,
               };
             }
             throw new Error('Invalid token');
@@ -228,11 +228,11 @@ export async function createTestModule(overrides: TestModuleOverrides = {}): Pro
         useValue: {
           triggerPQCHandshake: jest.fn().mockResolvedValue({
             success: true,
-            handshake_metadata: { 
+            handshake_metadata: {
               handshake_id: 'test-handshake',
               timestamp: new Date().toISOString(),
-              algorithm: 'ML-KEM-768'
-            }
+              algorithm: 'ML-KEM-768',
+            },
           }),
           verifyPQCHandshake: jest.fn().mockResolvedValue({ success: true }),
           initializePQC: jest.fn().mockResolvedValue({ success: true }),

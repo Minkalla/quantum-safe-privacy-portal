@@ -12,7 +12,6 @@ describe('Device Trust Integration Tests', () => {
   let app: INestApplication;
   let module: TestingModule;
   let authToken: string;
-  let userId: string;
 
   beforeAll(async () => {
     process.env.SKIP_SECRETS_MANAGER = 'true';
@@ -55,19 +54,16 @@ describe('Device Trust Integration Tests', () => {
       forbidNonWhitelisted: true,
       transform: true,
     }));
-    
+
     await app.init();
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    const registerResponse = await request(app.getHttpServer())
+    await request(app.getHttpServer())
       .post('/portal/auth/register')
       .send({
         email: 'devicetest@example.com',
         password: 'password123',
       });
-
-    console.log('Register response status:', registerResponse.status);
-    console.log('Register response body:', JSON.stringify(registerResponse.body, null, 2));
 
     const loginResponse = await request(app.getHttpServer())
       .post('/portal/auth/login')
@@ -76,9 +72,6 @@ describe('Device Trust Integration Tests', () => {
         password: 'password123',
         rememberMe: false,
       });
-
-    console.log('Login response status:', loginResponse.status);
-    console.log('Login response body:', JSON.stringify(loginResponse.body, null, 2));
 
     if (!loginResponse.body.accessToken) {
       throw new Error(`Login failed: ${JSON.stringify(loginResponse.body)}`);
@@ -89,7 +82,6 @@ describe('Device Trust Integration Tests', () => {
     }
 
     authToken = loginResponse.body.accessToken;
-    userId = loginResponse.body.user.id;
   });
 
   afterAll(async () => {

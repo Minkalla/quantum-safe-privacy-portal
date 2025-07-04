@@ -26,7 +26,7 @@ describe('UID Signature Lifecycle - Live PQC Operations', () => {
 
   beforeAll(async () => {
     const mongoUri = process.env.MongoDB1 || 'mongodb://localhost:27017/test';
-    
+
     module = await Test.createTestingModule({
       imports: [
         MongooseModule.forRoot(mongoUri),
@@ -117,7 +117,7 @@ describe('UID Signature Lifecycle - Live PQC Operations', () => {
     expect(signature).toBeDefined();
     expect(signature.signature).toBeDefined();
     expect(signature.signature.length).toBeGreaterThan(10);
-    
+
     const isPQCSignature = signature.signature.includes('dilithium3:');
     const isClassicalFallback = signature.signature.includes('classical:');
     expect(isPQCSignature || isClassicalFallback).toBe(true);
@@ -146,7 +146,7 @@ describe('UID Signature Lifecycle - Live PQC Operations', () => {
     expect(signature).toBeDefined();
     expect(signature.signature).toBeDefined();
     expect(signature.signature.length).toBeGreaterThan(10);
-    
+
     const isPQCSignature = signature.signature.includes('dilithium3:');
     const isClassicalFallback = signature.signature.includes('classical:');
     expect(isPQCSignature || isClassicalFallback).toBe(true);
