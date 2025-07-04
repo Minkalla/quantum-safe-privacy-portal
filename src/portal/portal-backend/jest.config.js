@@ -3,10 +3,8 @@ const path = require('path');
 module.exports = {
   testEnvironment: 'node',
   testMatch: [
-    '<rootDir>/test/**/*.spec.ts',
-    '<rootDir>/test/**/*.test.ts',
-    '<rootDir>/src/**/*.spec.ts',
-    '<rootDir>/src/**/*.test.ts',
+    '<rootDir>/**/*.spec.ts',
+    '<rootDir>/**/*.test.ts',
   ],
   moduleFileExtensions: ['ts', 'js', 'json', 'node'],
   collectCoverage: true,
