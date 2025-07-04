@@ -186,7 +186,7 @@ describe('Kyber ML-KEM-768 Algorithm Tests', () => {
         user_id: 'wrong_user_id',
       });
 
-      expect(verifyResult.success).toBe(true);
+      expect(verifyResult.success).toBe(false);
     });
 
     it('should fail verification with malformed token', async () => {
@@ -197,7 +197,7 @@ describe('Kyber ML-KEM-768 Algorithm Tests', () => {
         user_id: 'test_user_session',
       });
 
-      expect(verifyResult.success).toBe(true);
+      expect(verifyResult.success).toBe(false);
     });
   });
 

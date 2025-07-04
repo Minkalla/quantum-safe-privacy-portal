@@ -117,26 +117,39 @@ describe('Auth Integration (e2e)', () => {
     });
 
     it('should allow access with valid JWT token', async () => {
-      const registerResponse = await request(app.getHttpServer())
-        .post('/portal/auth/register')
-        .send({
-          email: 'test@example.com',
-          password: 'TestPassword123!',
-          firstName: 'Test',
-          lastName: 'User',
-        });
-
-      if (registerResponse.status === 201) {
-        authToken = registerResponse.body.accessToken;
-      } else {
-        const loginResponse = await request(app.getHttpServer())
-          .post('/portal/auth/login')
+      let authToken: string;
+      
+      try {
+        const registerResponse = await request(app.getHttpServer())
+          .post('/portal/auth/register')
           .send({
             email: 'test@example.com',
             password: 'TestPassword123!',
+            firstName: 'Test',
+            lastName: 'User',
           });
 
-        authToken = loginResponse.body.accessToken;
+        if (registerResponse.status === 201 && registerResponse.body.accessToken) {
+          authToken = registerResponse.body.accessToken;
+        } else {
+          const loginResponse = await request(app.getHttpServer())
+            .post('/portal/auth/login')
+            .send({
+              email: 'test@example.com',
+              password: 'TestPassword123!',
+            });
+
+          if (loginResponse.status !== 200 || !loginResponse.body.accessToken) {
+            throw new Error(`Login failed: ${JSON.stringify(loginResponse.body)}`);
+          }
+          authToken = loginResponse.body.accessToken;
+        }
+      } catch (error) {
+        throw new Error(`Authentication setup failed: ${error.message}`);
+      }
+
+      if (!authToken) {
+        throw new Error('No auth token obtained');
       }
 
       return request(app.getHttpServer())
