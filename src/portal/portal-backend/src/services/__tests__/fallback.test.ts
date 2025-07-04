@@ -168,7 +168,6 @@ describe('Fallback Behavior Validation', () => {
       expect(result.algorithm).toBe('RSA-2048');
       expect(result.fallbackUsed).toBe(true);
       expect(result.metadata.fallbackReason).toBe('PQC_SERVICE_UNAVAILABLE');
-      expect(result.fallbackUsed).toBe(true);
     });
 
     it('should record success when PQC works correctly', async () => {

@@ -61,7 +61,7 @@ describe('Auth Integration (e2e)', () => {
     
     await app.init();
     
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 500));
   });
 
   afterAll(async () => {

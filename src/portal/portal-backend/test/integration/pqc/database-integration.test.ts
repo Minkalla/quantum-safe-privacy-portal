@@ -113,14 +113,6 @@ describe('PQC Database Integration', () => {
     } catch (error) {
       console.warn('Error stopping mongod:', error?.message || 'Unknown error');
     }
-    
-    try {
-      if (module) {
-        await module.close();
-      }
-    } catch (error) {
-      console.warn('Error closing test module:', error?.message || 'Unknown error');
-    }
   });
 
   afterEach(async () => {

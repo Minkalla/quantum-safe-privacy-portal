@@ -50,6 +50,8 @@ describe('E2E Consent Flow Tests', () => {
     app.setGlobalPrefix('portal');
     app.useGlobalPipes(new ValidationPipe());
 
+    await app.init();
+
     jwtService = moduleFixture.get<JwtService>(JwtService);
     testUserId = '60d5ec49f1a23c001c8a4d7d';
     
@@ -58,8 +60,6 @@ describe('E2E Consent Flow Tests', () => {
       email: 'e2e-test@example.com'
     });
     validAccessToken = tokens.accessToken;
-
-    await app.init();
   });
 
   afterAll(async () => {

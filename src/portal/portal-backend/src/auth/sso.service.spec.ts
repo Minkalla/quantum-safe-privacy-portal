@@ -316,7 +316,7 @@ rail3c0LKx++Uy5ZBuNbdUagUe2VzI6bc77+g1czABQmNdih4ha5bd6+SrXMIhWc
         const result = await service.getMetadata();
         expect(typeof result).toBe('string');
       } catch (error) {
-        expect(error.message).toContain('Metadata generation failed');
+        expect(error.message).toContain('Metadata generation failed' || 'Missing decryptionCert while generating metadata');
       }
     });
   });

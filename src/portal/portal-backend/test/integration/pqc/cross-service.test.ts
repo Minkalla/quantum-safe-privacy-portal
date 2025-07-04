@@ -29,6 +29,7 @@ describe('PQC Cross-Service Integration', () => {
       providers: [
         PQCDataEncryptionService,
         PQCDataValidationService,
+        SecretsService,
         AuthService,
         EnhancedErrorBoundaryService,
         PQCErrorTaxonomyService,

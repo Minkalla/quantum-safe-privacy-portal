@@ -250,6 +250,14 @@ export class PQCBridgeService {
             verifyPublicKey = verifyKeyPair.publicKey;
           }
 
+          // Create a HybridSignatureResult object for verification
+          const signatureResult: any = {
+            algorithm: 'RSA-2048',
+            signature: params.token || '',
+            fallbackUsed: true,
+            isPQCDegraded: true,
+          };
+          
           result = await this.hybridCryptoService.verifyWithFallback(
             {
               algorithm: 'RSA-2048',

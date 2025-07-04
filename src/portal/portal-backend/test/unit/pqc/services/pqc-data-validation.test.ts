@@ -19,6 +19,7 @@ import { QuantumSafeJWTService } from '../../../../src/services/quantum-safe-jwt
 import { PQCBridgeService } from '../../../../src/services/pqc-bridge.service';
 import { QuantumSafeCryptoIdentityService } from '../../../../src/services/quantum-safe-crypto-identity.service';
 import { PQCService } from '../../../../src/services/pqc.service';
+import { PQCDataEncryptionService } from '../../../../src/services/pqc-data-encryption.service';
 
 describe('PQCDataValidationService', () => {
   let service: PQCDataValidationService;
@@ -30,6 +31,7 @@ describe('PQCDataValidationService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PQCDataValidationService,
+        PQCDataEncryptionService,
         AuthService,
         JwtService,
         PQCFeatureFlagsService,

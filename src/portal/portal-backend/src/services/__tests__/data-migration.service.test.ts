@@ -3,6 +3,7 @@ import { getModelToken } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { DataMigrationService } from '../data-migration.service';
 import { HybridCryptoService } from '../hybrid-crypto.service';
+import { ClassicalCryptoService } from '../classical-crypto.service';
 import { PQCDataEncryptionService } from '../pqc-data-encryption.service';
 import { BulkEncryptionService } from '../bulk-encryption.service';
 import { PQCBridgeService } from '../pqc-bridge.service';
@@ -65,6 +66,7 @@ describe('DataMigrationService', () => {
         { provide: getModelToken(User.name), useValue: mockUserModel },
         { provide: getModelToken(Consent.name), useValue: mockConsentModel },
         { provide: HybridCryptoService, useValue: mockHybridCryptoService },
+        { provide: ClassicalCryptoService, useValue: {} },
         { provide: PQCDataEncryptionService, useValue: mockPqcService },
         { provide: BulkEncryptionService, useValue: mockBulkEncryption },
       ],

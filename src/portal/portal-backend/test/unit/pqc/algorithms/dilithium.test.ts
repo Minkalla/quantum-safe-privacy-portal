@@ -14,6 +14,9 @@ import { PQCBridgeService } from '../../../../src/services/pqc-bridge.service';
 import { PQCService } from '../../../../src/services/pqc.service';
 import { SecretsService } from '../../../../src/secrets/secrets.service';
 import { ClassicalCryptoService } from '../../../../src/services/classical-crypto.service';
+import { PQCDataEncryptionService } from '../../../../src/services/pqc-data-encryption.service';
+import { EnhancedErrorBoundaryService } from '../../../../src/services/enhanced-error-boundary.service';
+import { CircuitBreakerService } from '../../../../src/services/circuit-breaker.service';
 
 describe('Dilithium ML-DSA-65 Algorithm Tests', () => {
   let authService: AuthService;
@@ -33,6 +36,9 @@ describe('Dilithium ML-DSA-65 Algorithm Tests', () => {
         PQCService,
         SecretsService,
         ClassicalCryptoService,
+        PQCDataEncryptionService,
+        EnhancedErrorBoundaryService,
+        CircuitBreakerService,
         {
           provide: ConfigService,
           useValue: {

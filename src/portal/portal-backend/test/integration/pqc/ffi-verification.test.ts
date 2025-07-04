@@ -10,12 +10,13 @@ import { PQCMonitoringService } from '../../../src/pqc/pqc-monitoring.service';
 import { SecretsService } from '../../../src/secrets/secrets.service';
 import { EnhancedErrorBoundaryService } from '../../../src/services/enhanced-error-boundary.service';
 import { HybridCryptoService } from '../../../src/services/hybrid-crypto.service';
+import { ClassicalCryptoService } from '../../../src/services/classical-crypto.service';
+import { CircuitBreakerService } from '../../../src/services/circuit-breaker.service';
+import { PQCErrorTaxonomyService } from '../../../src/services/pqc-error-taxonomy.service';
 import { QuantumSafeJWTService } from '../../../src/services/quantum-safe-jwt.service';
 import { QuantumSafeCryptoIdentityService } from '../../../src/services/quantum-safe-crypto-identity.service';
 import { PQCBridgeService } from '../../../src/services/pqc-bridge.service';
 import { PQCService } from '../../../src/services/pqc.service';
-import { ClassicalCryptoService } from '../../../src/services/classical-crypto.service';
-import { CircuitBreakerService } from '../../../src/services/circuit-breaker.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { spawn } from 'child_process';
 import * as path from 'path';
@@ -46,12 +47,13 @@ describe('PQC FFI Integration Verification', () => {
         PQCMonitoringService,
         EnhancedErrorBoundaryService,
         HybridCryptoService,
+        ClassicalCryptoService,
+        CircuitBreakerService,
+        PQCErrorTaxonomyService,
         QuantumSafeJWTService,
         QuantumSafeCryptoIdentityService,
         PQCBridgeService,
         PQCService,
-        ClassicalCryptoService,
-        CircuitBreakerService,
         {
           provide: getModelToken('User'),
           useValue: {
