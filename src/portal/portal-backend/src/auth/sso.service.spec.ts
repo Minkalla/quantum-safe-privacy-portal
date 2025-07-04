@@ -35,7 +35,28 @@ jest.mock('passport-saml', () => ({
     fail: jest.fn(),
     redirect: jest.fn()
   })),
-  Profile: {}
+  Profile: {},
+  MultiSamlStrategy: jest.fn()
+}));
+
+jest.mock('fs', () => ({
+  readFileSync: jest.fn().mockReturnValue('mock-cert-content'),
+  existsSync: jest.fn().mockReturnValue(true),
+  promises: {
+    readFile: jest.fn().mockResolvedValue('mock-cert-content'),
+    writeFile: jest.fn().mockResolvedValue(undefined),
+    access: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
+jest.mock('@aws-sdk/client-secrets-manager', () => ({
+  SecretsManagerClient: jest.fn().mockImplementation(() => ({
+    send: jest.fn().mockResolvedValue({ SecretString: 'mock-secret' }),
+  })),
+  GetSecretValueCommand: jest.fn(),
+  CreateSecretCommand: jest.fn(),
+  UpdateSecretCommand: jest.fn(),
+  DeleteSecretCommand: jest.fn(),
 }));
 
 describe('SsoService', () => {

@@ -28,6 +28,7 @@ describe('MFAService', () => {
       ],
     });
 
+    await module.init();
     service = module.get<MFAService>(MFAService);
     secretsService = module.get<SecretsService>(SecretsService);
     auditTrailService = module.get<AuditTrailService>(AuditTrailService);
@@ -96,10 +97,14 @@ describe('MFAService', () => {
 
     it('should verify backup code successfully', async () => {
       const userModel = module.get(getModelToken('User'));
-      userModel.findById.mockResolvedValue(mockUser);
+      userModel.findById.mockResolvedValue({
+        ...mockUser,
+        mfaEnabled: true,
+        mfaSecret: 'test-secret-id'
+      });
       
       const originalVerify = speakeasy.totp.verify;
-      speakeasy.totp.verify = () => false;
+      speakeasy.totp.verify = jest.fn().mockReturnValue(false);
       
       const backupCodes = ['ABCD1234', 'EFGH5678'];
       
@@ -181,7 +186,11 @@ describe('MFAService', () => {
 
     it('should throw UnauthorizedException if MFA not set up', async () => {
       const userModel = module.get(getModelToken('User'));
-      userModel.findById.mockResolvedValue(mockUser);
+      userModel.findById.mockResolvedValue({
+        ...mockUser,
+        mfaEnabled: false,
+        mfaSecret: null
+      });
       
       const mockSecretsService = {
         getSecret: jest.fn().mockRejectedValue(new Error('Secret not found')),
