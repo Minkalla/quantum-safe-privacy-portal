@@ -2,8 +2,6 @@ import { Injectable, ConflictException, UnauthorizedException, ForbiddenExceptio
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
-import { spawn } from 'child_process';
-import * as path from 'path';
 import { PQCLoginDto, PQCRegisterDto, PQCTokenVerificationDto } from './dto/pqc-auth.dto';
 import { IUser } from '../models/User';
 import { JwtService } from '../jwt/jwt.service';
@@ -47,11 +45,11 @@ export class EnhancedAuthService {
     if (!userId || typeof userId !== 'string') {
       throw new BadRequestException('Invalid user ID format');
     }
-    
+
     if (!/^[a-f\d]{24}$/i.test(userId)) {
       throw new BadRequestException('Invalid user ID format');
     }
-    
+
     return userId;
   }
 
@@ -59,12 +57,12 @@ export class EnhancedAuthService {
     if (!email || typeof email !== 'string') {
       throw new BadRequestException('Invalid email format');
     }
-    
+
     const emailRegex = /^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?@[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?\.[a-zA-Z]{2,}$/;
     if (!emailRegex.test(email) || email.length > 254) {
       throw new BadRequestException('Invalid email format');
     }
-    
+
     return email.toLowerCase().trim();
   }
 

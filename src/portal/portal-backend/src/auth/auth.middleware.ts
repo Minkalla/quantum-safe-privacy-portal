@@ -14,7 +14,7 @@
  * Returns 401 Unauthorized with JSON error response for invalid tokens.
  */
 
-import { Injectable, NestMiddleware, UnauthorizedException } from '@nestjs/common';
+import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { JwtService } from '../jwt/jwt.service';
 import { DeviceService } from './device.service';

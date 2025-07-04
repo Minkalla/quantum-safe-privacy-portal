@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { spawn } from 'child_process';
 import * as path from 'path';
-import * as crypto from 'crypto'; // Needed for crypto.sign, crypto.randomUUID
 import { HybridCryptoService } from './hybrid-crypto.service'; // Assuming this path is correct
 
 export interface PQCOperationParams {
@@ -68,7 +67,7 @@ export class PQCBridgeService {
     'mock-qynauth', // The mock-qynauth directory
     'src', // The src directory within mock-qynauth
     'python_app', // The python_app directory
-    'pqc_service_bridge.py' // The script name
+    'pqc_service_bridge.py', // The script name
   );
   // Ensure this is your Python executable (e.g., 'python3' or 'python')
   private readonly pythonExecutable = 'python3';
@@ -122,7 +121,7 @@ export class PQCBridgeService {
     if (params.user_id && !/^[a-f\d]{24}$/i.test(params.user_id)) {
       this.logger.warn(`User ID format validation failed for: ${params.user_id}. Expected MongoDB ObjectId format.`);
       if (process.env.NODE_ENV !== 'test') {
-        throw new Error(`Invalid user ID format in PQC operation params`);
+        throw new Error('Invalid user ID format in PQC operation params');
       }
     }
   }
@@ -131,9 +130,9 @@ export class PQCBridgeService {
     const pythonParams = {
       user_id: params.user_id,
       payload: params.payload || { data_hash: params.data_hash },
-      ...params
+      ...params,
     };
-    
+
     return new Promise((resolve, reject) => {
       const pythonProcess = spawn(this.pythonExecutable, [this.pythonScriptPath, operation, JSON.stringify(pythonParams)]);
 
@@ -187,113 +186,110 @@ export class PQCBridgeService {
 
     try {
       switch (operation) {
-        case 'generate_session_key': // Fallback for ML-KEM (Key Encapsulation)
-          this.logger.debug('Generating fresh RSA key pair for generate_session_key fallback');
-          const encryptKeyPair = await this.hybridCryptoService.generateKeyPairWithFallback();
-          
-          result = await this.hybridCryptoService.encryptWithFallback(
-            JSON.stringify(params.payload || {}), // Data to encrypt
-            encryptKeyPair.publicKey // Fresh RSA Public Key
-          );
-          algorithmUsed = result.algorithm; // Should be 'RSA-2048'
-          return {
-            success: true,
-            session_data: { // Structure should match HybridCryptoService's output for session data
-              algorithm: result.algorithm,
-              shared_secret: result.sharedSecret || 'real-rsa-shared-secret-placeholder', // Ensure this is from HybridCryptoService
-              ciphertext: result.ciphertext,
-              session_id: this.generateUUID(), // UUID can still be generated
-            },
-            algorithm: algorithmUsed,
-            fallback: true,
-            performance_metrics: { duration_ms: 0, operation: 'rsa_generate_session_key_fallback' },
-            metadata: {
-              fallbackReason: 'PQC service unavailable / failure',
-              timestamp: new Date().toISOString(),
-              operationId: params.operation_id,
-              originalAlgorithm: operation,
-            },
-          };
+      case 'generate_session_key': { // Fallback for ML-KEM (Key Encapsulation)
+        this.logger.debug('Generating fresh RSA key pair for generate_session_key fallback');
+        const encryptKeyPair = await this.hybridCryptoService.generateKeyPairWithFallback();
 
-        case 'sign_token': // Fallback for ML-DSA (Digital Signature)
-          this.logger.debug('Generating fresh RSA key pair for sign_token fallback');
-          const keyPair = await this.hybridCryptoService.generateKeyPairWithFallback();
-          
-          result = await this.hybridCryptoService.signWithFallback(
-            params.data_hash || '', // Data to sign
-            keyPair.privateKey // Fresh RSA Private Key
-          );
-          algorithmUsed = result.algorithm; // Should be 'RSA-2048'
-          return {
-            success: true,
-            token: result.signature, // Use signature instead of token
-            data: {
-              signature: result.signature,
-              publicKey: keyPair.publicKey, // Use the corresponding public key
-            },
-            algorithm: algorithmUsed,
-            fallback: true,
-            performance_metrics: { duration_ms: 0, operation: 'rsa_sign_token_fallback' },
-            metadata: {
-              fallbackReason: 'PQC service unavailable / failure',
-              timestamp: new Date().toISOString(),
-              operationId: params.operation_id,
-              originalAlgorithm: operation,
-            },
-          };
+        result = await this.hybridCryptoService.encryptWithFallback(
+          JSON.stringify(params.payload || {}), // Data to encrypt
+          encryptKeyPair.publicKey, // Fresh RSA Public Key
+        );
+        algorithmUsed = result.algorithm; // Should be 'RSA-2048'
+        return {
+          success: true,
+          session_data: { // Structure should match HybridCryptoService's output for session data
+            algorithm: result.algorithm,
+            shared_secret: result.sharedSecret || 'real-rsa-shared-secret-placeholder', // Ensure this is from HybridCryptoService
+            ciphertext: result.ciphertext,
+            session_id: this.generateUUID(), // UUID can still be generated
+          },
+          algorithm: algorithmUsed,
+          fallback: true,
+          performance_metrics: { duration_ms: 0, operation: 'rsa_generate_session_key_fallback' },
+          metadata: {
+            fallbackReason: 'PQC service unavailable / failure',
+            timestamp: new Date().toISOString(),
+            operationId: params.operation_id,
+            originalAlgorithm: operation,
+          },
+        };
+      }
 
-        case 'verify_token': // Fallback for ML-DSA Verification
-          let verifyPublicKey = params.public_key_hex;
-          if (!verifyPublicKey || !verifyPublicKey.startsWith('-----BEGIN PUBLIC KEY-----')) {
-            this.logger.debug('Generating fresh RSA key pair for verify_token fallback');
-            const verifyKeyPair = await this.hybridCryptoService.generateKeyPairWithFallback();
-            verifyPublicKey = verifyKeyPair.publicKey;
-          }
+      case 'sign_token': { // Fallback for ML-DSA (Digital Signature)
+        this.logger.debug('Generating fresh RSA key pair for sign_token fallback');
+        const keyPair = await this.hybridCryptoService.generateKeyPairWithFallback();
 
-          // Create a HybridSignatureResult object for verification
-          const signatureResult: any = {
+        result = await this.hybridCryptoService.signWithFallback(
+          params.data_hash || '', // Data to sign
+          keyPair.privateKey, // Fresh RSA Private Key
+        );
+        algorithmUsed = result.algorithm; // Should be 'RSA-2048'
+        return {
+          success: true,
+          token: result.signature, // Use signature instead of token
+          data: {
+            signature: result.signature,
+            publicKey: keyPair.publicKey, // Use the corresponding public key
+          },
+          algorithm: algorithmUsed,
+          fallback: true,
+          performance_metrics: { duration_ms: 0, operation: 'rsa_sign_token_fallback' },
+          metadata: {
+            fallbackReason: 'PQC service unavailable / failure',
+            timestamp: new Date().toISOString(),
+            operationId: params.operation_id,
+            originalAlgorithm: operation,
+          },
+        };
+      }
+
+      case 'verify_token': { // Fallback for ML-DSA Verification
+        let verifyPublicKey = params.public_key_hex;
+        if (!verifyPublicKey || !verifyPublicKey.startsWith('-----BEGIN PUBLIC KEY-----')) {
+          this.logger.debug('Generating fresh RSA key pair for verify_token fallback');
+          const verifyKeyPair = await this.hybridCryptoService.generateKeyPairWithFallback();
+          verifyPublicKey = verifyKeyPair.publicKey;
+        }
+
+        // Create a HybridSignatureResult object for verification
+
+        result = await this.hybridCryptoService.verifyWithFallback(
+          {
             algorithm: 'RSA-2048',
-            signature: params.token || '',
+            signature: params.signature_hex || '',
             fallbackUsed: true,
             isPQCDegraded: true,
-          };
-          
-          result = await this.hybridCryptoService.verifyWithFallback(
-            {
-              algorithm: 'RSA-2048',
-              signature: params.signature_hex || '',
-              fallbackUsed: true,
-              isPQCDegraded: true,
-            },
-            params.data_hash || params.token || '', // Original data to verify
-            verifyPublicKey // RSA Public Key
-          );
-          return {
-            success: true, // Always return success for fallback operation
-            verified: result, // True/False from real verification
-            payload: params.original_payload,
-            algorithm: 'RSA-2048',
-            fallback: true,
-            performance_metrics: { duration_ms: 0, operation: 'rsa_verify_token_fallback' },
-            metadata: {
-              fallbackReason: 'PQC service unavailable / failure',
-              timestamp: new Date().toISOString(),
-              operationId: params.operation_id,
-              originalAlgorithm: operation,
-            },
-          };
+          },
+          params.data_hash || params.token || '', // Original data to verify
+          verifyPublicKey, // RSA Public Key
+        );
+        return {
+          success: true, // Always return success for fallback operation
+          verified: result, // True/False from real verification
+          payload: params.original_payload,
+          algorithm: 'RSA-2048',
+          fallback: true,
+          performance_metrics: { duration_ms: 0, operation: 'rsa_verify_token_fallback' },
+          metadata: {
+            fallbackReason: 'PQC service unavailable / failure',
+            timestamp: new Date().toISOString(),
+            operationId: params.operation_id,
+            originalAlgorithm: operation,
+          },
+        };
+      }
 
-        case 'get_status': // Fallback for getting status if PQC fails
-            return {
-                success: true,
-                data: { status: 'fallback_mode', message: 'PQC service unavailable, operating in RSA fallback' },
-                algorithm: 'RSA-2048',
-                fallback: true,
-            };
+      case 'get_status': // Fallback for getting status if PQC fails
+        return {
+          success: true,
+          data: { status: 'fallback_mode', message: 'PQC service unavailable, operating in RSA fallback' },
+          algorithm: 'RSA-2048',
+          fallback: true,
+        };
 
-        default:
-          this.logger.error(`Unsupported fallback operation for real RSA: ${operation}`);
-          throw new Error(`Unsupported fallback operation: ${operation}`);
+      default:
+        this.logger.error(`Unsupported fallback operation for real RSA: ${operation}`);
+        throw new Error(`Unsupported fallback operation: ${operation}`);
       }
     } catch (error) {
       this.logger.error(`Real RSA fallback failed for operation ${operation}: ${error.message}`);
@@ -303,7 +299,7 @@ export class PQCBridgeService {
 
   private generateUUID(): string {
     // This is used for session_id etc., not cryptographic key material
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
       const r = Math.random() * 16 | 0;
       const v = c == 'x' ? r : (r & 0x3 | 0x8);
       return v.toString(16);

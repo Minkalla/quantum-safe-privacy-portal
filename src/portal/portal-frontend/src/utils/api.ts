@@ -1,4 +1,4 @@
- timport axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { AuthError } from '../types/auth';
 import { extractUserFromToken, isTokenExpired } from './jwt';
 

@@ -1,7 +1,6 @@
 import { Injectable, Logger, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { randomBytes } from 'crypto';
 import * as speakeasy from 'speakeasy';
 import { IUser } from '../models/User';
 import { SecretsService } from '../secrets/secrets.service';
@@ -92,7 +91,7 @@ export class MFAService {
 
       const secretKey = `mfa_secret_${userId}`;
       let secret: string;
-      
+
       try {
         secret = await this.secretsService.getSecret(secretKey);
       } catch (error) {
@@ -117,7 +116,7 @@ export class MFAService {
       if (!verified) {
         const backupCodesKey = `mfa_backup_codes_${userId}`;
         let backupCodesJson: string;
-        
+
         try {
           backupCodesJson = await this.secretsService.getSecret(backupCodesKey);
         } catch (error) {
@@ -178,7 +177,7 @@ export class MFAService {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      
+
       await this.auditTrailService.logSecurityEvent(
         'MFA_VERIFICATION_ERROR',
         { userId, error: error.message },
@@ -259,12 +258,12 @@ export class MFAService {
     if (!userId || typeof userId !== 'string') {
       throw new BadRequestException('Invalid user ID');
     }
-  
+
     // Validate MongoDB ObjectId format (24 hex characters)
     if (!/^[a-f\d]{24}$/i.test(userId)) {
       throw new BadRequestException('User ID format invalid');
     }
-  
+
     return userId;
   }
 }
