@@ -186,7 +186,7 @@ export class PQCBridgeService {
 
     try {
       switch (operation) {
-        case 'generate_session_key': // Fallback for ML-KEM (Key Encapsulation)
+        case 'generate_session_key': { // Fallback for ML-KEM (Key Encapsulation)
           // Need a test RSA Public Key for encryption. This should come from a secure test secret.
           const testPublicKeyEncrypt = process.env.RSA_PUBLIC_KEY || '-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyYt2z9o9u6t... (replace with actual test RSA Public Key) ...\n-----END PUBLIC PUBLIC KEY-----'; 
           
@@ -217,8 +217,9 @@ export class PQCBridgeService {
               originalAlgorithm: operation,
             },
           };
+        }
 
-        case 'sign_token': // Fallback for ML-DSA (Digital Signature)
+        case 'sign_token': { // Fallback for ML-DSA (Digital Signature)
           // Need a test RSA Private Key for signing. This should come from a secure test secret.
           const testPrivateKeySign = process.env.RSA_PRIVATE_KEY || '-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDDv5... (replace with actual test RSA Private Key) ...\n-----END PRIVATE KEY-----'; 
           
@@ -244,8 +245,9 @@ export class PQCBridgeService {
               originalAlgorithm: operation,
             },
           };
+        }
 
-        case 'verify_token': // Fallback for ML-DSA Verification
+        case 'verify_token': { // Fallback for ML-DSA Verification
           // Need a test RSA Public Key for verification. This should come from a secure test secret.
           const testPublicKeyVerify = process.env.RSA_PUBLIC_KEY || '-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyYt2z9o9u6t... (replace with actual test RSA Public Key) ...\n-----END PUBLIC KEY-----'; 
           
@@ -284,14 +286,16 @@ export class PQCBridgeService {
               originalAlgorithm: operation,
             },
           };
+        }
 
-        case 'get_status': // Fallback for getting status if PQC fails
+        case 'get_status': { // Fallback for getting status if PQC fails
             return {
                 success: true,
                 data: { status: 'fallback_mode', message: 'PQC service unavailable, operating in RSA fallback' },
                 algorithm: 'RSA-2048',
                 fallback: true,
             };
+        }
 
         default:
           this.logger.error(`Unsupported fallback operation for real RSA: ${operation}`);
