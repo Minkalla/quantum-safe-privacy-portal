@@ -49,7 +49,7 @@ export class JwtAuthGuard implements CanActivate {
     try {
       this.logger.debug('JWT Auth Guard - Calling jwtService.verifyToken with access type');
       const payload = this.jwtService.verifyToken(token, 'access');
-      
+
       if (!payload) {
         this.logger.error('JWT Auth Guard - verifyToken returned null payload');
         throw new UnauthorizedException('Invalid or expired JWT token');

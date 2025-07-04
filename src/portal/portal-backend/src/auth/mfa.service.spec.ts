@@ -1,4 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { MFAService } from './mfa.service';
@@ -28,9 +28,10 @@ describe('MFAService', () => {
       ],
     });
 
+    await module.init();
     service = module.get<MFAService>(MFAService);
     secretsService = module.get<SecretsService>(SecretsService);
-    auditTrailService = module.get<AuditTrailService>(AuditTrailService);
+    module.get<AuditTrailService>(AuditTrailService);
   });
 
   afterEach(async () => {
@@ -81,7 +82,7 @@ describe('MFAService', () => {
     it('should verify TOTP code successfully', async () => {
       const userModel = module.get(getModelToken('User'));
       userModel.findById.mockResolvedValue(mockUser);
-      
+
       const originalVerify = speakeasy.totp.verify;
       speakeasy.totp.verify = () => true;
 
@@ -96,13 +97,17 @@ describe('MFAService', () => {
 
     it('should verify backup code successfully', async () => {
       const userModel = module.get(getModelToken('User'));
-      userModel.findById.mockResolvedValue(mockUser);
-      
+      userModel.findById.mockResolvedValue({
+        ...mockUser,
+        mfaEnabled: true,
+        mfaSecret: 'test-secret-id',
+      });
+
       const originalVerify = speakeasy.totp.verify;
-      speakeasy.totp.verify = () => false;
-      
+      speakeasy.totp.verify = jest.fn().mockReturnValue(false);
+
       const backupCodes = ['ABCD1234', 'EFGH5678'];
-      
+
       const mockSecretsService = {
         getSecret: jest.fn().mockImplementation(async (key: string) => {
           if (key.includes('mfa_secret')) return mockSecret;
@@ -112,17 +117,17 @@ describe('MFAService', () => {
         storeSecret: jest.fn().mockResolvedValue(undefined),
         deleteSecret: jest.fn().mockResolvedValue(undefined),
       };
-      
+
       (service as any).secretsService = mockSecretsService;
 
       try {
         const result = await service.verifyMFA('60d5ec49f1a23c001c8a4d7d', 'ABCD1234');
         expect(result.verified).toBe(true);
         expect(result.message).toBe('Backup code verified successfully');
-        
+
         expect(mockSecretsService.storeSecret).toHaveBeenCalledWith(
           'mfa_backup_codes_60d5ec49f1a23c001c8a4d7d',
-          JSON.stringify(['EFGH5678'])
+          JSON.stringify(['EFGH5678']),
         );
       } finally {
         speakeasy.totp.verify = originalVerify;
@@ -133,10 +138,10 @@ describe('MFAService', () => {
     it('should fail verification for invalid code', async () => {
       const userModel = module.get(getModelToken('User'));
       userModel.findById.mockResolvedValue(mockUser);
-      
+
       const originalVerify = speakeasy.totp.verify;
       speakeasy.totp.verify = () => false;
-      
+
       secretsService.getSecret = async (key: string) => {
         if (key.includes('mfa_secret')) return mockSecret;
         if (key.includes('backup_codes')) return JSON.stringify(['ABCD1234']);
@@ -155,7 +160,7 @@ describe('MFAService', () => {
     it('should enable MFA when enableMFA flag is true', async () => {
       const userModel = module.get(getModelToken('User'));
       userModel.findById.mockResolvedValue(mockUser);
-      
+
       const originalVerify = speakeasy.totp.verify;
       speakeasy.totp.verify = () => true;
 
@@ -181,14 +186,18 @@ describe('MFAService', () => {
 
     it('should throw UnauthorizedException if MFA not set up', async () => {
       const userModel = module.get(getModelToken('User'));
-      userModel.findById.mockResolvedValue(mockUser);
-      
+      userModel.findById.mockResolvedValue({
+        ...mockUser,
+        mfaEnabled: false,
+        mfaSecret: null,
+      });
+
       const mockSecretsService = {
         getSecret: jest.fn().mockRejectedValue(new Error('Secret not found')),
         storeSecret: jest.fn().mockResolvedValue(undefined),
         deleteSecret: jest.fn().mockResolvedValue(undefined),
       };
-      
+
       (service as any).secretsService = mockSecretsService;
 
       try {

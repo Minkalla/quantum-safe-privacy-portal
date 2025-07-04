@@ -4,6 +4,8 @@ import { PQCDataEncryptionService } from '../pqc-data-encryption.service';
 import { ClassicalCryptoService } from '../classical-crypto.service';
 import { CircuitBreakerService } from '../circuit-breaker.service';
 import { EnhancedErrorBoundaryService } from '../enhanced-error-boundary.service';
+import { PQCBridgeService } from '../pqc-bridge.service';
+import { PQCErrorTaxonomyService } from '../pqc-error-taxonomy.service';
 import { PQCAlgorithmType } from '../../models/interfaces/pqc-data.interface';
 
 describe('HybridCryptoService', () => {
@@ -43,6 +45,8 @@ describe('HybridCryptoService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         HybridCryptoService,
+        PQCBridgeService,
+        PQCErrorTaxonomyService,
         { provide: PQCDataEncryptionService, useValue: mockPqcService },
         { provide: ClassicalCryptoService, useValue: mockClassicalService },
         { provide: CircuitBreakerService, useValue: mockCircuitBreakerService },
@@ -92,7 +96,7 @@ describe('HybridCryptoService', () => {
       };
 
       pqcService.encryptData.mockResolvedValue(mockPqcResult);
-      
+
       errorBoundaryService.executeWithErrorBoundary.mockImplementation(async (fn, options) => {
         return await fn();
       });

@@ -21,7 +21,7 @@ export class DeviceController {
   async registerDevice(
     @Body() registerDeviceDto: DeviceRegisterDto,
     @Request() req: any,
-    @Headers('x-device-fingerprint') deviceFingerprint?: string,
+    @Headers('x-device-fingerprint') _deviceFingerprint?: string,
   ) {
     try {
       const userId = req.user?.id || req.user?.userId || req.user?.sub;

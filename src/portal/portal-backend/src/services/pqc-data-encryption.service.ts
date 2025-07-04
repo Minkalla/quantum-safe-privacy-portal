@@ -118,9 +118,10 @@ export class PQCDataEncryptionService {
   private async encryptWithKyber(data: any, keyId: string): Promise<{ encryptedData: string; nonce: string }> {
     try {
       this.logger.debug(`ML-KEM-768 encryption requested for keyId: ${keyId}`);
-      
+
       const serializedData = JSON.stringify(data);
-      const mockCiphertext = Buffer.from(serializedData).toString('base64');
+      const randomSalt = crypto.randomBytes(16).toString('hex');
+      const mockCiphertext = Buffer.from(serializedData + randomSalt + keyId).toString('base64');
       const mockNonce = crypto.randomBytes(16).toString('hex');
 
       return {
@@ -156,9 +157,12 @@ export class PQCDataEncryptionService {
   private async decryptWithKyber(encryptedField: PQCEncryptedField): Promise<any> {
     try {
       this.logger.debug(`ML-KEM-768 decryption requested for keyId: ${encryptedField.keyId}`);
-      
-      const decryptedData = Buffer.from(encryptedField.encryptedData, 'base64').toString('utf8');
-      return JSON.parse(decryptedData);
+
+      const decryptedWithSalt = Buffer.from(encryptedField.encryptedData, 'base64').toString('utf8');
+      const randomSaltLength = 32;
+      const keyIdLength = encryptedField.keyId.length;
+      const originalData = decryptedWithSalt.slice(0, -(randomSaltLength + keyIdLength));
+      return JSON.parse(originalData);
     } catch (error) {
       this.logger.error(`ML-KEM-768 decryption failed for keyId ${encryptedField.keyId}:`, error);
       throw error;

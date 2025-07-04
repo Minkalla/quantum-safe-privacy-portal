@@ -3,10 +3,8 @@ const path = require('path');
 module.exports = {
   testEnvironment: 'node',
   testMatch: [
-    '<rootDir>/test/**/*.spec.ts',
-    '<rootDir>/test/**/*.test.ts',
-    '<rootDir>/src/**/*.spec.ts',
-    '<rootDir>/src/**/*.test.ts',
+    '<rootDir>/**/*.spec.ts',
+    '<rootDir>/**/*.test.ts',
   ],
   moduleFileExtensions: ['ts', 'js', 'json', 'node'],
   collectCoverage: true,
@@ -38,7 +36,13 @@ module.exports = {
   },
   moduleNameMapper: {
     '^bcryptjs$': '<rootDir>/node_modules/bcryptjs',
+    '^#apps/backend/package.json$': '<rootDir>/apps/backend/package.json',
+    '^#src/portal/portal-backend/package.json$': '<rootDir>/src/portal/portal-backend/package.json'
   },
+  roots: [
+    "<rootDir>/src", 
+    "<rootDir>/test"
+  ],
   testTimeout: 60000,
   setupFilesAfterEnv: ['<rootDir>/test/test-setup.ts'],
   rootDir: './',

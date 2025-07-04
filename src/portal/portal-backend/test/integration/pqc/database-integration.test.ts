@@ -21,6 +21,7 @@ import { ClassicalCryptoService } from '../../../src/services/classical-crypto.s
 import { QuantumSafeJWTService } from '../../../src/services/quantum-safe-jwt.service';
 import { QuantumSafeCryptoIdentityService } from '../../../src/services/quantum-safe-crypto-identity.service';
 import { PQCBridgeService } from '../../../src/services/pqc-bridge.service';
+import { PQCService } from '../../../src/services/pqc.service';
 import { SecretsService } from '../../../src/secrets/secrets.service';
 
 describe('PQC Database Integration', () => {
@@ -59,6 +60,7 @@ describe('PQC Database Integration', () => {
         QuantumSafeJWTService,
         QuantumSafeCryptoIdentityService,
         PQCBridgeService,
+        PQCService,
         SecretsService,
         {
           provide: ConfigService,
@@ -85,6 +87,8 @@ describe('PQC Database Integration', () => {
       ],
     }).compile();
 
+    await module.init();
+
     encryptionService = module.get<PQCDataEncryptionService>(PQCDataEncryptionService);
     validationService = module.get<PQCDataValidationService>(PQCDataValidationService);
     authService = module.get<AuthService>(AuthService);
@@ -94,13 +98,28 @@ describe('PQC Database Integration', () => {
   });
 
   afterAll(async () => {
-    await connection.close();
-    await mongod.stop();
+    try {
+      if (connection && typeof connection.close === 'function') {
+        await connection.close();
+      }
+    } catch (error) {
+    }
+
+    try {
+      if (mongod && typeof mongod.stop === 'function') {
+        await mongod.stop();
+      }
+    } catch (error) {
+    }
   });
 
   afterEach(async () => {
-    await userModel.deleteMany({});
-    await consentModel.deleteMany({});
+    if (userModel) {
+      await userModel.deleteMany({});
+    }
+    if (consentModel) {
+      await consentModel.deleteMany({});
+    }
   });
 
   describe('PQC-Encrypted Data Storage', () => {

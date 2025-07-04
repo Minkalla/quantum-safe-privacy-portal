@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { IConsent } from '../models/Consent';
 import { PQCDataEncryptionService } from '../services/pqc-data-encryption.service';
 import { FieldEncryptionService } from '../services/field-encryption.service';
 
 @Injectable()
 export class ConsentPQCRepository {
+  private readonly logger = new Logger(ConsentPQCRepository.name);
   private consentStorage = new Map<string, IConsent>();
 
   constructor(
@@ -64,6 +65,6 @@ export class ConsentPQCRepository {
   }
 
   async deleteByIdAndUserId(consentId: string, userId: string): Promise<void> {
-    console.log(`Deleting consent ${consentId} for user ${userId}`);
+    this.logger.debug(`Deleting consent ${consentId} for user ${userId}`);
   }
 }

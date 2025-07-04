@@ -52,7 +52,6 @@ export class CryptoFallbackError extends Error {
         'WARNING',
       );
     } catch (auditError) {
-      console.error('Failed to log crypto fallback to audit trail:', auditError);
     }
   }
 

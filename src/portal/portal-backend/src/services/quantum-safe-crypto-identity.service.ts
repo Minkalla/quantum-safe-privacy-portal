@@ -13,9 +13,9 @@ export class QuantumSafeCryptoIdentityService {
     const normalizedUserId = baseUserId.toLowerCase().trim();
     const normalizedAlgorithm = algorithm.toUpperCase();
     const normalizedOperation = operation.toLowerCase();
-    
+
     const cryptoSeed = `${normalizedUserId}:${normalizedAlgorithm}:${normalizedOperation}:crypto-ops`;
-    
+
     return crypto
       .createHash('sha256')
       .update(cryptoSeed)

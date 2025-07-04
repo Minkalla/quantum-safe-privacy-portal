@@ -466,7 +466,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'SAML authentication initiated successfully. Returns redirect URL to IdP.' })
   @ApiResponse({ status: 400, description: 'Validation failed.' })
   @ApiResponse({ status: 500, description: 'SSO configuration error.' })
-  async initiateSSO(@Body() ssoLoginDto: SSOLoginDto, @Res({ passthrough: true }) res: Response) {
+  async initiateSSO(@Body() ssoLoginDto: SSOLoginDto, @Res({ passthrough: true }) _res: Response) {
     try {
       await this.ssoService.initializeSamlStrategy();
 
@@ -578,9 +578,9 @@ export class AuthController {
     const deviceFingerprint = providedFingerprint || this.deviceService.generateDeviceFingerprint(deviceInfo);
 
     const isSpoofing = await this.deviceService.detectSpoofingAttemptWithFingerprint(
-      deviceInfo, 
-      deviceFingerprint, 
-      req.user.userId
+      deviceInfo,
+      deviceFingerprint,
+      req.user.userId,
     );
     if (isSpoofing) {
       throw new BadRequestException('Suspicious device activity detected');

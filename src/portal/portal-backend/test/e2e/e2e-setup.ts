@@ -41,12 +41,10 @@ export class E2ETestSetup {
 
   async connect(): Promise<void> {
     await this.client.connect();
-    console.log('Connected to MongoDB for E2E test setup');
   }
 
   async disconnect(): Promise<void> {
     await this.client.close();
-    console.log('Disconnected from MongoDB');
   }
 
   async seedTestUser(): Promise<TestUser> {
@@ -69,7 +67,6 @@ export class E2ETestSetup {
       _id: this.testUserId as any,
     });
 
-    console.log(`Test user created with ID: ${result.insertedId}`);
     return { ...testUser, _id: result.insertedId.toString() };
   }
 
@@ -93,7 +90,6 @@ export class E2ETestSetup {
 
     const result = await consentsCollection.insertOne(testConsent);
 
-    console.log(`Test consent created with ID: ${result.insertedId}`);
     return { ...testConsent, _id: result.insertedId.toString() };
   }
 
@@ -103,8 +99,6 @@ export class E2ETestSetup {
 
     await usersCollection.deleteMany({ email: this.testUserEmail });
     await consentsCollection.deleteMany({ userId: this.testUserId });
-
-    console.log('Test data cleanup completed');
   }
 
   getTestCredentials() {
@@ -131,7 +125,6 @@ export class E2ETestSetup {
 
       return { user, consent, credentials };
     } catch (error) {
-      console.error('Error setting up test environment:', error);
       throw error;
     }
   }

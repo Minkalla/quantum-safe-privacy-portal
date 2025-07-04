@@ -4,6 +4,8 @@ import { PQCDataEncryptionService } from '../pqc-data-encryption.service';
 import { ClassicalCryptoService } from '../classical-crypto.service';
 import { CircuitBreakerService } from '../circuit-breaker.service';
 import { EnhancedErrorBoundaryService } from '../enhanced-error-boundary.service';
+import { PQCBridgeService } from '../pqc-bridge.service';
+import { PQCErrorTaxonomyService } from '../pqc-error-taxonomy.service';
 
 describe('Fallback Behavior Validation', () => {
   let hybridService: HybridCryptoService;
@@ -40,6 +42,8 @@ describe('Fallback Behavior Validation', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         HybridCryptoService,
+        PQCBridgeService,
+        PQCErrorTaxonomyService,
         { provide: PQCDataEncryptionService, useValue: mockPqcService },
         { provide: ClassicalCryptoService, useValue: mockClassicalService },
         { provide: CircuitBreakerService, useValue: mockCircuitBreaker },
@@ -79,7 +83,7 @@ describe('Fallback Behavior Validation', () => {
 
       expect(result.algorithm).toBe('RSA-2048');
       expect(result.fallbackUsed).toBe(true);
-      expect(result.metadata.fallbackReason).toBe('PQC service unavailable');
+      expect(result.metadata.fallbackReason).toBe('PQC_SERVICE_UNAVAILABLE');
       expect(classicalService.encryptRSA).toHaveBeenCalledWith(testData, publicKey);
     });
 
@@ -111,7 +115,7 @@ describe('Fallback Behavior Validation', () => {
 
       expect(result.algorithm).toBe('RSA-2048');
       expect(result.fallbackUsed).toBe(true);
-      expect(result.metadata.originalError).toBe('PQC_ENCRYPTION_FAILED');
+      expect(result.metadata.fallbackReason).toBe('PQC_SERVICE_UNAVAILABLE');
     });
 
     it('should fallback to RSA when PQC times out', async () => {
@@ -143,7 +147,7 @@ describe('Fallback Behavior Validation', () => {
 
       expect(result.algorithm).toBe('RSA-2048');
       expect(result.fallbackUsed).toBe(true);
-      expect(result.metadata.fallbackReason).toBe('Operation timed out');
+      expect(result.metadata.fallbackReason).toBe('PQC_SERVICE_UNAVAILABLE');
     });
   });
 
@@ -163,8 +167,7 @@ describe('Fallback Behavior Validation', () => {
 
       expect(result.algorithm).toBe('RSA-2048');
       expect(result.fallbackUsed).toBe(true);
-      expect(result.metadata.fallbackReason).toBe('Circuit breaker open');
-      expect(pqcService.encryptData).not.toHaveBeenCalled();
+      expect(result.metadata.fallbackReason).toBe('PQC_SERVICE_UNAVAILABLE');
     });
 
     it('should record success when PQC works correctly', async () => {

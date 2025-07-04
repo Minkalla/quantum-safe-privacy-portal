@@ -16,12 +16,10 @@ import { AuthModule } from './auth.module';
 import { UserModule } from '../user/user.module';
 import { JwtModule } from '../jwt/jwt.module';
 import { ConfigModule } from '@nestjs/config';
-import { createTestModule } from '../test-utils/createTestModule';
 import cookieParser from 'cookie-parser';
 
 describe('Auth Integration (e2e)', () => {
   let app: INestApplication;
-  let authToken: string;
 
   beforeAll(async () => {
     process.env.SKIP_SECRETS_MANAGER = 'true';
@@ -30,7 +28,7 @@ describe('Auth Integration (e2e)', () => {
     process.env.JWT_SECRET = 'test-jwt-secret';
     process.env.AWS_REGION = 'us-east-1';
     process.env.APP_VERSION = '1.0.0-test';
-    
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
         ConfigModule.forRoot({
@@ -56,12 +54,12 @@ describe('Auth Integration (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('portal');
-    
+
     app.use(cookieParser());
-    
+
     await app.init();
-    
-    await new Promise(resolve => setTimeout(resolve, 100));
+
+    await new Promise(resolve => setTimeout(resolve, 500));
   });
 
   afterAll(async () => {
@@ -117,31 +115,44 @@ describe('Auth Integration (e2e)', () => {
     });
 
     it('should allow access with valid JWT token', async () => {
-      const registerResponse = await request(app.getHttpServer())
-        .post('/portal/auth/register')
-        .send({
-          email: 'test@example.com',
-          password: 'TestPassword123!',
-          firstName: 'Test',
-          lastName: 'User',
-        });
+      let localAuthToken: string;
 
-      if (registerResponse.status === 201) {
-        authToken = registerResponse.body.accessToken;
-      } else {
-        const loginResponse = await request(app.getHttpServer())
-          .post('/portal/auth/login')
+      try {
+        const registerResponse = await request(app.getHttpServer())
+          .post('/portal/auth/register')
           .send({
             email: 'test@example.com',
             password: 'TestPassword123!',
+            firstName: 'Test',
+            lastName: 'User',
           });
 
-        authToken = loginResponse.body.accessToken;
+        if (registerResponse.status === 201 && registerResponse.body.accessToken) {
+          localAuthToken = registerResponse.body.accessToken;
+        } else {
+          const loginResponse = await request(app.getHttpServer())
+            .post('/portal/auth/login')
+            .send({
+              email: 'test@example.com',
+              password: 'TestPassword123!',
+            });
+
+          if (loginResponse.status !== 200 || !loginResponse.body.accessToken) {
+            throw new Error(`Login failed: ${JSON.stringify(loginResponse.body)}`);
+          }
+          localAuthToken = loginResponse.body.accessToken;
+        }
+      } catch (error) {
+        throw new Error(`Authentication setup failed: ${error.message}`);
+      }
+
+      if (!localAuthToken) {
+        throw new Error('No auth token obtained');
       }
 
       return request(app.getHttpServer())
         .get('/portal/user/profile')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer ${localAuthToken}`)
         .expect(200)
         .expect((res) => {
           expect(res.body).toMatchObject({
@@ -163,19 +174,14 @@ describe('Auth Integration (e2e)', () => {
         });
 
       const setCookieHeader = loginResponse.headers['set-cookie'];
-      console.log('DEBUG: Full set-cookie header:', setCookieHeader);
-      
+
       const refreshTokenCookie = Array.isArray(setCookieHeader)
         ? setCookieHeader.find((cookie: string) => cookie.startsWith('refreshToken='))
         : setCookieHeader;
 
-      console.log('DEBUG: Found refresh token cookie:', refreshTokenCookie);
       expect(refreshTokenCookie).toBeDefined();
 
       const refreshToken = refreshTokenCookie?.split('=')[1]?.split(';')[0];
-      console.log('DEBUG: Extracted refresh token:', refreshToken);
-      console.log('DEBUG: Refresh token length:', refreshToken?.length);
-      console.log('DEBUG: Refresh token first 50 chars:', refreshToken?.substring(0, 50));
 
       return request(app.getHttpServer())
         .post('/portal/auth/refresh')

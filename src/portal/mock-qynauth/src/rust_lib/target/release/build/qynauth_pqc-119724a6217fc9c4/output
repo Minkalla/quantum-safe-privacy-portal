@@ -1,0 +1,7 @@
+cargo:rerun-if-changed=build.rs
+cargo:rustc-cfg=enable_x86_avx2
+cargo:warning=AVX2 optimizations enabled for x86_64
+cargo:rustc-env=PQC_OPTIMIZATION_LEVEL=3
+cargo:rustc-env=PQC_TARGET_CPU=native
+cargo:rustc-cfg=pqc_kyber768
+cargo:rustc-cfg=pqc_dilithium3

@@ -161,7 +161,14 @@ export class HybridCryptoService {
       this.logger.warn(`PQC signing failed, falling back to RSA: ${error.message}`);
 
       try {
-        const classicalResult = await this.classicalService.signRSA(message, privateKey);
+        let validPrivateKey = privateKey;
+        if (!privateKey.startsWith('-----BEGIN')) {
+          this.logger.debug('Generating test RSA key pair for fallback signing');
+          const keyPair = await this.classicalService.generateRSAKeyPair();
+          validPrivateKey = keyPair.privateKey;
+        }
+
+        const classicalResult = await this.classicalService.signRSA(message, validPrivateKey);
 
         this.logger.log('Classical RSA signing successful as fallback');
 

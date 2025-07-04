@@ -16,13 +16,14 @@ async function seedUser() {
 
   const existing = await users.findOne({ email });
   if (existing) {
-    console.log('✅ Test user already exists.');
   } else {
     await users.insertOne({ email, password: hashed });
-    console.log('🌱 Test user seeded:', email);
   }
 
   await client.close();
 }
 
-seedUser().catch(console.error);
+seedUser().catch((error) => {
+  process.stderr.write(`Seed user error: ${error.message}\n`);
+  process.exit(1);
+});

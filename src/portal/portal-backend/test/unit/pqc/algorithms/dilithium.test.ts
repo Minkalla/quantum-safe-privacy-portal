@@ -14,6 +14,9 @@ import { PQCBridgeService } from '../../../../src/services/pqc-bridge.service';
 import { PQCService } from '../../../../src/services/pqc.service';
 import { SecretsService } from '../../../../src/secrets/secrets.service';
 import { ClassicalCryptoService } from '../../../../src/services/classical-crypto.service';
+import { PQCDataEncryptionService } from '../../../../src/services/pqc-data-encryption.service';
+import { EnhancedErrorBoundaryService } from '../../../../src/services/enhanced-error-boundary.service';
+import { CircuitBreakerService } from '../../../../src/services/circuit-breaker.service';
 
 describe('Dilithium ML-DSA-65 Algorithm Tests', () => {
   let authService: AuthService;
@@ -33,6 +36,9 @@ describe('Dilithium ML-DSA-65 Algorithm Tests', () => {
         PQCService,
         SecretsService,
         ClassicalCryptoService,
+        PQCDataEncryptionService,
+        EnhancedErrorBoundaryService,
+        CircuitBreakerService,
         {
           provide: ConfigService,
           useValue: {
@@ -131,11 +137,8 @@ describe('Dilithium ML-DSA-65 Algorithm Tests', () => {
         user_id: 'test_user_signature',
         payload: { message: Buffer.from(testMessage).toString('base64') },
       };
-      console.log('DEBUG: Input params =', JSON.stringify(inputParams, null, 2));
 
       const signResult = await authService['callPythonPQCService']('sign_token', inputParams);
-
-      console.log('DEBUG: signResult =', JSON.stringify(signResult, null, 2));
 
       expect(signResult).toBeDefined();
       expect(signResult.success).toBe(true);

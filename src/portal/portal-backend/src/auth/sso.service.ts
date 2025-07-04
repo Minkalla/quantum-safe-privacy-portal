@@ -282,18 +282,20 @@ export class SsoService implements OnModuleInit, OnModuleDestroy {
       await this.initializeSamlStrategy();
     }
 
-    return new Promise(async (resolve, reject) => {
-      try {
-        const config = await this.getSamlConfig();
-        const metadata = this.samlStrategy.generateServiceProviderMetadata(
-          config.decryptionCert || null, // Use decryption cert if available
-          config.decryptionCert || null, // Use same cert for signing if available
-        );
-        resolve(metadata);
-      } catch (error) {
-        this.logger.error('Failed to generate SP metadata', error);
-        reject(new Error('Metadata generation failed'));
-      }
+    return new Promise((resolve, reject) => {
+      (async () => {
+        try {
+          const config = await this.getSamlConfig();
+          const metadata = this.samlStrategy.generateServiceProviderMetadata(
+            config.decryptionCert || null,
+            config.decryptionCert || null,
+          );
+          resolve(metadata);
+        } catch (error) {
+          this.logger.error('Failed to generate SP metadata', error);
+          reject(new Error('Metadata generation failed'));
+        }
+      })();
     });
   }
 

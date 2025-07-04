@@ -56,16 +56,16 @@ describe('POST /portal/consent (Integration Tests)', () => {
     app.setGlobalPrefix('portal');
     app.useGlobalPipes(new ValidationPipe());
 
+    await app.init();
+
     jwtService = moduleFixture.get<JwtService>(JwtService);
     testUserId = '60d5ec49f1a23c001c8a4d7d';
-    
+
     const tokens = await jwtService.generateTokens({
       userId: testUserId,
-      email: 'test@example.com'
+      email: 'test@example.com',
     });
     validJwtToken = tokens.accessToken;
-
-    await app.init();
   });
 
   afterAll(async () => {
@@ -81,17 +81,12 @@ describe('POST /portal/consent (Integration Tests)', () => {
   afterEach(async () => {
     const { getConnectionToken } = require('@nestjs/mongoose');
     const connection = app.get(getConnectionToken());
-    
+
     if (connection && connection.readyState === 1) {
-      console.log('DEBUG: Cleaning database after test...');
       const collections = await connection.db.collections();
-      console.log(`DEBUG: Found ${collections.length} collections to clean`);
       for (const collection of collections) {
-        const result = await collection.deleteMany({});
-        console.log(`DEBUG: Cleaned collection ${collection.collectionName}, deleted ${result.deletedCount} documents`);
+        await collection.deleteMany({});
       }
-    } else {
-      console.log(`DEBUG: Connection state: ${connection ? connection.readyState : 'no connection'}`);
     }
   });
 
