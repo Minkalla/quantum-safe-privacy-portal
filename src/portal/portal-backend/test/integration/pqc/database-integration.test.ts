@@ -85,6 +85,8 @@ describe('PQC Database Integration', () => {
       ],
     }).compile();
 
+    await module.init();
+
     encryptionService = module.get<PQCDataEncryptionService>(PQCDataEncryptionService);
     validationService = module.get<PQCDataValidationService>(PQCDataValidationService);
     authService = module.get<AuthService>(AuthService);

@@ -63,9 +63,12 @@ export class PQCBridgeService {
   private readonly pythonScriptPath = path.join(
     __dirname, // Current file directory
     '..', // Go up one level from services
-    '..', // Go up another level from services to portal-backend (adjust as needed)
-    'mock-qynauth', // Assuming this is where your python_app is located
-    'src', // Assuming the python app is under src within mock-qynauth
+    '..', // Go up another level from src
+    '..', // Go up another level from portal-backend
+    '..', // Go up another level from portal
+    'portal', // Back to portal
+    'mock-qynauth', // The mock-qynauth directory
+    'src', // The src directory within mock-qynauth
     'python_app', // The python_app directory
     'pqc_service_bridge.py' // The script name
   );
@@ -185,10 +188,10 @@ export class PQCBridgeService {
       switch (operation) {
         case 'generate_session_key': // Fallback for ML-KEM (Key Encapsulation)
           // Need a test RSA Public Key for encryption. This should come from a secure test secret.
-          const testPublicKeyEncrypt = process.env.TEST_RSA_PUBLIC_KEY || '-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyYt2z9o9u6t... (replace with actual test RSA Public Key) ...\n-----END PUBLIC PUBLIC KEY-----'; 
+          const testPublicKeyEncrypt = process.env.RSA_PUBLIC_KEY || '-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyYt2z9o9u6t... (replace with actual test RSA Public Key) ...\n-----END PUBLIC PUBLIC KEY-----'; 
           
           if (!testPublicKeyEncrypt.startsWith('-----BEGIN PUBLIC KEY-----')) {
-            throw new Error('TEST_RSA_PUBLIC_KEY is not a valid PEM format public key.');
+            throw new Error('RSA_PUBLIC_KEY is not a valid PEM format public key.');
           }
 
           result = await this.hybridCryptoService.encryptWithFallback(
@@ -217,10 +220,10 @@ export class PQCBridgeService {
 
         case 'sign_token': // Fallback for ML-DSA (Digital Signature)
           // Need a test RSA Private Key for signing. This should come from a secure test secret.
-          const testPrivateKeySign = process.env.TEST_RSA_PRIVATE_KEY || '-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDDv5... (replace with actual test RSA Private Key) ...\n-----END PRIVATE KEY-----'; 
+          const testPrivateKeySign = process.env.RSA_PRIVATE_KEY || '-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDDv5... (replace with actual test RSA Private Key) ...\n-----END PRIVATE KEY-----'; 
           
           if (!testPrivateKeySign.startsWith('-----BEGIN PRIVATE KEY-----')) {
-            throw new Error('TEST_RSA_PRIVATE_KEY is not a valid PEM format private key.');
+            throw new Error('RSA_PRIVATE_KEY is not a valid PEM format private key.');
           }
 
           result = await this.hybridCryptoService.signWithFallback(
@@ -244,24 +247,34 @@ export class PQCBridgeService {
 
         case 'verify_token': // Fallback for ML-DSA Verification
           // Need a test RSA Public Key for verification. This should come from a secure test secret.
-          const testPublicKeyVerify = process.env.TEST_RSA_PUBLIC_KEY || '-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyYt2z9o9u6t... (replace with actual test RSA Public Key) ...\n-----END PUBLIC KEY-----'; 
+          const testPublicKeyVerify = process.env.RSA_PUBLIC_KEY || '-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyYt2z9o9u6t... (replace with actual test RSA Public Key) ...\n-----END PUBLIC KEY-----'; 
           
           if (!testPublicKeyVerify.startsWith('-----BEGIN PUBLIC KEY-----')) {
-            throw new Error('TEST_RSA_PUBLIC_KEY is not a valid PEM format public key.');
+            throw new Error('RSA_PUBLIC_KEY is not a valid PEM format public key.');
           }
 
-          result = await this.hybridCryptoService.verifyWithFallback(
-            params.token || '', // Token to verify
+          const signatureResult = {
+            algorithm: (params.algorithm || 'RSA-2048') as 'ML-DSA-65' | 'RSA-2048',
+            signature: params.token || '',
+            fallbackUsed: true,
+            isPQCDegraded: true,
+            metadata: {
+              timestamp: new Date().toISOString(),
+              fallbackReason: 'PQC service unavailable / failure',
+            },
+          };
+
+          const isValid = await this.hybridCryptoService.verifyWithFallback(
+            signatureResult, // HybridSignatureResult object
             params.data_hash || '', // Original data
-            testPublicKeyVerify, // Real RSA Public Key
-            params.algorithm || 'RSA-2048' // Algorithm used for original signature
+            testPublicKeyVerify // Real RSA Public Key
           );
-          algorithmUsed = result.algorithm; // Should be 'RSA-2048'
+          
           return {
-            success: result.success, // True/False from real verification
-            verified: result.verified,
-            payload: result.payload,
-            algorithm: algorithmUsed,
+            success: true,
+            verified: isValid, // True/False from real verification
+            payload: params.original_payload || params.payload || params,
+            algorithm: signatureResult.algorithm,
             fallback: true,
             performance_metrics: { duration_ms: 0, operation: 'rsa_verify_token_fallback' },
             metadata: {
