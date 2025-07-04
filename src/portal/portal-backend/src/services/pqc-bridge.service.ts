@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { spawn } from 'child_process';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import { HybridCryptoService } from './hybrid-crypto.service'; // Assuming this path is correct
 
 export interface PQCOperationParams {
@@ -186,7 +187,7 @@ export class PQCBridgeService {
 
     try {
       switch (operation) {
-      case 'generate_session_key': { // Fallback for ML-KEM (Key Encapsulation)
+      case 'generate_session_key': {
         this.logger.debug('Generating fresh RSA key pair for generate_session_key fallback');
         const encryptKeyPair = await this.hybridCryptoService.generateKeyPairWithFallback();
 
@@ -215,7 +216,7 @@ export class PQCBridgeService {
         };
       }
 
-      case 'sign_token': { // Fallback for ML-DSA (Digital Signature)
+      case 'sign_token': {
         this.logger.debug('Generating fresh RSA key pair for sign_token fallback');
         const keyPair = await this.hybridCryptoService.generateKeyPairWithFallback();
 
@@ -243,7 +244,7 @@ export class PQCBridgeService {
         };
       }
 
-      case 'verify_token': { // Fallback for ML-DSA Verification
+      case 'verify_token': {
         let verifyPublicKey = params.public_key_hex;
         if (!verifyPublicKey || !verifyPublicKey.startsWith('-----BEGIN PUBLIC KEY-----')) {
           this.logger.debug('Generating fresh RSA key pair for verify_token fallback');
@@ -300,7 +301,7 @@ export class PQCBridgeService {
   private generateUUID(): string {
     // This is used for session_id etc., not cryptographic key material
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-      const r = Math.random() * 16 | 0;
+      const r = crypto.randomBytes(1)[0] % 16;
       const v = c == 'x' ? r : (r & 0x3 | 0x8);
       return v.toString(16);
     });

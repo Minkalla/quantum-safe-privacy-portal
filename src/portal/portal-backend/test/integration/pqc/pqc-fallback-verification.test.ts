@@ -50,15 +50,11 @@ describe('PQC Fallback Verification - Real RSA Operations', () => {
   it('should force PQC service failure and verify real RSA fallback operations', async () => {
     const testUserId = '507f1f77bcf86cd799439011';
 
-    console.log('=== TESTING DIRECT FALLBACK OPERATIONS WITH REAL RSA ===');
-
-    console.log('Testing generate_session_key direct fallback...');
     const sessionResult = await (pqcBridgeService as any).performFallbackOperation(
       'generate_session_key',
       { user_id: testUserId, payload: { test: 'data' } },
     );
 
-    console.log('Session fallback result:', JSON.stringify(sessionResult, null, 2));
     expect(sessionResult.success).toBe(true);
     expect(sessionResult.fallback).toBe(true);
     expect(sessionResult.session_data).toBeDefined();
@@ -66,15 +62,11 @@ describe('PQC Fallback Verification - Real RSA Operations', () => {
     expect(sessionResult.session_data!.shared_secret).toBeDefined();
     expect(sessionResult.metadata?.fallbackReason).toMatch(/PQC service unavailable/);
 
-    console.log('✓ Session key direct fallback completed with real cryptographic operations');
-
-    console.log('Testing sign_token direct fallback...');
     const signResult = await (pqcBridgeService as any).performFallbackOperation(
       'sign_token',
       { user_id: testUserId, data_hash: 'test-hash-to-sign' },
     );
 
-    console.log('Sign fallback result:', JSON.stringify(signResult, null, 2));
     expect(signResult.success).toBe(true);
     expect(signResult.fallback).toBe(true);
     expect(signResult.token).toBeDefined();
@@ -83,9 +75,6 @@ describe('PQC Fallback Verification - Real RSA Operations', () => {
     expect(signResult.data.publicKey).toBeDefined();
     expect(signResult.metadata?.fallbackReason).toMatch(/PQC service unavailable/);
 
-    console.log('✓ Token signing direct fallback completed with real cryptographic operations');
-
-    console.log('Testing verify_token direct fallback...');
     const verifyResult = await (pqcBridgeService as any).performFallbackOperation(
       'verify_token',
       {
@@ -97,13 +86,10 @@ describe('PQC Fallback Verification - Real RSA Operations', () => {
       },
     );
 
-    console.log('Verify fallback result:', JSON.stringify(verifyResult, null, 2));
     expect(verifyResult.success).toBe(true);
     expect(verifyResult.fallback).toBe(true);
     expect(verifyResult.verified).toBe(true);
     expect(verifyResult.metadata?.fallbackReason).toMatch(/PQC service unavailable/);
 
-    console.log('✓ Token verification direct fallback completed with real cryptographic operations');
-    console.log('=== ALL DIRECT FALLBACK OPERATIONS VERIFIED WITH REAL CRYPTOGRAPHY ===');
   });
 });

@@ -103,7 +103,6 @@ describe('PQC Database Integration', () => {
         await connection.close();
       }
     } catch (error) {
-      console.warn('Error closing database connection:', error?.message || 'Unknown error');
     }
 
     try {
@@ -111,7 +110,6 @@ describe('PQC Database Integration', () => {
         await mongod.stop();
       }
     } catch (error) {
-      console.warn('Error stopping mongod:', error?.message || 'Unknown error');
     }
   });
 

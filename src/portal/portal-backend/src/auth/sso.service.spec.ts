@@ -8,7 +8,7 @@
  * @license MIT
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
+import { TestingModule } from '@nestjs/testing';
 import { SsoService, SamlUser } from './sso.service';
 import { SecretsService } from '../secrets/secrets.service';
 import { JwtService as CustomJwtService } from '../jwt/jwt.service';

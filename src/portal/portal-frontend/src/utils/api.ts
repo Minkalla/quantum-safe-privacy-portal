@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { AuthError } from '../types/auth';
-import { extractUserFromToken, isTokenExpired } from './jwt';
+import { isTokenExpired } from './jwt';
 
 const API_BASE_URL = 'http://localhost:8080/portal';
 
@@ -14,24 +14,12 @@ export const apiClient: AxiosInstance = axios.create({
 });
 
 let authToken: string | null = null;
-let isSSO = false;
 
 export const setAuthToken = (token: string | null) => {
   authToken = token;
-  isSSO = false;
 
   if (token) {
     apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-    try {
-      const userData = extractUserFromToken(token);
-      if (userData && 'authMethod' in userData && userData.authMethod === 'sso') {
-        isSSO = true;
-        console.debug('SSO token detected and configured for API requests');
-      }
-    } catch (error) {
-      console.warn('Failed to parse token for SSO detection:', error);
-    }
   } else {
     delete apiClient.defaults.headers.common['Authorization'];
   }
@@ -102,9 +90,6 @@ apiClient.interceptors.response.use(
           localStorage.setItem('accessToken', accessToken);
           setAuthToken(accessToken);
 
-          if (isSSO) {
-            console.debug('SSO token successfully refreshed');
-          }
 
           processQueue(null, accessToken);
 
@@ -114,11 +99,6 @@ apiClient.interceptors.response.use(
           throw new Error('No access token received from refresh endpoint');
         }
       } catch (refreshError: any) {
-        console.error('Token refresh failed:', refreshError.message);
-
-        if (isSSO) {
-          console.error('SSO token refresh failed, redirecting to SSO login');
-        }
 
         processQueue(refreshError, null);
         setAuthToken(null);
@@ -131,9 +111,6 @@ apiClient.interceptors.response.use(
     }
 
     if (error.response?.status === 401) {
-      if (isSSO) {
-        console.warn('SSO token unauthorized, clearing authentication state');
-      }
 
       setAuthToken(null);
       localStorage.removeItem('accessToken');

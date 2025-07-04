@@ -244,14 +244,14 @@ export class AuthService {
     }
 
     const sanitizedParams = this.sanitizePQCParams(params);
-    console.log(`DEBUG TS: Calling PQC service: ${operation} with params: ${JSON.stringify(sanitizedParams)}`);
+    this.logger.debug(`Calling PQC service: ${operation} with params: ${JSON.stringify(sanitizedParams)}`);
 
     // Special debugging for verify_token operations
     if (operation === 'verify_token') {
-      console.log(`DEBUG TS: verify_token - token length: ${sanitizedParams.token?.length || 'undefined'}`);
-      console.log(`DEBUG TS: verify_token - user_id: ${sanitizedParams.user_id}`);
+      this.logger.debug(`verify_token - token length: ${sanitizedParams.token?.length || 'undefined'}`);
+      this.logger.debug(`verify_token - user_id: ${sanitizedParams.user_id}`);
       if (sanitizedParams.token) {
-        console.log(`DEBUG TS: verify_token - token preview: ${sanitizedParams.token.slice(0, 100)}...`);
+        this.logger.debug(`verify_token - token preview: ${sanitizedParams.token.slice(0, 100)}...`);
       }
     }
 
@@ -287,17 +287,17 @@ export class AuthService {
       });
 
       pythonProcess.on('close', (code) => {
-        console.log(`DEBUG TS: Python process closed with code ${code}`);
-        console.log(`DEBUG TS: stdout length: ${stdout.length}`);
-        console.log(`DEBUG TS: stderr length: ${stderr.length}`);
+        this.logger.debug(`Python process closed with code ${code}`);
+        this.logger.debug(`stdout length: ${stdout.length}`);
+        this.logger.debug(`stderr length: ${stderr.length}`);
 
         if (stderr.length > 0) {
-          console.log(`DEBUG TS: stderr content: ${stderr}`);
+          this.logger.debug(`stderr content: ${stderr}`);
         }
 
         try {
           const result = JSON.parse(stdout);
-          console.log(`DEBUG TS: PQC service response for ${operation}: ${JSON.stringify(result)}`);
+          this.logger.debug(`PQC service response for ${operation}: ${JSON.stringify(result)}`);
           resolve(result);
         } catch (parseError: any) {
           if (code === 0) {

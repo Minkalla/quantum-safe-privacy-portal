@@ -75,24 +75,20 @@ describe('AuthService', () => {
           provide: getModelToken('User'),
           useValue: (() => {
             function MockUserModel(userData) {
-              console.log('MockUserModel constructor called with:', userData);
               Object.assign(this, { ...mockUser, ...userData });
 
               this.save = function() {
-                console.log('MockUserModel save() called, this:', this);
                 const result = {
                   ...this,
                   _id: {
                     toString: () => '507f1f77bcf86cd799439011',
                   },
                 };
-                console.log('MockUserModel save() returning:', result);
                 return Promise.resolve(result);
               };
             }
 
             MockUserModel.findOne = function() {
-              console.log('MockUserModel findOne() called');
               return Promise.resolve(null);
             };
 

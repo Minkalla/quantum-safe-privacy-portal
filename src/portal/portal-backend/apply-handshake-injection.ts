@@ -12,7 +12,7 @@ let source = fs.readFileSync(targetFile, 'utf8');
 
 // Check if it's already injected
 if (source.includes('triggerPQCHandshake')) {
-  console.log('🟡 PQC handshake already wired. No changes made.');
+  process.stdout.write('🟡 PQC handshake already wired. No changes made.\n');
   process.exit(0);
 }
 
@@ -32,4 +32,4 @@ source = source.replace(
 
 fs.writeFileSync(targetFile, source);
 
-console.log('✅ PQC handshake injected into auth.service.ts');
+process.stdout.write('✅ PQC handshake injected into auth.service.ts\n');

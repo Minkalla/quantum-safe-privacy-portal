@@ -79,8 +79,6 @@ describe('UID Signature Lifecycle - Live PQC Operations', () => {
     const testData = { message: 'test payload', timestamp: Date.now() };
     const testUserId = 'test-user-123';
 
-    console.log('=== Live PQC UID Signature Lifecycle Test ===');
-
     const signingUserId = generateCryptoUserId(testUserId, {
       algorithm: 'ML-DSA-65',
       operation: 'signing',
@@ -91,9 +89,6 @@ describe('UID Signature Lifecycle - Live PQC Operations', () => {
       operation: 'signing', // Should be same as signing for consistency
     });
 
-    console.log('Generated signing user ID:', signingUserId);
-    console.log('Generated verification user ID:', verificationUserId);
-
     expect(signingUserId).toBeDefined();
     expect(verificationUserId).toBeDefined();
     expect(signingUserId).toBe(verificationUserId);
@@ -103,16 +98,9 @@ describe('UID Signature Lifecycle - Live PQC Operations', () => {
       algorithm: 'DILITHIUM_3' as any,
     });
 
-    console.log('Live PQC signature generated:', signature.signature.substring(0, 50) + '...');
-    console.log('Signature metadata:', signature.metadata);
-
     const verifyResult = await validationService.verifySignature(testData, signature, {
       userId: testUserId,
     });
-
-    console.log('Live PQC verification result:', verifyResult.isValid);
-    console.log('Verification errors:', verifyResult.errors);
-    console.log('Verification warnings:', verifyResult.warnings);
 
     expect(signature).toBeDefined();
     expect(signature.signature).toBeDefined();
@@ -130,18 +118,11 @@ describe('UID Signature Lifecycle - Live PQC Operations', () => {
   it('should handle anonymous user ID consistently with live PQC', async () => {
     const testData = { message: 'anonymous test payload' };
 
-    console.log('=== Live PQC Anonymous UID Test ===');
-
     const signature = await validationService.generateSignature(testData, {
       algorithm: 'DILITHIUM_3' as any,
     });
 
-    console.log('Anonymous live PQC signature generated:', signature.signature.substring(0, 50) + '...');
-
     const verifyResult = await validationService.verifySignature(testData, signature);
-
-    console.log('Anonymous live PQC verification result:', verifyResult.isValid);
-    console.log('Anonymous verification errors:', verifyResult.errors);
 
     expect(signature).toBeDefined();
     expect(signature.signature).toBeDefined();

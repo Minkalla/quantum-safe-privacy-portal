@@ -19,8 +19,5 @@ import { connect, model, Schema } from 'mongoose';
     { upsert: true, new: true }
   );
 
-  console.log(`✅ User created or updated:
-  Email:    ${email}
-  Password: ${password}`);
   process.exit(0);
 })();

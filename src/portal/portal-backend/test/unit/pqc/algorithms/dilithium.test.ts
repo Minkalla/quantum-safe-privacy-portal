@@ -137,11 +137,8 @@ describe('Dilithium ML-DSA-65 Algorithm Tests', () => {
         user_id: 'test_user_signature',
         payload: { message: Buffer.from(testMessage).toString('base64') },
       };
-      console.log('DEBUG: Input params =', JSON.stringify(inputParams, null, 2));
 
       const signResult = await authService['callPythonPQCService']('sign_token', inputParams);
-
-      console.log('DEBUG: signResult =', JSON.stringify(signResult, null, 2));
 
       expect(signResult).toBeDefined();
       expect(signResult.success).toBe(true);

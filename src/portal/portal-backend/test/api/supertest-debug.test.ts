@@ -12,9 +12,6 @@ describe('Supertest Debug', () => {
   });
 
   it('should verify supertest works', async () => {
-    console.log('request type:', typeof request);
-    console.log('request:', request);
-
     const response = await request(app)
       .get('/test')
       .expect(200);

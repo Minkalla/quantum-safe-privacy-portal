@@ -31,7 +31,7 @@ describe('MFAService', () => {
     await module.init();
     service = module.get<MFAService>(MFAService);
     secretsService = module.get<SecretsService>(SecretsService);
-    auditTrailService = module.get<AuditTrailService>(AuditTrailService);
+    module.get<AuditTrailService>(AuditTrailService);
   });
 
   afterEach(async () => {

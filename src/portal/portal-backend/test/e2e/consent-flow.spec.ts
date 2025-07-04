@@ -77,15 +77,10 @@ describe('E2E Consent Flow Tests', () => {
     const connection = app.get(getConnectionToken());
 
     if (connection && connection.readyState === 1) {
-      console.log('DEBUG: Cleaning database after test...');
       const collections = await connection.db.collections();
-      console.log(`DEBUG: Found ${collections.length} collections to clean`);
       for (const collection of collections) {
-        const result = await collection.deleteMany({});
-        console.log(`DEBUG: Cleaned collection ${collection.collectionName}, deleted ${result.deletedCount} documents`);
+        await collection.deleteMany({});
       }
-    } else {
-      console.log(`DEBUG: Connection state: ${connection ? connection.readyState : 'no connection'}`);
     }
   });
 
