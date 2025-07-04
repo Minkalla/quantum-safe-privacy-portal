@@ -38,6 +38,8 @@ module.exports = {
   },
   moduleNameMapper: {
     '^bcryptjs$': '<rootDir>/node_modules/bcryptjs',
+    "^#apps/backend/package.json$": "<rootDir>/apps/backend/package.json",
+    "^#src/portal/portal-backend/package.json$": "<rootDir>/src/portal/portal-backend/package.json"
   },
   testTimeout: 60000,
   setupFilesAfterEnv: ['<rootDir>/test/test-setup.ts'],

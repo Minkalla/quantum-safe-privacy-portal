@@ -42,6 +42,7 @@ describe('PQC Cross-Service Integration', () => {
         QuantumSafeCryptoIdentityService,
         PQCBridgeService,
         PQCService,
+        SecretsService,
         {
           provide: ConfigService,
           useValue: {
@@ -54,9 +55,48 @@ describe('PQC Cross-Service Integration', () => {
                 'performance.monitoring_enabled': true,
                 'JWT_ACCESS_SECRET_ID': 'test-access-secret-id',
                 'JWT_REFRESH_SECRET_ID': 'test-refresh-secret-id',
+                'JWT_ACCESS_SECRET': 'test-access-secret',
+                'JWT_REFRESH_SECRET': 'test-refresh-secret',
                 'AWS_REGION': 'us-east-1',
                 'SKIP_SECRETS_MANAGER': 'true',
                 'MongoDB1': process.env.MongoDB1 || 'mongodb://localhost:27017/test',
+                'RSA_PRIVATE_KEY': `-----BEGIN PRIVATE KEY-----
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCpvyH9ei36vbhQ
+xjsLU+UbBwmMmMyT8DgVYpmKpQXFjVvN2OKTnwYNADhOQ3xXAOLqz164IPwa/ziI
+MEa4mo/KmRcTkd2lDJbjCqj5c9ALzZx+/XtL/Cows96nHbsjEPA8ioQsWGcmqzVp
+n97hpP5qTa+8wQD6EYqZ60GVyfrEhwoafuLmN1hhMZHo1eI2U2BlizrVJljZY0X0
+SL24u6go8fpa48Fc/vwCVdXW2y36jcmLSbEYjFkeWA8kGg8nXi+oHHE00DocdvMR
+C49IMctru8geQYs9edrbfI80zkEHHb1kdtOum+xzzFSfVM17g4V49cozHTqJTqpF
+mDVkIcSXAgMBAAECggEAKb/n5UdCvdQh3EQVS6DzzaT6dUkzsAM6WBArQY17EO7G
+sKdyeup2+4WdU6qHj4KZTTV5z4HVX/J7/gsZqdfiG+txYI/U2v5wsiDyFICmn/CP
+WDCSPcskuVvUHHhUibhlzg4nmhyYKkub1IHMuOTy6kR3P86cpeTgmSDivauy8Nj6
+15TpYf++/llyRLuetS8hdjvaYZ3B8KdlhLQ9LrtkwOFSBZE3OKoxPr7aIiNTlgz3
+YoTBvueSbaHGONVpEonnXq3HgjukYJX847tIvgdO7dLkb4nYOi+u2QwPzH8Z1b07
+bQQZd+QG6G3MEUZRSuqBNTHwgEIo/9wySqWfoRSdGQKBgQC8wrXpcjuwHXvmTZeG
+oYGjFcr1vEx8c2jHM4Pts97GIld82HaoQHp+BxqLTyhq2c3sccbJ1SWwJjQChw11
+1goSCSHq+gRbV+iRcCl07o6b6agV8GzIb9uezQWwSytPLtQN0ujYVmgUTQbupYGA
+39aNalO8aK39ABM9xCh7xeUjBQKBgQDmNoQ02krD2YxV+/9tPr344PAs/y8Gz/Py
+9YhBu9QsA97hEyNYk8isqMFmTsEjw18CUa7seljmqsr4Wrt5ywABuSI53pFiJ6tP
+gv2ic+/hPXhV2c+++aTjeL9PeXry6VgKWG9ep3H6Ogpdjq4cWvHAXTrn6MpJfqrl
+duh4ebBT6wKBgDjrNdOJILqAiYXuy8xLEz5MKgFjoGS+oE/BFv0sifaREHSTCWS+
+3LD4D2cGnZdqyg+MV3cxEMZHHtPMSaDIxAygOFwUvA+XOIfynG2oKdSV5puG/iaK
+pF0EUbzRTeP4qPTqLlBd7dCBUZ/QxHZKCPZno4xivGRYC3VKmzKHgArJAoGBALbh
+C/loiAg5Y/BSdcD1HLj/CAzW0ybYP/T79Dgz3ALzODUYnPWawMnYbXq2iVu9slYH
+Sax2LPVhLEhK26+PAfxcc8IA+wE8fix15MMO0rrduCCLHSua6dACdgfOe0tI7zWY
+tzA8WKDtRpq347yGypGD/m2IUlo8E8qhwV8jXF3tAoGBALP6sIMwgVnCqO80TWuY
+h3IpxJF+Zb2wuRQwWrqSQhNE0diooKMuE6l93vi/5bXB4MMtnB8sbW5YG7H9HsAo
+y9K4DIZr9Fp9AHQtipluAppIjdTKFYFwbrIzqjpr02KY9s9yoHwy3lKj3I5IccPK
+5KZcPFxkqBZFM0tMD2VYRvJV
+-----END PRIVATE KEY-----`,
+                'RSA_PUBLIC_KEY': `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqb8h/Xot+r24UMY7C1Pl
+GwcJjJjMk/A4FWKZiqUFxY1bzdjik58GDQA4TkN8VwDi6s9euCD8Gv84iDBGuJqP
+ypkXE5HdpQyW4wqo+XPQC82cfv17S/wqMLPepx27IxDwPIqELFhnJqs1aZ/e4aT+
+ak2vvMEA+hGKmetBlcn6xIcKGn7i5jdYYTGR6NXiNlNgZYs61SZY2WNF9Ei9uLuo
+KPH6WuPBXP78AlXV1tst+o3Ji0mxGIxZHlgPJBoPJ14vqBxxNNA6HHbzEQuPSDHL
+a7vIHkGLPXna23yPNM5BBx29ZHbTrpvsc8xUn1TNe4OFePXKMx06iU6qRZg1ZCHE
+lwIDAQAB
+-----END PUBLIC KEY-----`,
               };
               return config[key] || process.env[key] || 'test-value';
             },
@@ -73,6 +113,8 @@ describe('PQC Cross-Service Integration', () => {
         },
       ],
     }).compile();
+
+    await module.init();
 
     encryptionService = module.get<PQCDataEncryptionService>(PQCDataEncryptionService);
     validationService = module.get<PQCDataValidationService>(PQCDataValidationService);

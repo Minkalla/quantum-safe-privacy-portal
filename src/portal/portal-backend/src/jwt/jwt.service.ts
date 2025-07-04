@@ -54,25 +54,28 @@ export class JwtService implements OnModuleInit {
     await this.initializeSecrets();
     this.isInitialized = true;
     this.logger.log('JWT service initialization completed successfully');
+    this.logger.debug(`JWT service initialized: isInitialized=${this.isInitialized}, hasAccessSecret=${!!this.jwtAccessSecret}, hasRefreshSecret=${!!this.jwtRefreshSecret}`);
   }
 
   private async initializeSecrets(): Promise<void> {
     const skipSecretsManager = this.configService.get<string>('SKIP_SECRETS_MANAGER') === 'true';
     
+    this.logger.debug(`JWT initializeSecrets: skipSecretsManager=${skipSecretsManager}`);
     this.logger.debug(`SKIP_SECRETS_MANAGER value: ${this.configService.get<string>('SKIP_SECRETS_MANAGER')}`);
-    this.logger.debug(`skipSecretsManager boolean: ${skipSecretsManager}`);
     
     if (skipSecretsManager) {
-      this.jwtAccessSecret = this.configService.get<string>('JWT_ACCESS_SECRET') || 
-                            this.configService.get<string>('JWT_SECRET') || 
-                            'test-access-secret-fallback';
-      this.jwtRefreshSecret = this.configService.get<string>('JWT_REFRESH_SECRET') || 
-                             this.configService.get<string>('JWT_SECRET') || 
-                             'test-refresh-secret-fallback';
-      this.logger.debug(`JWT_ACCESS_SECRET: ${this.configService.get<string>('JWT_ACCESS_SECRET')}`);
-      this.logger.debug(`JWT_REFRESH_SECRET: ${this.configService.get<string>('JWT_REFRESH_SECRET')}`);
-      this.logger.debug(`Final jwtAccessSecret: ${this.jwtAccessSecret}`);
-      this.logger.debug(`Final jwtRefreshSecret: ${this.jwtRefreshSecret}`);
+      this.logger.debug('Skipping AWS Secrets Manager, using environment variables');
+      
+      const accessSecret = this.configService.get<string>('JWT_ACCESS_SECRET');
+      const refreshSecret = this.configService.get<string>('JWT_REFRESH_SECRET');
+      const fallbackSecret = this.configService.get<string>('JWT_SECRET');
+      
+      this.logger.debug(`JWT secrets from config: accessSecret=${!!accessSecret}, refreshSecret=${!!refreshSecret}, fallbackSecret=${!!fallbackSecret}`);
+      
+      this.jwtAccessSecret = accessSecret || fallbackSecret || 'test-access-secret-fallback';
+      this.jwtRefreshSecret = refreshSecret || fallbackSecret || 'test-refresh-secret-fallback';
+      
+      this.logger.debug(`JWT secrets assigned: accessSecret length=${this.jwtAccessSecret?.length}, refreshSecret length=${this.jwtRefreshSecret?.length}`);
       this.logger.log('JWT secrets initialized from direct environment variables (SKIP_SECRETS_MANAGER=true).');
       return;
     }
@@ -80,6 +83,8 @@ export class JwtService implements OnModuleInit {
     // Production mode: use Secrets Manager
     const jwtAccessSecretId = this.configService.get<string>('JWT_ACCESS_SECRET_ID');
     const jwtRefreshSecretId = this.configService.get<string>('JWT_REFRESH_SECRET_ID');
+
+    this.logger.debug(`JWT secret IDs: accessSecretId=${jwtAccessSecretId}, refreshSecretId=${jwtRefreshSecretId}`);
 
     if (!jwtAccessSecretId || !jwtRefreshSecretId) {
       this.logger.error('JWT_ACCESS_SECRET_ID or JWT_REFRESH_SECRET_ID environment variables are not set.');
@@ -89,8 +94,9 @@ export class JwtService implements OnModuleInit {
     try {
       this.jwtAccessSecret = await this.secretsService.getSecret(jwtAccessSecretId);
       this.jwtRefreshSecret = await this.secretsService.getSecret(jwtRefreshSecretId);
+      this.logger.debug(`JWT secrets from AWS: accessSecret length=${this.jwtAccessSecret?.length}, refreshSecret length=${this.jwtRefreshSecret?.length}`);
       this.logger.log('JWT secrets successfully fetched and initialized from Secrets Manager.');
-    } catch (error: any) { // CHANGED: Explicitly type 'error' as 'any'
+    } catch (error: any) {
       this.logger.error(`Failed to fetch JWT secrets from Secrets Manager: ${error.message}`);
       throw new InternalServerErrorException(`Failed to initialize JWT service: ${error.message}`);
     }
