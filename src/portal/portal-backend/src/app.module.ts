@@ -33,6 +33,8 @@ import { MonitoringModule } from './monitoring/monitoring.module';
 import { QualityModule } from './quality/quality.module';
 import { PQCDataModule } from './pqc-data/pqc-data.module';
 import { CryptoServicesModule } from './services/crypto-services.module';
+import { AppService } from './app.service';
+import { OpenAIService } from './ai/openai.service';
 
 // Removed: import * as AWSXRay from 'aws-xray-sdk'; // REMOVED as per plan
 
@@ -81,6 +83,6 @@ import { CryptoServicesModule } from './services/crypto-services.module';
     CryptoServicesModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [AppService, OpenAIService],
 })
 export class AppModule {}
